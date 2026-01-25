@@ -1,0 +1,218 @@
+.case-manager {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.case-manager-section {
+  margin-bottom: 20px;
+}
+
+.case-manager-section h3 {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.save-case-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.case-id-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: monospace;
+}
+
+.case-id-input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 4px rgba(33, 150, 243, 0.3);
+}
+
+.save-case-btn {
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.save-case-btn:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.save-case-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.cases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.case-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.case-item:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.case-item.selected {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+}
+
+.case-info {
+  flex: 1;
+}
+
+.case-id {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  margin-bottom: 4px;
+  font-family: monospace;
+}
+
+.case-details {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #666;
+}
+
+.case-details span {
+  display: flex;
+  align-items: center;
+}
+
+.case-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.load-case-btn,
+.delete-case-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 600;
+}
+
+.load-case-btn {
+  background-color: #2196f3;
+  color: white;
+}
+
+.load-case-btn:hover {
+  background-color: #1976d2;
+}
+
+.delete-case-btn {
+  background-color: #ff5722;
+  color: white;
+}
+
+.delete-case-btn:hover {
+  background-color: #e64a19;
+}
+
+/* Delete Confirmation Modal */
+.delete-confirmation-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+}
+
+.modal-content h3 {
+  margin: 0 0 12px 0;
+  color: #d32f2f;
+}
+
+.modal-content p {
+  margin: 8px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.modal-content .warning {
+  color: #ff6f00;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+.cancel-btn,
+.confirm-delete-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.cancel-btn {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.cancel-btn:hover {
+  background-color: #d0d0d0;
+}
+
+.confirm-delete-btn {
+  background-color: #d32f2f;
+  color: white;
+}
+
+.confirm-delete-btn:hover {
+  background-color: #b71c1c;
+}

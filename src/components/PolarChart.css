@@ -1,0 +1,16 @@
+.polar-chart-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #fafafa;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.polar-chart-canvas {
+  border: 1px solid #ddd;
+  background-color: #ffffff;
+  border-radius: 4px;
+}

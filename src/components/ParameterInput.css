@@ -1,0 +1,76 @@
+.parameter-input {
+  padding: 12px;
+  border-radius: 6px;
+  border: 2px solid #e0e0e0;
+  background-color: #f9f9f9;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.parameter-input.out-of-range {
+  border-color: #ff4444;
+  background-color: #ffe6e6;
+}
+
+.parameter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.parameter-header label {
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.error-indicator {
+  font-size: 18px;
+  color: #ff0000;
+  font-weight: bold;
+}
+
+.parameter-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.input-field {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 4px rgba(33, 150, 243, 0.3);
+}
+
+.input-field.invalid {
+  border-color: #ff4444;
+  background-color: #fff5f5;
+}
+
+.input-field.invalid:focus {
+  box-shadow: 0 0 4px rgba(255, 68, 68, 0.3);
+}
+
+.unit {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+  min-width: 40px;
+}
+
+.parameter-range {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}

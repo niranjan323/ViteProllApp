@@ -1,0 +1,92 @@
+.app-header {
+    height: 45px;
+    background: #012B4F;
+    color: white;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 0 24px;
+    box-sizing: border-box;
+
+    margin-left: 80px;
+    position: relative;
+    z-index: 10;
+    width: calc(100% - 80px);
+}
+
+/* LEFT SIDE */
+.app-header__left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* 9-dot grid */
+.app-header__grid-icon {
+    display: grid;
+    grid-template-columns: repeat(3, 4px);
+    grid-template-rows: repeat(3, 4px);
+    gap: 4px;
+    opacity: 0.85;
+}
+
+.app-header__grid-icon span {
+    width: 4px;
+    height: 4px;
+    background: white;
+    border-radius: 2px;
+}
+
+/* ABS logo (eagle) */
+.app-header__logo {
+    height: 24px;
+    width: auto;
+}
+
+/* Divider | */
+.app-header__divider {
+    font-size: 18px;
+    font-weight: 400;
+    opacity: 0.75;
+    margin-top: 3%;
+}
+
+/* Digital Rules title */
+.app-header__title {
+    font-size: 16px;
+    font-weight: 500;
+    opacity: 0.95;
+    margin-top: 3%;
+}
+
+/* RIGHT SIDE */
+.app-header__right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.app-header__icon {
+    font-size: 20px !important;
+    color: white !important;
+    opacity: 0.85;
+    cursor: pointer;
+}
+
+.app-header__icon:hover {
+    opacity: 1;
+}
+
+.app-header__login {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.app-header__login span {
+    font-size: 14px;
+    opacity: 0.9;
+}
