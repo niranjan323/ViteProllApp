@@ -469,6 +469,7 @@ const Project: React.FC = () => {
                                         speeds={polarData.speeds}
                                         headings={polarData.headings}
                                         vesselHeading={userInputData.vesselOperation.heading}
+                                        vesselSpeed={userInputData.vesselOperation.speed}
                                         maxRollAngle={userInputData.vesselOperation.maxAllowedRoll}
                                         width={500}
                                         height={500}

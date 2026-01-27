@@ -5,6 +5,7 @@ interface SimplePolarChartProps {
     speeds: number[] | null;
     headings: number[] | null;
     vesselHeading: number;
+    vesselSpeed: number;
     maxRollAngle: number;
     width?: number;
     height?: number;
@@ -12,7 +13,6 @@ interface SimplePolarChartProps {
     orientation?: 'north-up' | 'heads-up';
 }
 
-// EXACT wireframe color gradient
 function getContinuousColor(rollAngle: number, maxRollAngle: number): string {
     // Normalize based on ABSOLUTE scale: 0 to maxRollAngle (not relative to data min/max)
     const normalized = Math.max(0, Math.min(1, rollAngle / maxRollAngle));
@@ -123,6 +123,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
     speeds,
     headings,
     vesselHeading,
+    vesselSpeed,  // ADD THIS
     maxRollAngle,
     width = 650,
     height = 650,
@@ -278,8 +279,26 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         ctx.arc(centerX, centerY, maxRadius, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Vessel icon
-        drawVesselIcon(ctx, centerX, centerY, 18, orientation === 'heads-up' ? 0 : vesselHeading);
+        // Vessel icon - positioned at current speed and heading (NOT at center!)
+        const vesselRadius = (maxRadius * vesselSpeed) / maxSpeed;
+        
+        let vesselAngleRad: number;
+        let vesselX: number;
+        let vesselY: number;
+        
+        if (orientation === 'heads-up') {
+            // In heads-up mode, vessel always points up but stays at origin (0,0 relative position)
+            vesselAngleRad = (-90 * Math.PI / 180);
+            vesselX = centerX;
+            vesselY = centerY - vesselRadius; // Position vessel up from center at its speed
+        } else {
+            // In north-up mode, vessel is positioned at its heading angle
+            vesselAngleRad = ((vesselHeading - 90) * Math.PI / 180);
+            vesselX = centerX + vesselRadius * Math.cos(vesselAngleRad);
+            vesselY = centerY + vesselRadius * Math.sin(vesselAngleRad);
+        }
+        
+        drawVesselIcon(ctx, vesselX, vesselY, 18, orientation === 'heads-up' ? 0 : vesselHeading);
 
         // Wave direction
         const waveAngle = orientation === 'heads-up' ? -vesselHeading : 0;
@@ -317,7 +336,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         // Color legend
         drawColorLegend(ctx, 25, 70, 22, 260, maxRollAngle, mode);
 
-    }, [rollMatrix, speeds, headings, vesselHeading, maxRollAngle, width, height, mode, orientation]);
+    }, [rollMatrix, speeds, headings, vesselHeading, vesselSpeed, maxRollAngle, width, height, mode, orientation]);
 
     if (!rollMatrix || !speeds || !headings) {
         return (
