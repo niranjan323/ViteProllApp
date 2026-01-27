@@ -15,6 +15,15 @@ interface SavedCase {
     parameters: any;
 }
 
+// Wave period conversion factors
+const WAVE_PERIOD_CONVERSIONS = {
+    'tz': { factor: 1.0, label: 'Zero Up-crossing Wave Period, Tz (s)' },
+    'tp-pm': { factor: 0.71, label: 'Peak Wave Period – Pierson-Moskowitz Spectrum, Tp (s)' },
+    'tm-pm': { factor: 0.92, label: 'Mean Wave Period – Pierson-Moskowitz Spectrum, Tm (s)' },
+    'tp-jonswap': { factor: 0.78, label: 'Peak Wave Period – JONSWAP Spectrum (mean), Tp (s)' },
+    'tm-jonswap': { factor: 0.93, label: 'Mean Wave Period – JONSWAP Spectrum (mean), Tm (s)' }
+};
+
 const Project: React.FC = () => {
     const location = useLocation();
     const initialTab = (location.state as { activeTab?: string })?.activeTab || 'project';
@@ -35,15 +44,39 @@ const Project: React.FC = () => {
     }>({ rollMatrix: null, speeds: null, headings: null });
     const [chartDirection, setChartDirection] = useState<'north-up' | 'heads-up'>('north-up');
     const [chartMode, setChartMode] = useState<'continuous' | 'traffic-light'>('continuous');
-    const [wavePeriodType, setWavePeriodType] = useState('tz');
+    const [wavePeriodType, setWavePeriodType] = useState<keyof typeof WAVE_PERIOD_CONVERSIONS>('tz');
 
+    // Calculate displayed wave period value based on selected type
+    const displayedWavePeriod = useMemo(() => {
+        const factor = WAVE_PERIOD_CONVERSIONS[wavePeriodType].factor;
+        return userInputData.seaState.wavePeriod / factor;
+    }, [userInputData.seaState.wavePeriod, wavePeriodType]);
+
+    // Calculate displayed range based on selected type
+    const displayedWavePeriodRange = useMemo(() => {
+        if (!parameterBounds) return null;
+        const factor = WAVE_PERIOD_CONVERSIONS[wavePeriodType].factor;
+        return {
+            lower: parameterBounds.tzLower / factor,
+            upper: parameterBounds.tzUpper / factor
+        };
+    }, [parameterBounds, wavePeriodType]);
+
+    // Handle wave period input change with conversion
+    const handleWavePeriodChange = (inputValue: number) => {
+        const factor = WAVE_PERIOD_CONVERSIONS[wavePeriodType].factor;
+        const tzValue = inputValue * factor; // Convert to Tz
+        updateSeaState({ wavePeriod: tzValue });
+    };
+
+    // ... rest of your existing handlers (handleSaveCase, handleDeleteCase, handleLoadCase)
     const handleSaveCase = () => {
         if (!caseId.trim()) {
             alert('Please enter a case ID');
             return;
         }
         
-        const caseIdToSave = caseId;  // Store ID before clearing
+        const caseIdToSave = caseId;
         
         const newCase: AnalysisCase = {
             id: caseIdToSave,
@@ -125,7 +158,6 @@ const Project: React.FC = () => {
             if (!parameterBounds || !dataLoader) return;
 
             try {
-                // Find data file matching current parameters
                 const findResult = await dataLoader.findDataFile({
                     draft: draftType,
                     gm: userInputData.vesselOperation.gm,
@@ -162,8 +194,6 @@ const Project: React.FC = () => {
         userInputData.vesselOperation.gm,
         userInputData.seaState.significantWaveHeight,
         userInputData.seaState.wavePeriod,
-        userInputData.vesselOperation.speed,
-        userInputData.vesselOperation.heading,
         parameterBounds,
         dataLoader,
     ]);
@@ -235,22 +265,12 @@ const Project: React.FC = () => {
             range: parameterBounds ? `value range [${parameterBounds.hsLower.toFixed(1)}-${parameterBounds.hsUpper.toFixed(1)} m]` : '',
             onChange: (val: number) => updateSeaState({ significantWaveHeight: val }),
             isInvalid: validation?.hs.outOfRange || false
-        },
-        {
-            label: 'Wave Period',
-            value: userInputData.seaState.wavePeriod,
-            unit: '[s]',
-            range: parameterBounds ? `value range [${parameterBounds.tzLower.toFixed(1)}-${parameterBounds.tzUpper.toFixed(1)} s]` : '',
-            onChange: (val: number) => updateSeaState({ wavePeriod: val }),
-            isInvalid: validation?.tz.outOfRange || false
         }
     ];
 
     return (
         <div className="project-container">
-            {/* Left Sidebar */}
             <div className="project-sidebar">
-                {/* Tabs at top */}
                 <div className="project-tabs">
                     <button
                         className={`project-tab ${activeTab === 'project' ? 'active' : ''}`}
@@ -266,12 +286,9 @@ const Project: React.FC = () => {
                     </button>
                 </div>
 
-                {/* Sidebar Content - Changes based on active tab */}
                 <div className="sidebar-content">
-                    {/* USER DATA INPUT TAB CONTENT */}
                     {activeTab === 'input' && (
                         <>
-                            {/* Draft Selection */}
                             <div className="section">
                                 <h3 className="section-title">Draft Type</h3>
                                 <div className="section-content">
@@ -295,7 +312,6 @@ const Project: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Vessel Operation Conditions */}
                             <div className="section">
                                 <h3 className="section-title">Vessel Operation Conditions</h3>
                                 <div className="section-content">
@@ -324,7 +340,6 @@ const Project: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Sea State */}
                             <div className="section">
                                 <h3 className="section-title">Sea State</h3>
                                 <div className="section-content">
@@ -332,56 +347,63 @@ const Project: React.FC = () => {
                                         <div key={index} className="input-row-wrapper">
                                             <div className="input-row">
                                                 <label className="input-label">{item.label}</label>
-                                                {item.label === 'Wave Period' ? (
-                                                    <div className="input-group wave-period-group">
-                                                        <span className={`indicator ${item.isInvalid ? 'invalid' : ''}`}>
-                                                            {item.isInvalid ? '✗' : '✓'}
-                                                        </span>
-                                                        <select 
-                                                            className="wave-period-select"
-                                                            value={wavePeriodType}
-                                                            onChange={(e) => setWavePeriodType(e.target.value)}
-                                                        >
-                                                            <option value="tz">Zero Up-crossing Wave Period, Tz (s)</option>
-                                                            <option value="tp">Peak Wave Period – Pierson-Moskowitz Spectrum, Tp (s)</option>
-                                                            <option value="tm01">Mean Wave Period – Pierson-Moskowitz Spectrum, Tm (s)</option>
-                                                            <option value="tm02">Mean Wave Period – JONSWAP Spectrum (mean), Tm (s)</option>
-                                                        </select>
-                                                        <div className="input-with-unit">
-                                                            <input
-                                                                type="number"
-                                                                className={`input-field ${item.isInvalid ? 'invalid-input' : ''}`}
-                                                                value={item.value}
-                                                                onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
-                                                                step="0.1"
-                                                            />
-                                                            <span className="input-unit">{item.unit}</span>
-                                                        </div>
+                                                <div className="input-group">
+                                                    <span className={`indicator ${item.isInvalid ? 'invalid' : ''}`}>
+                                                        {item.isInvalid ? '✗' : '✓'}
+                                                    </span>
+                                                    <div className="input-with-unit">
+                                                        <input
+                                                            type="number"
+                                                            className={`input-field ${item.isInvalid ? 'invalid-input' : ''}`}
+                                                            value={item.value}
+                                                            onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
+                                                        />
+                                                        <span className="input-unit">{item.unit}</span>
                                                     </div>
-                                                ) : (
-                                                    <div className="input-group">
-                                                        <span className={`indicator ${item.isInvalid ? 'invalid' : ''}`}>
-                                                            {item.isInvalid ? '✗' : '✓'}
-                                                        </span>
-                                                        <div className="input-with-unit">
-                                                            <input
-                                                                type="number"
-                                                                className={`input-field ${item.isInvalid ? 'invalid-input' : ''}`}
-                                                                value={item.value}
-                                                                onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
-                                                            />
-                                                            <span className="input-unit">{item.unit}</span>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                </div>
                                             </div>
                                             {item.range && <div className="input-range">{item.range}</div>}
                                         </div>
                                     ))}
+                                    
+                                    {/* WAVE PERIOD WITH CONVERSION */}
+                                    <div className="input-row-wrapper">
+                                        <div className="input-row">
+                                            <label className="input-label">Wave Period</label>
+                                            <div className="input-group wave-period-group">
+                                                <span className={`indicator ${validation?.tz.outOfRange ? 'invalid' : ''}`}>
+                                                    {validation?.tz.outOfRange ? '✗' : '✓'}
+                                                </span>
+                                                <select 
+                                                    className="wave-period-select"
+                                                    value={wavePeriodType}
+                                                    onChange={(e) => setWavePeriodType(e.target.value as keyof typeof WAVE_PERIOD_CONVERSIONS)}
+                                                >
+                                                    {Object.entries(WAVE_PERIOD_CONVERSIONS).map(([key, config]) => (
+                                                        <option key={key} value={key}>{config.label}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="input-with-unit">
+                                                    <input
+                                                        type="number"
+                                                        className={`input-field ${validation?.tz.outOfRange ? 'invalid-input' : ''}`}
+                                                        value={displayedWavePeriod.toFixed(1)}
+                                                        onChange={(e) => handleWavePeriodChange(parseFloat(e.target.value) || 0)}
+                                                        step="0.1"
+                                                    />
+                                                    <span className="input-unit">[s]</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="input-range">
+                                            {displayedWavePeriodRange ? 
+                                                `value range [${displayedWavePeriodRange.lower.toFixed(1)}-${displayedWavePeriodRange.upper.toFixed(1)} s]` 
+                                                : ''}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Case Files */}
                             <div className="section">
                                 <div className="section-header">
                                     <h3 className="section-title">Case Files</h3>
@@ -431,7 +453,6 @@ const Project: React.FC = () => {
                         </>
                     )}
 
-                    {/* PROJECT TAB CONTENT */}
                     {activeTab === 'project' && (
                         <div className="section">
                             <h3 className="section-title">Project Information</h3>
@@ -451,18 +472,14 @@ const Project: React.FC = () => {
                 </div>
             </div>
 
-            {/* Main Content Area */}
             <div className="project-main">
-                {/* Plot Area */}
                 <div className="plot-section">
                     <div className="plot-header">
                         <span className="plot-tab">Plot Area</span>
                     </div>
                     <div className="plot-canvas">
-                        {/* Polar Chart with Data */}
                         {polarData.rollMatrix && polarData.speeds && polarData.headings ? (
                             <>
-                                {/* Left side - Chart */}
                                 <div className="plot-canvas-left">
                                     <SimplePolarChart
                                         rollMatrix={polarData.rollMatrix}
@@ -474,13 +491,11 @@ const Project: React.FC = () => {
                                         width={500}
                                         height={500}
                                         mode={chartMode}
-                                        orientation={chartDirection} 
+                                        orientation={chartDirection}
                                     />
                                 </div>
                                 
-                                {/* Right side - Options Panel */}
                                 <div className="plot-canvas-right">
-                                    {/* Direction & Mode Panel */}
                                     <div className="chart-options-panel">
                                         <div className="chart-options-section">
                                             <h4 className="options-header">Direction</h4>
@@ -551,17 +566,15 @@ const Project: React.FC = () => {
                                                 </div>
                                                 <div className="param-row">
                                                     <label>Tz</label>
-                                                    <input type="text" value={userInputData.seaState.wavePeriod} readOnly />
+                                                    <input type="text" value={userInputData.seaState.wavePeriod.toFixed(1)} readOnly />
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                {/* Close plot-canvas-right */}
                             </>
                         ) : (
                             <>
-                                {/* Default empty polar plot */}
                                 <div className="y-axis-container">
                                     <div className="y-axis-label">Roll [deg]</div>
                                     <div className="y-axis-scale">
@@ -571,16 +584,13 @@ const Project: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Empty Polar Chart */}
                                 <div className="polar-chart-container">
                                     <div className="polar-chart">
-                                        {/* Compass Labels */}
                                         <div className="compass-label north">N</div>
                                         <div className="compass-label east">E</div>
                                         <div className="compass-label south">S</div>
                                         <div className="compass-label west">W</div>
 
-                                        {/* Degree Labels */}
                                         <div className="degree-label deg-30">30°</div>
                                         <div className="degree-label deg-60">60°</div>
                                         <div className="degree-label deg-120">120°</div>
@@ -590,7 +600,6 @@ const Project: React.FC = () => {
                                         <div className="degree-label deg-300">300°</div>
                                         <div className="degree-label deg-330">330°</div>
 
-                                        {/* Speed Labels */}
                                         <div className="speed-label speed-25">25kn</div>
                                         <div className="speed-label speed-20">20kn</div>
                                         <div className="speed-label speed-15">15kn</div>
@@ -599,14 +608,12 @@ const Project: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Max Roll Label */}
                                 <div className="max-roll-label">Max roll [deg]</div>
                             </>
                         )}
                     </div>
                 </div>
 
-                {/* Saved Cases Section */}
                 <div className="saved-cases-section">
                     <div className="saved-cases-header">
                         <span className="folder-icon">📁</span>
@@ -626,7 +633,6 @@ const Project: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Footer Actions */}
                 <div className="footer-actions">
                     <div className="pdf-icon-box">
                         <span>PDF</span>

@@ -14,41 +14,32 @@ interface SimplePolarChartProps {
 }
 
 function getContinuousColor(rollAngle: number, maxRollAngle: number): string {
-    // Normalize based on ABSOLUTE scale: 0 to maxRollAngle (not relative to data min/max)
     const normalized = Math.max(0, Math.min(1, rollAngle / maxRollAngle));
     
     if (normalized < 0.15) {
-        // Deep Blue to Blue
         const t = normalized / 0.15;
         return `rgb(${Math.round(0 + t * 20)}, ${Math.round(50 + t * 100)}, ${Math.round(140 + t * 95)})`;
     } else if (normalized < 0.3) {
-        // Blue to Cyan
         const t = (normalized - 0.15) / 0.15;
         return `rgb(${Math.round(20 + t * 0)}, ${Math.round(150 + t * 105)}, 235)`;
     } else if (normalized < 0.45) {
-        // Cyan to Turquoise
         const t = (normalized - 0.3) / 0.15;
         return `rgb(${Math.round(20 + t * 30)}, 255, ${Math.round(235 - t * 80)})`;
     } else if (normalized < 0.6) {
-        // Turquoise to Lime Green
         const t = (normalized - 0.45) / 0.15;
         return `rgb(${Math.round(50 + t * 150)}, 255, ${Math.round(155 - t * 155)})`;
     } else if (normalized < 0.75) {
-        // Lime to Yellow
         const t = (normalized - 0.6) / 0.15;
         return `rgb(${Math.round(200 + t * 55)}, 255, 0)`;
     } else if (normalized < 0.9) {
-        // Yellow to Orange
         const t = (normalized - 0.75) / 0.15;
         return `rgb(255, ${Math.round(255 - t * 100)}, 0)`;
     } else {
-        // Orange to Red
         const t = (normalized - 0.9) / 0.1;
         return `rgb(255, ${Math.round(155 - t * 100)}, ${Math.round(0 + t * 50)})`;
     }
 }
 
-// Colors for values ABOVE maxRollAngle (danger zone)
 function getDangerColor(rollAngle: number, maxRollAngle: number): string {
     const excess = (rollAngle - maxRollAngle) / (maxRollAngle * 0.5);
     const t = Math.min(1, excess);
@@ -65,7 +56,6 @@ function getTrafficLightColor(value: number, maxRollAngle: number): string {
     }
 }
 
-// Bilinear interpolation for smooth contours
 function interpolateRoll(
     rollMatrix: number[][],
     speeds: number[],
@@ -73,7 +63,6 @@ function interpolateRoll(
     targetSpeed: number,
     targetHeading: number
 ): number {
-    // Find surrounding indices
     let speedIdx0 = 0;
     let speedIdx1 = 0;
     for (let i = 0; i < speeds.length - 1; i++) {
@@ -96,7 +85,6 @@ function interpolateRoll(
         }
     }
     
-    // Interpolation weights
     const sT = speeds[speedIdx1] !== speeds[speedIdx0] 
         ? (targetSpeed - speeds[speedIdx0]) / (speeds[speedIdx1] - speeds[speedIdx0])
         : 0;
@@ -104,13 +92,11 @@ function interpolateRoll(
         ? (targetHeading - headings[headingIdx0]) / (headings[headingIdx1] - headings[headingIdx0])
         : 0;
     
-    // Get four corner values
     const r00 = rollMatrix[speedIdx0]?.[headingIdx0] || 0;
     const r01 = rollMatrix[speedIdx0]?.[headingIdx1] || 0;
     const r10 = rollMatrix[speedIdx1]?.[headingIdx0] || 0;
     const r11 = rollMatrix[speedIdx1]?.[headingIdx1] || 0;
     
-    // Bilinear interpolation
     const r0 = r00 * (1 - hT) + r01 * hT;
     const r1 = r10 * (1 - hT) + r11 * hT;
     const roll = r0 * (1 - sT) + r1 * sT;
@@ -123,7 +109,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
     speeds,
     headings,
     vesselHeading,
-    vesselSpeed,  // ADD THIS
+    vesselSpeed,
     maxRollAngle,
     width = 650,
     height = 650,
@@ -144,7 +130,6 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
 
-        // Background
         ctx.fillStyle = '#5a6c7d';
         ctx.fillRect(0, 0, width, height);
 
@@ -153,15 +138,13 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         const maxRadius = Math.min(width, height) / 2 - 90;
         const maxSpeed = Math.max(...speeds);
 
-        // Clip to circle
         ctx.save();
         ctx.beginPath();
         ctx.arc(centerX, centerY, maxRadius, 0, Math.PI * 2);
         ctx.clip();
 
-        // DRAW SMOOTH CONTOURS with many rings
-        const numSpeedSteps = 60; // Many steps for smooth gradient
-        const numHeadingSteps = 180; // Fine angular resolution
+        const numSpeedSteps = 60;
+        const numHeadingSteps = 180;
 
         for (let sIdx = 0; sIdx < numSpeedSteps - 1; sIdx++) {
             const speed1 = (sIdx / numSpeedSteps) * maxSpeed;
@@ -173,7 +156,6 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
                 const heading1 = (hIdx / numHeadingSteps) * 360;
                 const heading2 = ((hIdx + 1) / numHeadingSteps) * 360;
 
-                // Apply orientation
                 let h1 = heading1;
                 let h2 = heading2;
                 
@@ -182,12 +164,10 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
                     h2 = (heading2 - vesselHeading + 360) % 360;
                 }
 
-                // Interpolate roll angle at this position
                 const rollAngle = interpolateRoll(rollMatrix, speeds, headings, speed1, h1);
                 
                 if (!isFinite(rollAngle)) continue;
 
-                // Get color
                 let color: string;
                 if (mode === 'traffic-light') {
                     color = getTrafficLightColor(rollAngle, maxRollAngle);
@@ -199,11 +179,9 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
                     }
                 }
 
-                // Convert to canvas coordinates
                 const angle1 = (h1 - 90) * Math.PI / 180;
                 const angle2 = (h2 - 90) * Math.PI / 180;
 
-                // Draw arc segment
                 ctx.fillStyle = color;
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, r1, angle1, angle2, false);
@@ -279,59 +257,61 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         ctx.arc(centerX, centerY, maxRadius, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Vessel icon - positioned at current speed and heading (NOT at center!)
+        // Vessel icon - positioned based on speed and heading
         const vesselRadius = (maxRadius * vesselSpeed) / maxSpeed;
         
-        let vesselAngleRad: number;
         let vesselX: number;
         let vesselY: number;
         
         if (orientation === 'heads-up') {
-            // In heads-up mode, vessel always points up but stays at origin (0,0 relative position)
-            vesselAngleRad = (-90 * Math.PI / 180);
             vesselX = centerX;
-            vesselY = centerY - vesselRadius; // Position vessel up from center at its speed
+            vesselY = centerY - vesselRadius;
         } else {
-            // In north-up mode, vessel is positioned at its heading angle
-            vesselAngleRad = ((vesselHeading - 90) * Math.PI / 180);
+            const vesselAngleRad = ((vesselHeading - 90) * Math.PI / 180);
             vesselX = centerX + vesselRadius * Math.cos(vesselAngleRad);
             vesselY = centerY + vesselRadius * Math.sin(vesselAngleRad);
         }
         
         drawVesselIcon(ctx, vesselX, vesselY, 18, orientation === 'heads-up' ? 0 : vesselHeading);
 
-        // Wave direction
+        // Wave direction arrow - OUTSIDE the plot circle
         const waveAngle = orientation === 'heads-up' ? -vesselHeading : 0;
         const waveRad = (waveAngle - 90) * Math.PI / 180;
-        const waveLen = maxRadius * 0.55;
-        const waveX = centerX + waveLen * Math.cos(waveRad);
-        const waveY = centerY + waveLen * Math.sin(waveRad);
+        const waveStartR = maxRadius + 10;
+        const waveLen = 50;
+        const waveStartX = centerX + waveStartR * Math.cos(waveRad);
+        const waveStartY = centerY + waveStartR * Math.sin(waveRad);
+        const waveEndX = centerX + (waveStartR + waveLen) * Math.cos(waveRad);
+        const waveEndY = centerY + (waveStartR + waveLen) * Math.sin(waveRad);
 
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(waveX, waveY);
+        ctx.moveTo(waveStartX, waveStartY);
+        ctx.lineTo(waveEndX, waveEndY);
         ctx.stroke();
 
-        // Arrow
+        // Arrow head
         const arrowSize = 12;
         const arrowAngle1 = waveRad - Math.PI / 6;
         const arrowAngle2 = waveRad + Math.PI / 6;
         
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.beginPath();
-        ctx.moveTo(waveX, waveY);
-        ctx.lineTo(waveX - arrowSize * Math.cos(arrowAngle1), waveY - arrowSize * Math.sin(arrowAngle1));
-        ctx.lineTo(waveX - arrowSize * Math.cos(arrowAngle2), waveY - arrowSize * Math.sin(arrowAngle2));
+        ctx.moveTo(waveEndX, waveEndY);
+        ctx.lineTo(waveEndX - arrowSize * Math.cos(arrowAngle1), waveEndY - arrowSize * Math.sin(arrowAngle1));
+        ctx.lineTo(waveEndX - arrowSize * Math.cos(arrowAngle2), waveEndY - arrowSize * Math.sin(arrowAngle2));
         ctx.closePath();
         ctx.fill();
 
+        // Wave label OUTSIDE
         ctx.fillStyle = '#fff';
         ctx.font = '11px Arial';
         ctx.textAlign = 'left';
-        ctx.fillText('Wave', waveX + 15, waveY - 6);
-        ctx.fillText('Direction', waveX + 15, waveY + 6);
+        const labelOffsetX = 15 * Math.cos(waveRad);
+        const labelOffsetY = 15 * Math.sin(waveRad);
+        ctx.fillText('Wave', waveEndX + labelOffsetX, waveEndY + labelOffsetY - 6);
+        ctx.fillText('Direction', waveEndX + labelOffsetX, waveEndY + labelOffsetY + 6);
 
         // Color legend
         drawColorLegend(ctx, 25, 70, 22, 260, maxRollAngle, mode);
