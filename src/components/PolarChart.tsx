@@ -1,236 +1,233 @@
-import React, { useEffect, useRef } from 'react';
-import './PolarChart.css';
+import React, { useState } from 'react';
+import { SimplePolarChart } from './SimplePolarChart';
 
-export type VisualizationMode = 'continuous' | 'trafficLight';
-export type OrientationMode = 'northUp' | 'vesselHeadingUp';
-
-interface PolarChartProps {
-  rollMatrix: number[][] | null;
-  speeds: number[];
-  headings: number[];
-  maxRollAngle: number;
-  vesselHeading: number;
-  visualizationMode: VisualizationMode;
-  orientationMode: OrientationMode;
-  width?: number;
-  height?: number;
+// Test data generator - creates a distinctive pattern
+function generateTestData() {
+    const speeds = [0, 5, 10, 15, 20, 25];
+    const headings = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+    
+    // Create a distinctive pattern: high roll angles at specific headings
+    const rollMatrix = speeds.map((speed, speedIdx) => {
+        return headings.map((heading, headingIdx) => {
+            // Create a pattern that's easy to verify:
+            // - Low roll (0-10°) at 0° and 180° (head/following seas)
+            // - High roll (20-30°) at 90° and 270° (beam seas)
+            // - Medium roll (10-20°) at other angles
+            
+            const speedFactor = speedIdx / speeds.length;
+            
+            if (heading === 0 || heading === 180) {
+                // Head/following seas - low roll
+                return 5 + speedFactor * 10;
+            } else if (heading === 90 || heading === 270) {
+                // Beam seas - high roll
+                return 20 + speedFactor * 15;
+            } else if (heading === 30 || heading === 150 || heading === 210 || heading === 330) {
+                // Quartering seas - medium-high roll
+                return 15 + speedFactor * 10;
+            } else {
+                // Other angles - medium roll
+                return 10 + speedFactor * 10;
+            }
+        });
+    });
+    
+    return { speeds, headings, rollMatrix };
 }
 
-const PolarChart: React.FC<PolarChartProps> = ({
-  rollMatrix,
-  speeds,
-  headings,
-  maxRollAngle,
-  vesselHeading,
-  visualizationMode,
-  orientationMode,
-  width = 600,
-  height = 600,
-}) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (!canvasRef.current || !rollMatrix) return;
-
-    const ctx = canvasRef.current.getContext('2d');
-    if (!ctx) return;
-
-    // Clear canvas
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, width, height);
-
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const maxRadius = Math.min(width, height) / 2 - 40;
-
-    // Draw grid and labels
-    drawGrid(ctx, centerX, centerY, maxRadius, speeds);
-
-    // Draw polar plot data
-    if (rollMatrix.length > 0 && headings.length > 0) {
-      drawPolarData(
-        ctx,
-        rollMatrix,
-        headings,
-        speeds,
-        centerX,
-        centerY,
-        maxRadius,
-        maxRollAngle,
-        visualizationMode,
-        orientationMode,
-        vesselHeading
-      );
-    }
-
-    // Draw legend
-    drawLegend(ctx, visualizationMode, maxRollAngle, width, height);
-  }, [rollMatrix, speeds, headings, maxRollAngle, vesselHeading, visualizationMode, orientationMode, width, height]);
-
-  const drawGrid = (
-    ctx: CanvasRenderingContext2D,
-    centerX: number,
-    centerY: number,
-    maxRadius: number,
-    speeds: number[]
-  ) => {
-    ctx.strokeStyle = '#e0e0e0';
-    ctx.lineWidth = 1;
-    ctx.fillStyle = '#666';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'center';
-
-    // Draw concentric circles for speed
-    const speedLevels = speeds.length > 0 ? speeds : [5, 10, 15, 20, 25];
-    const maxSpeed = Math.max(...speedLevels);
-
-    speedLevels.forEach((speed) => {
-      const radius = (speed / maxSpeed) * maxRadius;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-      ctx.stroke();
-
-      // Speed label
-      ctx.fillText(`${speed}kts`, centerX, centerY - radius - 5);
-    });
-
-    // Draw radial lines for headings
-    ctx.strokeStyle = '#d0d0d0';
-    for (let heading = 0; heading < 360; heading += 30) {
-      const rad = (heading * Math.PI) / 180;
-      const x1 = centerX + maxRadius * Math.cos(rad);
-      const y1 = centerY + maxRadius * Math.sin(rad);
-
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.lineTo(x1, y1);
-      ctx.stroke();
-
-      // Heading label
-      const labelRad = (heading * Math.PI) / 180;
-      const labelX = centerX + (maxRadius + 20) * Math.cos(labelRad);
-      const labelY = centerY + (maxRadius + 20) * Math.sin(labelRad);
-      ctx.fillStyle = '#000';
-      ctx.fillText(`${heading}°`, labelX, labelY);
-    }
-  };
-
-  const drawPolarData = (
-    ctx: CanvasRenderingContext2D,
-    rollMatrix: number[][],
-    headings: number[],
-    speeds: number[],
-    centerX: number,
-    centerY: number,
-    maxRadius: number,
-    maxRollAngle: number,
-    visualizationMode: VisualizationMode,
-    orientationMode: OrientationMode,
-    vesselHeading: number
-  ) => {
-    const maxSpeed = speeds.length > 0 ? Math.max(...speeds) : 25;
-
-    rollMatrix.forEach((speedRow, speedIdx) => {
-      if (speedIdx >= speeds.length) return;
-
-      speedRow.forEach((rollAngle, headingIdx) => {
-        if (headingIdx >= headings.length) return;
-
-        const speed = speeds[speedIdx];
-        const heading = headings[headingIdx];
-
-        // Apply orientation offset
-        let plotHeading = heading;
-        if (orientationMode === 'vesselHeadingUp') {
-          plotHeading = heading - vesselHeading;
-          if (plotHeading < 0) plotHeading += 360;
-        }
-
-        const rad = (plotHeading * Math.PI) / 180;
-        const radius = (speed / maxSpeed) * maxRadius;
-
-        const x = centerX + radius * Math.cos(rad);
-        const y = centerY + radius * Math.sin(rad);
-
-        // Get color based on visualization mode
-        const color = getColor(rollAngle, maxRollAngle, visualizationMode);
-
-        // Draw point
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y, 2, 0, 2 * Math.PI);
-        ctx.fill();
-      });
-    });
-  };
-
-  const getColor = (rollAngle: number, maxRollAngle: number, mode: VisualizationMode): string => {
-    if (mode === 'trafficLight') {
-      if (rollAngle <= maxRollAngle - 5) return '#00aa00'; // Green
-      if (rollAngle <= maxRollAngle) return '#ffaa00'; // Yellow
-      return '#ff0000'; // Red
-    } else {
-      // Continuous mode - color gradient
-      const normalizedRoll = Math.min(rollAngle / maxRollAngle, 2);
-      if (normalizedRoll <= 0.5) {
-        return `hsl(120, 100%, ${100 - normalizedRoll * 100}%)`;
-      } else if (normalizedRoll <= 1) {
-        return `hsl(${120 - (normalizedRoll - 0.5) * 240}, 100%, 50%)`;
-      } else {
-        return '#ff0000';
-      }
-    }
-  };
-
-  const drawLegend = (
-    ctx: CanvasRenderingContext2D,
-    mode: VisualizationMode,
-    maxRollAngle: number,
-    canvasWidth: number,
-    canvasHeight: number
-  ) => {
-    const legendX = 20;
-    const legendY = canvasHeight - 80;
-
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 12px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText('Legend:', legendX, legendY);
-
-    if (mode === 'trafficLight') {
-      const items = [
-        { color: '#00aa00', label: `Safe (0-${maxRollAngle - 5}°)` },
-        { color: '#ffaa00', label: `Caution (${maxRollAngle - 5}-${maxRollAngle}°)` },
-        { color: '#ff0000', label: `Danger (>${maxRollAngle}°)` },
-      ];
-
-      items.forEach((item, idx) => {
-        const y = legendY + 20 + idx * 15;
-        ctx.fillStyle = item.color;
-        ctx.fillRect(legendX, y, 15, 15);
-        ctx.fillStyle = '#000';
-        ctx.font = '11px Arial';
-        ctx.fillText(item.label, legendX + 20, y + 12);
-      });
-    } else {
-      ctx.font = '11px Arial';
-      ctx.fillStyle = '#000';
-      ctx.fillText('Green: Safe', legendX, legendY + 20);
-      ctx.fillText('Yellow: Warning', legendX, legendY + 35);
-      ctx.fillText('Red: Danger', legendX, legendY + 50);
-    }
-  };
-
-  return (
-    <div className="polar-chart-container">
-      <canvas
-        ref={canvasRef}
-        width={width}
-        height={height}
-        className="polar-chart-canvas"
-      />
-    </div>
-  );
+export const PolarChartTest: React.FC = () => {
+    const { speeds, headings, rollMatrix } = generateTestData();
+    
+    const [vesselHeading, setVesselHeading] = useState(90);
+    const [vesselSpeed, setVesselSpeed] = useState(12);
+    const [maxRollAngle, setMaxRollAngle] = useState(20);
+    const [mode, setMode] = useState<'continuous' | 'traffic-light'>('traffic-light');
+    const [orientation, setOrientation] = useState<'north-up' | 'heads-up'>('north-up');
+    
+    return (
+        <div style={{ 
+            padding: '20px', 
+            backgroundColor: '#f0f0f0',
+            minHeight: '100vh',
+            fontFamily: 'Arial, sans-serif'
+        }}>
+            <h1 style={{ marginBottom: '20px' }}>Polar Chart Test - Verify North Up vs Heads Up</h1>
+            
+            {/* Test Pattern Description */}
+            <div style={{ 
+                backgroundColor: '#fff', 
+                padding: '15px', 
+                borderRadius: '8px',
+                marginBottom: '20px',
+                border: '2px solid #2196f3'
+            }}>
+                <h3>Expected Pattern:</h3>
+                <ul>
+                    <li><strong style={{ color: '#00DD00' }}>GREEN zones</strong> (safe): at 0° and 180° (head/following seas)</li>
+                    <li><strong style={{ color: '#DD0055' }}>RED zones</strong> (dangerous): at 90° and 270° (beam seas)</li>
+                    <li><strong style={{ color: '#FFDD00' }}>YELLOW zones</strong>: at quartering angles (30°, 150°, 210°, 330°)</li>
+                </ul>
+                <p style={{ marginTop: '10px', fontWeight: 'bold' }}>
+                    ⚠️ When switching to Heads Up mode, the SAME pattern should appear but ROTATED!
+                </p>
+            </div>
+            
+            {/* Controls */}
+            <div style={{ 
+                backgroundColor: '#fff', 
+                padding: '20px', 
+                borderRadius: '8px',
+                marginBottom: '20px'
+            }}>
+                <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                    gap: '15px'
+                }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                            Vessel Heading: {vesselHeading}°
+                        </label>
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="360" 
+                            step="10"
+                            value={vesselHeading}
+                            onChange={(e) => setVesselHeading(Number(e.target.value))}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                    
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                            Vessel Speed: {vesselSpeed} kt
+                        </label>
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="25" 
+                            step="1"
+                            value={vesselSpeed}
+                            onChange={(e) => setVesselSpeed(Number(e.target.value))}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                    
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                            Max Roll Angle: {maxRollAngle}°
+                        </label>
+                        <input 
+                            type="range" 
+                            min="10" 
+                            max="35" 
+                            step="1"
+                            value={maxRollAngle}
+                            onChange={(e) => setMaxRollAngle(Number(e.target.value))}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                </div>
+                
+                <div style={{ marginTop: '20px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                    <div>
+                        <label style={{ fontWeight: 'bold', marginRight: '10px' }}>Orientation:</label>
+                        <label style={{ marginRight: '15px' }}>
+                            <input 
+                                type="radio" 
+                                checked={orientation === 'north-up'}
+                                onChange={() => setOrientation('north-up')}
+                            /> North Up
+                        </label>
+                        <label>
+                            <input 
+                                type="radio" 
+                                checked={orientation === 'heads-up'}
+                                onChange={() => setOrientation('heads-up')}
+                            /> Heads Up
+                        </label>
+                    </div>
+                    
+                    <div>
+                        <label style={{ fontWeight: 'bold', marginRight: '10px' }}>Mode:</label>
+                        <label style={{ marginRight: '15px' }}>
+                            <input 
+                                type="radio" 
+                                checked={mode === 'continuous'}
+                                onChange={() => setMode('continuous')}
+                            /> Continuous
+                        </label>
+                        <label>
+                            <input 
+                                type="radio" 
+                                checked={mode === 'traffic-light'}
+                                onChange={() => setMode('traffic-light')}
+                            /> Traffic Light
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            {/* Test Instructions */}
+            <div style={{ 
+                backgroundColor: '#fffbcc', 
+                padding: '15px', 
+                borderRadius: '8px',
+                marginBottom: '20px',
+                border: '2px solid #ffc107'
+            }}>
+                <h3>How to Test:</h3>
+                <ol>
+                    <li><strong>Set Heading to 0°, North Up mode</strong>: You should see green at top/bottom, red at left/right</li>
+                    <li><strong>Set Heading to 0°, Heads Up mode</strong>: Pattern should look IDENTICAL (vessel heading = 0°)</li>
+                    <li><strong>Set Heading to 90°, North Up mode</strong>: Green at top/bottom, red at left/right (same as step 1)</li>
+                    <li><strong>Set Heading to 90°, Heads Up mode</strong>: Pattern should ROTATE 90° CCW - green should now be at RIGHT/LEFT, red at TOP/BOTTOM</li>
+                    <li><strong>Verify vessel icon</strong>: Should always point in correct direction</li>
+                </ol>
+            </div>
+            
+            {/* The Chart */}
+            <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center',
+                backgroundColor: '#fff',
+                padding: '20px',
+                borderRadius: '8px'
+            }}>
+                <SimplePolarChart
+                    rollMatrix={rollMatrix}
+                    speeds={speeds}
+                    headings={headings}
+                    vesselHeading={vesselHeading}
+                    vesselSpeed={vesselSpeed}
+                    maxRollAngle={maxRollAngle}
+                    mode={mode}
+                    orientation={orientation}
+                    width={650}
+                    height={650}
+                />
+            </div>
+            
+            {/* Debug Info */}
+            <div style={{ 
+                backgroundColor: '#f5f5f5', 
+                padding: '15px', 
+                borderRadius: '8px',
+                marginTop: '20px',
+                fontFamily: 'monospace',
+                fontSize: '12px'
+            }}>
+                <h4>Debug Info:</h4>
+                <p>Orientation: {orientation}</p>
+                <p>Mode: {mode}</p>
+                <p>Vessel Heading: {vesselHeading}°</p>
+                <p>Vessel Speed: {vesselSpeed} kt</p>
+                <p>Max Roll: {maxRollAngle}°</p>
+                <p>Data matrix size: {rollMatrix.length} speeds × {rollMatrix[0]?.length} headings</p>
+            </div>
+        </div>
+    );
 };
 
 export default PolarChart;

@@ -56,6 +56,12 @@ function getTrafficLightColor(value: number, maxRollAngle: number): string {
     }
 }
 
+function normalizeAngle(angle: number): number {
+    while (angle < 0) angle += 360;
+    while (angle >= 360) angle -= 360;
+    return angle;
+}
+
 function interpolateRoll(
     rollMatrix: number[][],
     speeds: number[],
@@ -63,35 +69,90 @@ function interpolateRoll(
     targetSpeed: number,
     targetHeading: number
 ): number {
+    // Normalize target heading to [0, 360)
+    targetHeading = normalizeAngle(targetHeading);
+    
+    // Find speed indices
     let speedIdx0 = 0;
     let speedIdx1 = 0;
-    for (let i = 0; i < speeds.length - 1; i++) {
-        if (speeds[i] <= targetSpeed && targetSpeed <= speeds[i + 1]) {
-            speedIdx0 = i;
-            speedIdx1 = i + 1;
-            break;
+    
+    if (targetSpeed <= speeds[0]) {
+        speedIdx0 = speedIdx1 = 0;
+    } else if (targetSpeed >= speeds[speeds.length - 1]) {
+        speedIdx0 = speedIdx1 = speeds.length - 1;
+    } else {
+        for (let i = 0; i < speeds.length - 1; i++) {
+            if (speeds[i] <= targetSpeed && targetSpeed <= speeds[i + 1]) {
+                speedIdx0 = i;
+                speedIdx1 = i + 1;
+                break;
+            }
         }
     }
     
+    // Find heading indices (handle circular nature)
     let headingIdx0 = 0;
     let headingIdx1 = 0;
+    let found = false;
+    
     for (let i = 0; i < headings.length; i++) {
         const h1 = headings[i];
         const h2 = headings[(i + 1) % headings.length];
-        if (h1 <= targetHeading && targetHeading <= h2) {
-            headingIdx0 = i;
-            headingIdx1 = (i + 1) % headings.length;
-            break;
+        
+        // Check if target is between h1 and h2 (accounting for wraparound)
+        if (h2 > h1) {
+            // No wraparound
+            if (h1 <= targetHeading && targetHeading <= h2) {
+                headingIdx0 = i;
+                headingIdx1 = (i + 1) % headings.length;
+                found = true;
+                break;
+            }
+        } else {
+            // Wraparound case (e.g., 330° to 30°)
+            if (targetHeading >= h1 || targetHeading <= h2) {
+                headingIdx0 = i;
+                headingIdx1 = (i + 1) % headings.length;
+                found = true;
+                break;
+            }
         }
     }
     
+    if (!found) {
+        // Fallback: find closest heading
+        let minDiff = 360;
+        for (let i = 0; i < headings.length; i++) {
+            const diff = Math.abs(targetHeading - headings[i]);
+            const circularDiff = Math.min(diff, 360 - diff);
+            if (circularDiff < minDiff) {
+                minDiff = circularDiff;
+                headingIdx0 = headingIdx1 = i;
+            }
+        }
+    }
+    
+    // Calculate interpolation factors
     const sT = speeds[speedIdx1] !== speeds[speedIdx0] 
         ? (targetSpeed - speeds[speedIdx0]) / (speeds[speedIdx1] - speeds[speedIdx0])
         : 0;
-    const hT = headings[headingIdx1] !== headings[headingIdx0]
-        ? (targetHeading - headings[headingIdx0]) / (headings[headingIdx1] - headings[headingIdx0])
-        : 0;
     
+    let hT = 0;
+    if (headingIdx0 !== headingIdx1) {
+        const h0 = headings[headingIdx0];
+        const h1 = headings[headingIdx1];
+        
+        if (h1 > h0) {
+            hT = (targetHeading - h0) / (h1 - h0);
+        } else {
+            // Wraparound case
+            const adjustedTarget = targetHeading < h0 ? targetHeading + 360 : targetHeading;
+            const adjustedH1 = h1 + 360;
+            hT = (adjustedTarget - h0) / (adjustedH1 - h0);
+        }
+    }
+    
+    // Bilinear interpolation
     const r00 = rollMatrix[speedIdx0]?.[headingIdx0] || 0;
     const r01 = rollMatrix[speedIdx0]?.[headingIdx1] || 0;
     const r10 = rollMatrix[speedIdx1]?.[headingIdx0] || 0;
@@ -146,6 +207,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         const numSpeedSteps = 60;
         const numHeadingSteps = 180;
 
+        
         for (let sIdx = 0; sIdx < numSpeedSteps - 1; sIdx++) {
             const speed1 = (sIdx / numSpeedSteps) * maxSpeed;
             const speed2 = ((sIdx + 1) / numSpeedSteps) * maxSpeed;
@@ -153,18 +215,27 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
             const r2 = (maxRadius * speed2) / maxSpeed;
 
             for (let hIdx = 0; hIdx < numHeadingSteps; hIdx++) {
-                const heading1 = (hIdx / numHeadingSteps) * 360;
-                const heading2 = ((hIdx + 1) / numHeadingSteps) * 360;
+                // These represent ABSOLUTE headings in the world
+                const absoluteHeading1 = (hIdx / numHeadingSteps) * 360;
+                const absoluteHeading2 = ((hIdx + 1) / numHeadingSteps) * 360;
 
-                let h1 = heading1;
-                let h2 = heading2;
+                // Convert absolute headings to display positions
+                let displayAngle1: number;
+                let displayAngle2: number;
                 
                 if (orientation === 'heads-up') {
-                    h1 = (heading1 - vesselHeading + 360) % 360;
-                    h2 = (heading2 - vesselHeading + 360) % 360;
+                    // In Heads Up mode: display = absolute - vesselHeading
+                    // This rotates the plot so vessel bow points up
+                    displayAngle1 = absoluteHeading1 - vesselHeading;
+                    displayAngle2 = absoluteHeading2 - vesselHeading;
+                } else {
+                    // In North Up mode: display = absolute (no rotation)
+                    displayAngle1 = absoluteHeading1;
+                    displayAngle2 = absoluteHeading2;
                 }
 
-                const rollAngle = interpolateRoll(rollMatrix, speeds, headings, speed1, h1);
+                // Always query data at the ABSOLUTE heading
+                const rollAngle = interpolateRoll(rollMatrix, speeds, headings, speed1, absoluteHeading1);
                 
                 if (!isFinite(rollAngle)) continue;
 
@@ -179,8 +250,8 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
                     }
                 }
 
-                const angle1 = (h1 - 90) * Math.PI / 180;
-                const angle2 = (h2 - 90) * Math.PI / 180;
+                const angle1 = (displayAngle1 - 90) * Math.PI / 180;
+                const angle2 = (displayAngle2 - 90) * Math.PI / 180;
 
                 ctx.fillStyle = color;
                 ctx.beginPath();
@@ -193,7 +264,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
 
         ctx.restore();
 
-        // Grid circles
+        // Grid circles (these don't rotate)
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
         ctx.lineWidth = 1;
 
@@ -212,11 +283,17 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
             ctx.fillText(`${step}kn`, centerX, centerY - r - 3);
         }
 
-        // Radial lines
+        // Radial lines (these rotate with the plot in heads-up mode)
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.lineWidth = 1;
+        
         for (let angle = 0; angle < 360; angle += 30) {
-            const rad = (angle - 90) * Math.PI / 180;
+            let displayAngle = angle;
+            if (orientation === 'heads-up') {
+                displayAngle = angle - vesselHeading;
+            }
+            
+            const rad = (displayAngle - 90) * Math.PI / 180;
             const x = centerX + maxRadius * Math.cos(rad);
             const y = centerY + maxRadius * Math.sin(rad);
             
@@ -226,11 +303,17 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
             ctx.stroke();
         }
 
-        // Degree labels
+        // Degree labels (rotate in heads-up mode)
         ctx.fillStyle = '#ddd';
         ctx.font = '11px Arial';
+        
         for (let angle = 0; angle < 360; angle += 30) {
-            const rad = (angle - 90) * Math.PI / 180;
+            let displayAngle = angle;
+            if (orientation === 'heads-up') {
+                displayAngle = angle - vesselHeading;
+            }
+            
+            const rad = (displayAngle - 90) * Math.PI / 180;
             const labelR = maxRadius + 18;
             const x = centerX + labelR * Math.cos(rad);
             const y = centerY + labelR * Math.sin(rad);
@@ -240,15 +323,32 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
             ctx.fillText(`${angle}°`, x, y);
         }
 
-        // Compass
+        // Compass labels (rotate in heads-up mode)
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 20px Arial';
         const compassR = maxRadius + 45;
         
-        ctx.fillText('N', centerX, centerY - compassR);
-        ctx.fillText('E', centerX + compassR, centerY);
-        ctx.fillText('S', centerX, centerY + compassR);
-        ctx.fillText('W', centerX - compassR, centerY);
+        const compassLabels = [
+            { angle: 0, label: 'N' },
+            { angle: 90, label: 'E' },
+            { angle: 180, label: 'S' },
+            { angle: 270, label: 'W' }
+        ];
+        
+        compassLabels.forEach(({ angle, label }) => {
+            let displayAngle = angle;
+            if (orientation === 'heads-up') {
+                displayAngle = angle - vesselHeading;
+            }
+            
+            const rad = (displayAngle - 90) * Math.PI / 180;
+            const x = centerX + compassR * Math.cos(rad);
+            const y = centerY + compassR * Math.sin(rad);
+            
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, x, y);
+        });
 
         // Outer circle
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
@@ -262,27 +362,48 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         
         let vesselX: number;
         let vesselY: number;
+        let vesselDisplayHeading: number;
         
         if (orientation === 'heads-up') {
+            // In heads-up mode, vessel appears at its speed radius pointing straight up
+            // The bow points toward the top of the screen (relative heading = 0)
             vesselX = centerX;
             vesselY = centerY - vesselRadius;
+            vesselDisplayHeading = 0; 
         } else {
+            // In north-up mode, vessel is positioned based on absolute heading
             const vesselAngleRad = ((vesselHeading - 90) * Math.PI / 180);
             vesselX = centerX + vesselRadius * Math.cos(vesselAngleRad);
             vesselY = centerY + vesselRadius * Math.sin(vesselAngleRad);
+            vesselDisplayHeading = vesselHeading;
         }
         
-        drawVesselIcon(ctx, vesselX, vesselY, 18, orientation === 'heads-up' ? 0 : vesselHeading);
+        drawVesselIcon(ctx, vesselX, vesselY, 18, vesselDisplayHeading);
 
-        // Wave direction arrow - OUTSIDE the plot circle
-        const waveAngle = orientation === 'heads-up' ? -vesselHeading : 0;
-        const waveRad = (waveAngle - 90) * Math.PI / 180;
-        const waveStartR = maxRadius + 10;
+        // Wave direction arrow
+        // In Heads Up mode, wave direction rotates with the plot
+        // Wave is always coming FROM 0° (North in absolute terms)
+        let waveDisplayAngle: number;
+        
+        if (orientation === 'heads-up') {
+            // The wave is coming from North (0°), but the plot has rotated
+            // So the wave arrow should point to where North is on the rotated plot
+            waveDisplayAngle = -vesselHeading;
+        } else {
+            // North-up: wave comes from North (0°)
+            waveDisplayAngle = 0;
+        }
+        
+        const waveRad = (waveDisplayAngle - 90) * Math.PI / 180;
+        const waveStartR = maxRadius + 60;  // Start outside the circle
         const waveLen = 50;
+        const waveEndR = maxRadius + 10;    // End just outside the plot circle
+        
+        // Draw arrow pointing INWARD (from outside toward center)
         const waveStartX = centerX + waveStartR * Math.cos(waveRad);
         const waveStartY = centerY + waveStartR * Math.sin(waveRad);
-        const waveEndX = centerX + (waveStartR + waveLen) * Math.cos(waveRad);
-        const waveEndY = centerY + (waveStartR + waveLen) * Math.sin(waveRad);
+        const waveEndX = centerX + waveEndR * Math.cos(waveRad);
+        const waveEndY = centerY + waveEndR * Math.sin(waveRad);
 
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.lineWidth = 2.5;
@@ -291,27 +412,29 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         ctx.lineTo(waveEndX, waveEndY);
         ctx.stroke();
 
-        // Arrow head
+        // Arrow head - pointing INWARD toward the center
         const arrowSize = 12;
-        const arrowAngle1 = waveRad - Math.PI / 6;
-        const arrowAngle2 = waveRad + Math.PI / 6;
+        // Reverse the angle for inward-pointing arrow
+        const arrowAngle1 = waveRad + Math.PI - Math.PI / 6;
+        const arrowAngle2 = waveRad + Math.PI + Math.PI / 6;
         
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.beginPath();
         ctx.moveTo(waveEndX, waveEndY);
-        ctx.lineTo(waveEndX - arrowSize * Math.cos(arrowAngle1), waveEndY - arrowSize * Math.sin(arrowAngle1));
-        ctx.lineTo(waveEndX - arrowSize * Math.cos(arrowAngle2), waveEndY - arrowSize * Math.sin(arrowAngle2));
+        ctx.lineTo(waveEndX + arrowSize * Math.cos(arrowAngle1), waveEndY + arrowSize * Math.sin(arrowAngle1));
+        ctx.lineTo(waveEndX + arrowSize * Math.cos(arrowAngle2), waveEndY + arrowSize * Math.sin(arrowAngle2));
         ctx.closePath();
         ctx.fill();
 
-        // Wave label OUTSIDE
+        // Wave label - position at the start (outside)
         ctx.fillStyle = '#fff';
         ctx.font = '11px Arial';
-        ctx.textAlign = 'left';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
         const labelOffsetX = 15 * Math.cos(waveRad);
         const labelOffsetY = 15 * Math.sin(waveRad);
-        ctx.fillText('Wave', waveEndX + labelOffsetX, waveEndY + labelOffsetY - 6);
-        ctx.fillText('Direction', waveEndX + labelOffsetX, waveEndY + labelOffsetY + 6);
+        ctx.fillText('Wave', waveStartX + labelOffsetX, waveStartY + labelOffsetY - 6);
+        ctx.fillText('Direction', waveStartX + labelOffsetX, waveStartY + labelOffsetY + 6);
 
         // Color legend
         drawColorLegend(ctx, 25, 70, 22, 260, maxRollAngle, mode);
@@ -393,7 +516,7 @@ function drawColorLegend(
 ) {
     if (mode === 'continuous') {
         for (let i = 0; i < height; i++) {
-            const rollAngle = maxRollAngle * (1 - i / height);
+            const rollAngle = maxRollAngle * 1.5 * (1 - i / height);
             if (rollAngle <= maxRollAngle) {
                 ctx.fillStyle = getContinuousColor(rollAngle, maxRollAngle);
             } else {
