@@ -489,8 +489,8 @@ const Project: React.FC = () => {
                                         vesselSpeed={userInputData.vesselOperation.speed}
                                         maxRollAngle={userInputData.vesselOperation.maxAllowedRoll}
                                         meanWaveDirection={userInputData.seaState.meanWaveDirection}
-                                        width={500}
-                                        height={500}
+                                        width={750}
+                                        height={750}
                                         mode={chartMode}
                                         orientation={chartDirection}
                                     />
