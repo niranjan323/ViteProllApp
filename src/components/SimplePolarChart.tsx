@@ -15,45 +15,73 @@ interface SimplePolarChartProps {
 }
 
 function getContinuousColor(rollAngle: number, maxRollAngle: number): string {
-    const normalized = Math.max(0, Math.min(1, rollAngle / maxRollAngle));
-    
-    if (normalized < 0.15) {
-        const t = normalized / 0.15;
-        return `rgb(${Math.round(0 + t * 20)}, ${Math.round(50 + t * 100)}, ${Math.round(140 + t * 95)})`;
-    } else if (normalized < 0.3) {
-        const t = (normalized - 0.15) / 0.15;
-        return `rgb(${Math.round(20 + t * 0)}, ${Math.round(150 + t * 105)}, 235)`;
-    } else if (normalized < 0.45) {
-        const t = (normalized - 0.3) / 0.15;
-        return `rgb(${Math.round(20 + t * 30)}, 255, ${Math.round(235 - t * 80)})`;
-    } else if (normalized < 0.6) {
-        const t = (normalized - 0.45) / 0.15;
-        return `rgb(${Math.round(50 + t * 150)}, 255, ${Math.round(155 - t * 155)})`;
-    } else if (normalized < 0.75) {
-        const t = (normalized - 0.6) / 0.15;
-        return `rgb(${Math.round(200 + t * 55)}, 255, 0)`;
-    } else if (normalized < 0.9) {
-        const t = (normalized - 0.75) / 0.15;
+    // Color mapping EXACTLY matching wireframe with proper color codes
+
+    // 0-3°: Deep Blue → Blue (matching wireframe)
+    if (rollAngle < 3) {
+        const t = rollAngle / 3;
+        return `rgb(${Math.round(0 + t * 30)}, ${Math.round(50 + t * 100)}, ${Math.round(180 + t * 75)})`;
+    }
+    // 3-5°: Blue → Cyan (matching wireframe)
+    else if (rollAngle < 5) {
+        const t = (rollAngle - 3) / 2;
+        return `rgb(${Math.round(30 + t * 10)}, ${Math.round(150 + t * 100)}, 255)`;
+    }
+    // 5-7°: Cyan → Green (matching wireframe)
+    else if (rollAngle < 7) {
+        const t = (rollAngle - 5) / 2;
+        return `rgb(${Math.round(40 + t * 20)}, ${Math.round(250 + t * 5)}, ${Math.round(255 - t * 155)})`;
+    }
+    // 7-9°: Green → Yellow-Green (matching wireframe)
+    else if (rollAngle < 9) {
+        const t = (rollAngle - 7) / 2;
+        return `rgb(${Math.round(60 + t * 120)}, 255, ${Math.round(100 - t * 100)})`;
+    }
+    // 9-11°: Yellow-Green → Yellow (matching wireframe)
+    else if (rollAngle < 11) {
+        const t = (rollAngle - 9) / 2;
+        return `rgb(${Math.round(180 + t * 75)}, 255, 0)`;
+    }
+    // 11-14°: Yellow → Orange (matching wireframe)
+    else if (rollAngle < 14) {
+        const t = (rollAngle - 11) / 3;
         return `rgb(255, ${Math.round(255 - t * 100)}, 0)`;
-    } else {
-        const t = (normalized - 0.9) / 0.1;
-        return `rgb(255, ${Math.round(155 - t * 100)}, ${Math.round(0 + t * 50)})`;
+    }
+    // 14-maxRoll: Orange → Red (matching wireframe)
+    else if (rollAngle <= maxRollAngle) {
+        const t = (rollAngle - 14) / Math.max(0.1, maxRollAngle - 14);
+        return `rgb(255, ${Math.round(155 - t * 105)}, ${Math.round(0 + t * 50)})`;
+    }
+    // Above maxRoll: Deep Red/Magenta (DANGER)
+    else {
+        return getDangerColor(rollAngle, maxRollAngle);
     }
 }
 
 function getDangerColor(rollAngle: number, maxRollAngle: number): string {
-    const excess = (rollAngle - maxRollAngle) / (maxRollAngle * 0.5);
-    const t = Math.min(1, excess);
-    return `rgb(${Math.round(255 - t * 50)}, ${Math.round(55 - t * 55)}, ${Math.round(50 + t * 50)})`;
+    // For values above maxRollAngle, show BRIGHT RED/MAGENTA matching wireframe exactly
+    const excess = (rollAngle - maxRollAngle) / Math.max(3, maxRollAngle * 0.25);
+    const t = Math.max(0, Math.min(1, excess));
+
+    // Bright Red (255, 65, 50) → Deep Magenta (220, 0, 85) - VERY PROMINENT
+    const r = Math.round(255 - t * 35);
+    const g = Math.round(65 - t * 65);
+    const b = Math.round(50 + t * 35);
+    return `rgb(${r}, ${g}, ${b})`;
 }
 
 function getTrafficLightColor(value: number, maxRollAngle: number): string {
+    // Traffic light colors matching wireframe:
+    // Green = safe zone (0 to maxRoll - 5)
+    // Yellow = caution zone (maxRoll - 5 to maxRoll)
+    // Red/Magenta = danger zone (above maxRoll)
+
     if (value <= maxRollAngle - 5) {
-        return '#00DD00';
+        return '#00DD00';  // Bright Green
     } else if (value <= maxRollAngle) {
-        return '#FFDD00';
+        return '#FFDD00';  // Bright Yellow
     } else {
-        return '#DD0055';
+        return '#DD0055';  // Bright Red/Magenta
     }
 }
 

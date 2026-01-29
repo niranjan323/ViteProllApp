@@ -45,15 +45,15 @@ export const UserDataProvider = ({ children }: { children: ReactNode; }) =>
         vesselOperation: {
             draftAftPeak: 10,
             draftForePeak: 10,
-            gm: 3,
-            heading: 18,
-            speed: 12,
-            maxAllowedRoll: 20,
+            gm: 3.0,  // HIGHER GM = GOOD CONTRAST between safe/danger zones
+            heading: 0,  // Head seas - vessel facing north
+            speed: 12,  // Moderate speed for good color distribution
+            maxAllowedRoll: 15,  // Shows all 3 traffic light colors
         },
         seaState: {
-            meanWaveDirection: 130,
-            significantWaveHeight: 5,
-            wavePeriod: 10,
+            meanWaveDirection: 90,  // Beam seas from EAST = danger at 90/270
+            significantWaveHeight: 6,  // MODERATE seas = good roll range
+            wavePeriod: 10.0,
         },
         selectedFolder: '',
         controlFile: '',
