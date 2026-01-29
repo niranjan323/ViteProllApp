@@ -7,6 +7,7 @@ interface SimplePolarChartProps {
     vesselHeading: number;
     vesselSpeed: number;
     maxRollAngle: number;
+    meanWaveDirection: number;
     width?: number;
     height?: number;
     mode?: 'continuous' | 'traffic-light';
@@ -69,10 +70,8 @@ function interpolateRoll(
     targetSpeed: number,
     targetHeading: number
 ): number {
-    // Normalize target heading to [0, 360)
     targetHeading = normalizeAngle(targetHeading);
     
-    // Find speed indices
     let speedIdx0 = 0;
     let speedIdx1 = 0;
     
@@ -90,7 +89,6 @@ function interpolateRoll(
         }
     }
     
-    // Find heading indices (handle circular nature)
     let headingIdx0 = 0;
     let headingIdx1 = 0;
     let found = false;
@@ -99,9 +97,7 @@ function interpolateRoll(
         const h1 = headings[i];
         const h2 = headings[(i + 1) % headings.length];
         
-        // Check if target is between h1 and h2 (accounting for wraparound)
         if (h2 > h1) {
-            // No wraparound
             if (h1 <= targetHeading && targetHeading <= h2) {
                 headingIdx0 = i;
                 headingIdx1 = (i + 1) % headings.length;
@@ -109,7 +105,6 @@ function interpolateRoll(
                 break;
             }
         } else {
-            // Wraparound case (e.g., 330° to 30°)
             if (targetHeading >= h1 || targetHeading <= h2) {
                 headingIdx0 = i;
                 headingIdx1 = (i + 1) % headings.length;
@@ -120,7 +115,6 @@ function interpolateRoll(
     }
     
     if (!found) {
-        // Fallback: find closest heading
         let minDiff = 360;
         for (let i = 0; i < headings.length; i++) {
             const diff = Math.abs(targetHeading - headings[i]);
@@ -132,7 +126,6 @@ function interpolateRoll(
         }
     }
     
-    // Calculate interpolation factors
     const sT = speeds[speedIdx1] !== speeds[speedIdx0] 
         ? (targetSpeed - speeds[speedIdx0]) / (speeds[speedIdx1] - speeds[speedIdx0])
         : 0;
@@ -145,14 +138,12 @@ function interpolateRoll(
         if (h1 > h0) {
             hT = (targetHeading - h0) / (h1 - h0);
         } else {
-            // Wraparound case
             const adjustedTarget = targetHeading < h0 ? targetHeading + 360 : targetHeading;
             const adjustedH1 = h1 + 360;
             hT = (adjustedTarget - h0) / (adjustedH1 - h0);
         }
     }
     
-    // Bilinear interpolation
     const r00 = rollMatrix[speedIdx0]?.[headingIdx0] || 0;
     const r01 = rollMatrix[speedIdx0]?.[headingIdx1] || 0;
     const r10 = rollMatrix[speedIdx1]?.[headingIdx0] || 0;
@@ -172,6 +163,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
     vesselHeading,
     vesselSpeed,
     maxRollAngle,
+    meanWaveDirection,
     width = 650,
     height = 650,
     mode = 'continuous',
@@ -207,7 +199,6 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         const numSpeedSteps = 60;
         const numHeadingSteps = 180;
 
-        
         for (let sIdx = 0; sIdx < numSpeedSteps - 1; sIdx++) {
             const speed1 = (sIdx / numSpeedSteps) * maxSpeed;
             const speed2 = ((sIdx + 1) / numSpeedSteps) * maxSpeed;
@@ -215,26 +206,20 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
             const r2 = (maxRadius * speed2) / maxSpeed;
 
             for (let hIdx = 0; hIdx < numHeadingSteps; hIdx++) {
-                // These represent ABSOLUTE headings in the world
                 const absoluteHeading1 = (hIdx / numHeadingSteps) * 360;
                 const absoluteHeading2 = ((hIdx + 1) / numHeadingSteps) * 360;
 
-                // Convert absolute headings to display positions
                 let displayAngle1: number;
                 let displayAngle2: number;
                 
                 if (orientation === 'heads-up') {
-                    // In Heads Up mode: display = absolute - vesselHeading
-                    // This rotates the plot so vessel bow points up
                     displayAngle1 = absoluteHeading1 - vesselHeading;
                     displayAngle2 = absoluteHeading2 - vesselHeading;
                 } else {
-                    // In North Up mode: display = absolute (no rotation)
                     displayAngle1 = absoluteHeading1;
                     displayAngle2 = absoluteHeading2;
                 }
 
-                // Always query data at the ABSOLUTE heading
                 const rollAngle = interpolateRoll(rollMatrix, speeds, headings, speed1, absoluteHeading1);
                 
                 if (!isFinite(rollAngle)) continue;
@@ -264,7 +249,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
 
         ctx.restore();
 
-        // Grid circles (these don't rotate)
+        // Grid circles
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
         ctx.lineWidth = 1;
 
@@ -283,7 +268,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
             ctx.fillText(`${step}kn`, centerX, centerY - r - 3);
         }
 
-        // Radial lines (these rotate with the plot in heads-up mode)
+        // Radial lines
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.lineWidth = 1;
         
@@ -303,7 +288,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
             ctx.stroke();
         }
 
-        // Degree labels (rotate in heads-up mode)
+        // Degree labels
         ctx.fillStyle = '#ddd';
         ctx.font = '11px Arial';
         
@@ -323,7 +308,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
             ctx.fillText(`${angle}°`, x, y);
         }
 
-        // Compass labels (rotate in heads-up mode)
+        // Compass labels
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 20px Arial';
         const compassR = maxRadius + 45;
@@ -357,7 +342,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         ctx.arc(centerX, centerY, maxRadius, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Vessel icon - positioned based on speed and heading
+        // Vessel icon
         const vesselRadius = (maxRadius * vesselSpeed) / maxSpeed;
         
         let vesselX: number;
@@ -365,13 +350,10 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         let vesselDisplayHeading: number;
         
         if (orientation === 'heads-up') {
-            // In heads-up mode, vessel appears at its speed radius pointing straight up
-            // The bow points toward the top of the screen (relative heading = 0)
             vesselX = centerX;
             vesselY = centerY - vesselRadius;
             vesselDisplayHeading = 0; 
         } else {
-            // In north-up mode, vessel is positioned based on absolute heading
             const vesselAngleRad = ((vesselHeading - 90) * Math.PI / 180);
             vesselX = centerX + vesselRadius * Math.cos(vesselAngleRad);
             vesselY = centerY + vesselRadius * Math.sin(vesselAngleRad);
@@ -380,26 +362,22 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         
         drawVesselIcon(ctx, vesselX, vesselY, 18, vesselDisplayHeading);
 
-        // Wave direction arrow
-        // In Heads Up mode, wave direction rotates with the plot
-        // Wave is always coming FROM 0° (North in absolute terms)
+        // Wave direction arrow - uses meanWaveDirection from user input
         let waveDisplayAngle: number;
         
         if (orientation === 'heads-up') {
-            // The wave is coming from North (0°), but the plot has rotated
-            // So the wave arrow should point to where North is on the rotated plot
-            waveDisplayAngle = -vesselHeading;
+            waveDisplayAngle = meanWaveDirection - vesselHeading;
         } else {
-            // North-up: wave comes from North (0°)
-            waveDisplayAngle = 0;
+            waveDisplayAngle = meanWaveDirection;
         }
         
-        const waveRad = (waveDisplayAngle - 90) * Math.PI / 180;
-        const waveStartR = maxRadius + 60;  // Start outside the circle
-        const waveLen = 50;
-        const waveEndR = maxRadius + 10;    // End just outside the plot circle
+        // Arrow points FROM wave direction TOWARD center (add 180°)
+        const waveArrowAngle = waveDisplayAngle + 180;
+        const waveRad = (waveArrowAngle - 90) * Math.PI / 180;
         
-        // Draw arrow pointing INWARD (from outside toward center)
+        const waveStartR = maxRadius + 60;
+        const waveEndR = maxRadius + 10;
+        
         const waveStartX = centerX + waveStartR * Math.cos(waveRad);
         const waveStartY = centerY + waveStartR * Math.sin(waveRad);
         const waveEndX = centerX + waveEndR * Math.cos(waveRad);
@@ -412,9 +390,8 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         ctx.lineTo(waveEndX, waveEndY);
         ctx.stroke();
 
-        // Arrow head - pointing INWARD toward the center
+        // Arrow head pointing inward
         const arrowSize = 12;
-        // Reverse the angle for inward-pointing arrow
         const arrowAngle1 = waveRad + Math.PI - Math.PI / 6;
         const arrowAngle2 = waveRad + Math.PI + Math.PI / 6;
         
@@ -426,7 +403,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         ctx.closePath();
         ctx.fill();
 
-        // Wave label - position at the start (outside)
+        // Wave label
         ctx.fillStyle = '#fff';
         ctx.font = '11px Arial';
         ctx.textAlign = 'center';
@@ -439,7 +416,7 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         // Color legend
         drawColorLegend(ctx, 25, 70, 22, 260, maxRollAngle, mode);
 
-    }, [rollMatrix, speeds, headings, vesselHeading, vesselSpeed, maxRollAngle, width, height, mode, orientation]);
+    }, [rollMatrix, speeds, headings, vesselHeading, vesselSpeed, maxRollAngle, meanWaveDirection, width, height, mode, orientation]);
 
     if (!rollMatrix || !speeds || !headings) {
         return (
