@@ -229,7 +229,8 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
         const centerY = height / 2;
         const maxRadius = Math.min(width - legendTotalWidth - 60, height - 80) * 0.42;
 
-        const maxSpeed = Math.max(...speeds);
+        // Fixed speed range: 0-25 kn as per specification
+        const maxSpeed = 25;
 
 
         const colorScaleMax = maxRollAngle;
@@ -365,38 +366,40 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
             drawTextWithOutline(ctx, `${angle}\u00B0`, lx, ly);
         }
 
-        // --- Wave direction arrow ---
+        // --- Wave direction arrow (points OUTWARD, away from chart) ---
+        // Wave direction indicates where waves come FROM, so arrow points outward
         let displayWaveAngle = meanWaveDirection;
         if (orientation === 'heads-up') {
             displayWaveAngle = (meanWaveDirection - vesselHeading + 360) % 360;
         }
         const waveRad = (displayWaveAngle - 90) * (Math.PI / 180);
 
-        const waveStartX = centerX + maxRadius * 1.20 * Math.cos(waveRad);
-        const waveStartY = centerY + maxRadius * 1.20 * Math.sin(waveRad);
-        const waveEndX = centerX + maxRadius * 0.88 * Math.cos(waveRad);
-        const waveEndY = centerY + maxRadius * 0.88 * Math.sin(waveRad);
+        // Arrow from inner edge toward outer (label) area
+        const waveInnerX = centerX + maxRadius * 0.88 * Math.cos(waveRad);
+        const waveInnerY = centerY + maxRadius * 0.88 * Math.sin(waveRad);
+        const waveOuterX = centerX + maxRadius * 1.20 * Math.cos(waveRad);
+        const waveOuterY = centerY + maxRadius * 1.20 * Math.sin(waveRad);
 
         // Arrow shaft
         ctx.strokeStyle = '#CCCCCC';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(waveStartX, waveStartY);
-        ctx.lineTo(waveEndX, waveEndY);
+        ctx.moveTo(waveInnerX, waveInnerY);
+        ctx.lineTo(waveOuterX, waveOuterY);
         ctx.stroke();
 
-        // Arrow head
+        // Arrow head at outer end, pointing outward
         const arrowSize = 12;
         ctx.fillStyle = '#CCCCCC';
         ctx.beginPath();
-        ctx.moveTo(waveEndX, waveEndY);
+        ctx.moveTo(waveOuterX, waveOuterY);
         ctx.lineTo(
-            waveEndX - arrowSize * Math.cos(waveRad - Math.PI / 6),
-            waveEndY - arrowSize * Math.sin(waveRad - Math.PI / 6)
+            waveOuterX - arrowSize * Math.cos(waveRad - Math.PI / 6),
+            waveOuterY - arrowSize * Math.sin(waveRad - Math.PI / 6)
         );
         ctx.lineTo(
-            waveEndX - arrowSize * Math.cos(waveRad + Math.PI / 6),
-            waveEndY - arrowSize * Math.sin(waveRad + Math.PI / 6)
+            waveOuterX - arrowSize * Math.cos(waveRad + Math.PI / 6),
+            waveOuterY - arrowSize * Math.sin(waveRad + Math.PI / 6)
         );
         ctx.closePath();
         ctx.fill();
