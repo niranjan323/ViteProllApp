@@ -7,7 +7,7 @@ import { ParameterValidator } from '../services/parameterValidator';
 import { CaseManager } from '../services/caseManager';
 import type { AnalysisCase } from '../services/caseManager';
 import { DataLoader } from '../services/dataLoader';
-import { SimplePolarChart } from '../components/SimplePolarChart';
+import { CanvasPolarChart } from '../components/CanvasPolarChart';
 
 interface SavedCase {
     id: string;
@@ -481,7 +481,7 @@ const Project: React.FC = () => {
                         {polarData.rollMatrix && polarData.speeds && polarData.headings ? (
                             <>
                                 <div className="plot-canvas-left">
-                                    <SimplePolarChart
+                                    <CanvasPolarChart
                                         rollMatrix={polarData.rollMatrix}
                                         speeds={polarData.speeds}
                                         headings={polarData.headings}

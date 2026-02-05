@@ -259,9 +259,41 @@ export class DataLoader {
     return bestMatch;
   }
 
+  private readDotNetString(dataView: DataView, bytes: Uint8Array, offset: number): { value: string; newOffset: number } {
+    // Read 7-bit encoded integer length
+    let length = 0;
+    let shift = 0;
+    let currentOffset = offset;
+
+    while (currentOffset < bytes.byteLength) {
+      const b = bytes[currentOffset];
+      currentOffset++;
+      length |= (b & 0x7F) << shift;
+      if ((b & 0x80) === 0) break;
+      shift += 7;
+    }
+
+    // Read UTF-8 string
+    const stringBytes = bytes.slice(currentOffset, currentOffset + length);
+    const decoder = new TextDecoder('utf-8');
+    const value = decoder.decode(stringBytes);
+
+    return { value, newOffset: currentOffset + length };
+  }
+
   /**
    * Load and parse binary polar data file
-   * Format: [Text headers starting with 0x1F 0x21] [Binary int32 numSpeeds] [Binary int32 numHeadings] [float64 arrays]
+   * Format (from C# reference):
+   *   - string header1 (.NET length-prefixed)
+   *   - string header2 (.NET length-prefixed)
+   *   - int32 SpeedCount
+   *   - int32 HeadingCount
+   *   - string status (.NET length-prefixed)
+   *   - For each heading (j=0 to HeadingCount-1):
+   *       For each speed (i=0 to SpeedCount-1):
+   *         - double speed
+   *         - double heading
+   *         - double maxRoll
    */
   async loadPolarData(
     filePath: string,
@@ -274,158 +306,111 @@ export class DataLoader {
 
       let offset = 0;
 
-      // Skip ASCII text headers (lines starting with 0x1F 0x21)
-      // File format: [0x1F 0x21 ASCII text header]* [metadata] [Binary data]
-      while (offset < bytes.byteLength) {
-        if (bytes[offset] === 0x1F && offset + 1 < bytes.byteLength && bytes[offset + 1] === 0x21) {
-          offset += 2;
-          while (offset < bytes.byteLength && bytes[offset] !== 0x1F && bytes[offset] >= 0x20 && bytes[offset] <= 0x7E) {
-            offset++;
-          }
-          if (offset < bytes.byteLength && bytes[offset] === 0x1F) {
-            offset++;
-          }
-        } else {
-          break;
-        }
-      }
+      console.log('=== PARSING .BPOLAR FILE (C# FORMAT) ===');
+      console.log('File size:', buffer.byteLength, 'bytes');
 
-      console.log('After text header skip, offset:', offset);
+      // Read header1 (.NET length-prefixed string)
+      const header1Result = this.readDotNetString(dataView, bytes, offset);
+      offset = header1Result.newOffset;
+      console.log('Header1:', header1Result.value);
 
-      // Now scan from current position to find valid binary header
-      // Look for pattern: [int32 1-100] [int32 1-100] which indicates numSpeeds and numHeadings
-      let headerOffset = -1;
-      
-      for (let tryOffset = offset; tryOffset < Math.min(offset + 200, buffer.byteLength - 8); tryOffset++) {
-        try {
-          const val1 = dataView.getInt32(tryOffset, true);
-          const val2 = dataView.getInt32(tryOffset + 4, true);
-          
-          // Check if both values look like valid dimensions
-          if (val1 > 0 && val1 <= 100 && val2 > 0 && val2 <= 100) {
-            headerOffset = tryOffset;
-            console.log(`Found valid header pattern at offset: ${tryOffset} (byte index ${tryOffset})`);
-            break;
-          }
-        } catch {
-          // Skip on error
-        }
-      }
+      // Read header2 (.NET length-prefixed string)
+      const header2Result = this.readDotNetString(dataView, bytes, offset);
+      offset = header2Result.newOffset;
+      console.log('Header2:', header2Result.value);
 
-      if (headerOffset === -1) {
-        return {
-          success: false,
-          error: 'Could not find valid binary header in file',
-        };
-      }
-
-      offset = headerOffset;
-      console.log('Binary header found at offset:', offset);
-
-      // Safety check: ensure buffer has minimum header size (2 * 4 bytes)
-      if (offset + 8 > buffer.byteLength) {
-        return {
-          success: false,
-          error: 'Invalid file format - binary header not found',
-        };
-      }
-
-      // Read header as little-endian int32
+      // Read SpeedCount (int32)
       const numSpeeds = dataView.getInt32(offset, true);
       offset += 4;
 
+      // Read HeadingCount (int32)
       const numHeadings = dataView.getInt32(offset, true);
       offset += 4;
 
-      console.log('Parsed dimensions:', { numSpeeds, numHeadings, offset });
+      console.log('Dimensions:', { numSpeeds, numHeadings });
 
-      // Validate dimensions - should be reasonable values
-      if (numSpeeds <= 0 || numSpeeds > 100 || numHeadings <= 0 || numHeadings > 100) {
+      // Validate dimensions
+      if (numSpeeds <= 0 || numSpeeds > 100 || numHeadings <= 0 || numHeadings > 360) {
         return {
           success: false,
-          error: `Invalid dimensions read from file: numSpeeds=${numSpeeds}, numHeadings=${numHeadings}. Expected values between 1-100.`,
+          error: `Invalid dimensions: numSpeeds=${numSpeeds}, numHeadings=${numHeadings}`,
         };
       }
 
-      // Skip metadata/padding between header and data arrays (19 bytes)
-      const metadataBytes = 19;
-      offset += metadataBytes;
-      console.log('Skipped metadata bytes:', metadataBytes, 'New offset:', offset);
+      // Read status string (.NET length-prefixed string)
+      const statusResult = this.readDotNetString(dataView, bytes, offset);
+      offset = statusResult.newOffset;
+      console.log('Status:', statusResult.value);
 
-      // Read speed array (float64)
-      const speeds: number[] = [];
-      for (let i = 0; i < numSpeeds; i++) {
-        if (offset + 8 > buffer.byteLength) break;
-        speeds.push(dataView.getFloat64(offset, true));
-        offset += 8;
-      }
-      console.log('Read speeds:', speeds);
+      console.log('Data starts at offset:', offset);
 
-      // Read heading array (float64)
-      const headings: number[] = [];
-      for (let i = 0; i < numHeadings; i++) {
-        if (offset + 8 > buffer.byteLength) break;
-        headings.push(dataView.getFloat64(offset, true));
-        offset += 8;
-      }
-      console.log('Read headings:', headings);
+      // Initialize arrays
+      const speeds: number[] = new Array(numSpeeds).fill(0);
+      const headings: number[] = new Array(numHeadings).fill(0);
 
-      // Read roll angle matrix [speed][heading]
+      // Roll matrix is [speed][heading] for our rendering, but file stores [heading][speed]
       const rollMatrix: number[][] = [];
+      for (let i = 0; i < numSpeeds; i++) {
+        rollMatrix.push(new Array(numHeadings).fill(0));
+      }
+
+      // Read data: stored as [heading][speed] with triplets (speed, heading, roll)
       let rollCount = 0;
       let rollSum = 0;
       let minRoll = Infinity;
       let maxRoll = -Infinity;
-      const firstRowValues: number[] = [];
-      
-      for (let i = 0; i < numSpeeds; i++) {
-        const row: number[] = [];
-        for (let j = 0; j < numHeadings; j++) {
-          let rollVal: number;
-          
-          if (offset + 8 > buffer.byteLength) {
-            rollVal = 0;
-          } else {
-            rollVal = dataView.getFloat64(offset, true);
-            offset += 8;
+
+      const expectedBytes = numHeadings * numSpeeds * 3 * 8; // 3 doubles per cell
+      console.log(`Expected data size: ${expectedBytes} bytes (${numHeadings} headings × ${numSpeeds} speeds × 3 doubles)`);
+
+      if (offset + expectedBytes > buffer.byteLength) {
+        console.warn(`Warning: File may be truncated. Expected ${expectedBytes} bytes, have ${buffer.byteLength - offset} bytes remaining.`);
+      }
+
+      for (let j = 0; j < numHeadings; j++) {
+        for (let i = 0; i < numSpeeds; i++) {
+          if (offset + 24 > buffer.byteLength) {
+            console.warn(`Buffer overflow at heading=${j}, speed=${i}, offset=${offset}`);
+            break;
           }
-          
-          row.push(rollVal);
-          
-          // Track first row for debugging
-          if (i === 0) {
-            firstRowValues.push(rollVal);
-          }
-          
-          if (isFinite(rollVal) && rollVal >= -90 && rollVal <= 90) {
+
+          // Read triplet: (speed, heading, rollValue)
+          const speedVal = dataView.getFloat64(offset, true);
+          offset += 8;
+
+          const headingVal = dataView.getFloat64(offset, true);
+          offset += 8;
+
+          const rollVal = dataView.getFloat64(offset, true);
+          offset += 8;
+
+          // Store speed and heading values (they repeat, but we capture them)
+          speeds[i] = speedVal;
+          headings[j] = headingVal;
+
+          // Store roll value in [speed][heading] format for rendering
+          rollMatrix[i][j] = rollVal;
+
+          if (isFinite(rollVal) && rollVal >= 0 && rollVal <= 90) {
             rollCount++;
             rollSum += rollVal;
             minRoll = Math.min(minRoll, rollVal);
             maxRoll = Math.max(maxRoll, rollVal);
           }
         }
-        rollMatrix.push(row);
       }
-      
-      console.log('=== ROLL DATA DEBUG ===');
-      console.log('First row values:', firstRowValues);
-      console.log('Roll matrix statistics:', {
+
+      console.log('=== PARSED DATA ===');
+      console.log('Speeds:', speeds);
+      console.log('Headings:', headings);
+      console.log('Roll matrix (first row - speed 0):', rollMatrix[0]?.slice(0, 5).map(v => v.toFixed(2)));
+      console.log('Roll statistics:', {
         totalPoints: numSpeeds * numHeadings,
         validPoints: rollCount,
         minRoll: isFinite(minRoll) ? minRoll.toFixed(2) : 'N/A',
         maxRoll: isFinite(maxRoll) ? maxRoll.toFixed(2) : 'N/A',
         averageRoll: rollCount > 0 ? (rollSum / rollCount).toFixed(2) : 'N/A'
       });
-      
-      // If no valid roll data, it's likely a parsing error
-      if (rollCount === 0) {
-        console.error('WARNING: No valid roll data found! All values are either non-finite or out of range.');
-        console.error('First 10 raw values from buffer:', 
-          Array.from(new Uint8Array(buffer, offset - 80, 80))
-            .map((b, i) => i % 8 === 0 ? `\n[${i}]: ` : '' + b.toString(16).padStart(2, '0'))
-            .join(' ')
-        );
-      }
 
       // Extract fitted values from filename
       const filenameMatch = filePath.match(/_H([\d.]+)_T([\d.]+)/);
