@@ -89,7 +89,6 @@ function interpolateRoll(
         ? (targetSpeed - speeds[speedIdx0]) / (speeds[speedIdx1] - speeds[speedIdx0])
         : 0;
 
-    // Heading interpolation weight (circular-aware)
     let hT = 0;
     if (headingIdx0 !== headingIdx1) {
         const h0 = headings[headingIdx0];
@@ -284,10 +283,19 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
 
         ctx.putImageData(imageData, 0, 0);
 
-        // --- Grid lines ---
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.30)';
+        ctx.lineWidth = 0.5;
+        for (let spd = 1; spd <= maxSpeed; spd++) {
+            // Skip major circles (5, 10, 15, 20, 25)
+            if (spd % 5 === 0) continue;
+            const r = (spd / maxSpeed) * maxRadius;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, r, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
         ctx.lineWidth = 1.5;
-
         for (let i = 1; i <= 5; i++) {
             const r = (maxRadius / 5) * i;
             ctx.beginPath();
@@ -296,7 +304,6 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
         }
 
         for (let angle = 0; angle < 360; angle += 30) {
-            // In heads-up mode, rotate grid lines so they stay aligned with data
             let displayAngle = angle;
             if (orientation === 'heads-up') {
                 displayAngle = angle - vesselHeading;
@@ -366,8 +373,7 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
             drawTextWithOutline(ctx, `${angle}\u00B0`, lx, ly);
         }
 
-        // --- Wave direction arrow (points OUTWARD, away from chart) ---
-        // Wave direction indicates where waves come FROM, so arrow points outward
+
         let displayWaveAngle = meanWaveDirection;
         if (orientation === 'heads-up') {
             displayWaveAngle = (meanWaveDirection - vesselHeading + 360) % 360;
