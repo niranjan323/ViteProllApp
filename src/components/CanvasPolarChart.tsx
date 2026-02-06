@@ -435,34 +435,34 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
         ctx.translate(vesselX, vesselY);
         ctx.rotate(vesselRad + Math.PI / 2);
 
-        const boatLength = 22;
-        const boatWidth = 10;
+        // Vessel design matching wireframe - pointed bow shape with blue center dot
+        const boatLength = 36;
+        const boatWidth = 16;
 
+        // White pointed vessel body (tapered bow, rounded stern)
         ctx.fillStyle = '#FFFFFF';
         ctx.strokeStyle = '#012B4F';
         ctx.lineWidth = 2;
 
         ctx.beginPath();
+        // Start at pointed bow (top)
         ctx.moveTo(0, -boatLength / 2);
-        ctx.quadraticCurveTo(boatWidth / 2, -boatLength / 4, boatWidth / 2, boatLength / 4);
-        ctx.lineTo(boatWidth / 4, boatLength / 2);
-        ctx.lineTo(-boatWidth / 4, boatLength / 2);
-        ctx.lineTo(-boatWidth / 2, boatLength / 4);
+        // Right side curve from bow to widest point
+        ctx.quadraticCurveTo(boatWidth / 2, -boatLength / 4, boatWidth / 2, boatLength / 6);
+        // Right side to stern
+        ctx.quadraticCurveTo(boatWidth / 2, boatLength / 2.5, 0, boatLength / 2);
+        // Left side from stern
+        ctx.quadraticCurveTo(-boatWidth / 2, boatLength / 2.5, -boatWidth / 2, boatLength / 6);
+        // Left side curve back to bow
         ctx.quadraticCurveTo(-boatWidth / 2, -boatLength / 4, 0, -boatLength / 2);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        ctx.strokeStyle = '#1473E6';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(0, -boatLength / 2 + 3);
-        ctx.lineTo(0, boatLength / 2 - 3);
-        ctx.stroke();
-
+        // Blue center dot only (matching wireframe)
         ctx.fillStyle = '#1473E6';
         ctx.beginPath();
-        ctx.arc(0, 0, 2.5, 0, 2 * Math.PI);
+        ctx.arc(0, 0, 5, 0, 2 * Math.PI);
         ctx.fill();
 
         ctx.restore();
