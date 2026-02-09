@@ -146,27 +146,23 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
         return stops[stops.length - 1].color;
     };
 
+    // ColorBrewer RdYlBu diverging colormap (reversed: blue=low, red=high)
     const getContinuousColorRGB = (rollAngle: number, colorMax: number): [number, number, number] => {
         const normalizedValue = Math.min(rollAngle / colorMax, 1.0);
 
+        // RdYlBu 11-class from ColorBrewer (reversed so blue=safe, red=danger)
         const colorStops = [
-            { value: 0.0,  color: [0, 29, 65] as [number, number, number] },       // #001D41
-            { value: 0.06, color: [1, 43, 79] as [number, number, number] },       // #012B4F
-            { value: 0.12, color: [2, 31, 148] as [number, number, number] },      // #021F94
-            { value: 0.18, color: [17, 87, 179] as [number, number, number] },     // #1157B3
-            { value: 0.24, color: [20, 115, 230] as [number, number, number] },    // #1473E6
-            { value: 0.30, color: [66, 105, 216] as [number, number, number] },    // #4269D8
-            { value: 0.36, color: [20, 146, 230] as [number, number, number] },    // #1492E6
-            { value: 0.42, color: [25, 150, 244] as [number, number, number] },    // #1996F4
-            { value: 0.48, color: [77, 196, 255] as [number, number, number] },    // #4DC4FF
-            { value: 0.54, color: [116, 197, 255] as [number, number, number] },   // #74C5FF
-            { value: 0.60, color: [117, 167, 226] as [number, number, number] },   // #75A7E2
-            { value: 0.66, color: [157, 175, 191] as [number, number, number] },   // #9DAFBF
-            { value: 0.72, color: [255, 255, 255] as [number, number, number] },   // #FFFFFF
-            { value: 0.80, color: [255, 236, 116] as [number, number, number] },   // #FFEC74
-            { value: 0.88, color: [255, 160, 40] as [number, number, number] },    // Orange
-            { value: 0.94, color: [228, 38, 43] as [number, number, number] },     // #E4262B
-            { value: 1.0,  color: [165, 0, 38] as [number, number, number] },      // #A50026
+            { value: 0.0,  color: [49, 54, 149] as [number, number, number] },    // #313695
+            { value: 0.1,  color: [69, 117, 180] as [number, number, number] },   // #4575B4
+            { value: 0.2,  color: [116, 173, 209] as [number, number, number] },  // #74ADD1
+            { value: 0.3,  color: [171, 217, 233] as [number, number, number] },  // #ABD9E9
+            { value: 0.4,  color: [224, 243, 248] as [number, number, number] },  // #E0F3F8
+            { value: 0.5,  color: [255, 255, 191] as [number, number, number] },  // #FFFFBF
+            { value: 0.6,  color: [254, 224, 144] as [number, number, number] },  // #FEE090
+            { value: 0.7,  color: [253, 174, 97] as [number, number, number] },   // #FDAE61
+            { value: 0.8,  color: [244, 109, 67] as [number, number, number] },   // #F46D43
+            { value: 0.9,  color: [215, 48, 39] as [number, number, number] },    // #D73027
+            { value: 1.0,  color: [165, 0, 38] as [number, number, number] },     // #A50026
         ];
 
         return interpolateColor(colorStops, normalizedValue);
@@ -509,24 +505,13 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
             }
         }
 
-        // Horizontal divider lines at every 1 degree on the legend bar
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.lineWidth = 0.5;
-        const maxLegendValue = Math.ceil(colorScaleMax);
-        for (let deg = 1; deg < maxLegendValue; deg++) {
-            const yPos = legendBarBottom - (deg / colorScaleMax) * legendBarHeight;
-            ctx.beginPath();
-            ctx.moveTo(legendBarX, yPos);
-            ctx.lineTo(legendBarX + legendBarWidth, yPos);
-            ctx.stroke();
-        }
-
         // Legend border
         ctx.strokeStyle = '#AAAAAA';
         ctx.lineWidth = 1;
         ctx.strokeRect(legendBarX, legendBarTop, legendBarWidth, legendBarHeight);
 
-        // Legend tick marks and values at every 5 degrees - WHITE text
+        // Horizontal divider lines and labels at every 5 degrees only (0, 5, 10, 15, 20, 25)
+        const maxLegendValue = Math.ceil(colorScaleMax);
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '11px Arial, sans-serif';
         ctx.textAlign = 'left';
@@ -534,6 +519,14 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
 
         for (let deg = 0; deg <= maxLegendValue; deg += 5) {
             const yPos = legendBarBottom - (deg / colorScaleMax) * legendBarHeight;
+
+            // Horizontal line across the bar
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.lineWidth = 0.75;
+            ctx.beginPath();
+            ctx.moveTo(legendBarX, yPos);
+            ctx.lineTo(legendBarX + legendBarWidth, yPos);
+            ctx.stroke();
 
             // Tick mark
             ctx.strokeStyle = '#AAAAAA';
