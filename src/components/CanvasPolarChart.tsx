@@ -509,22 +509,31 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
             }
         }
 
+        // Horizontal divider lines at every 1 degree on the legend bar
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.lineWidth = 0.5;
+        const maxLegendValue = Math.ceil(colorScaleMax);
+        for (let deg = 1; deg < maxLegendValue; deg++) {
+            const yPos = legendBarBottom - (deg / colorScaleMax) * legendBarHeight;
+            ctx.beginPath();
+            ctx.moveTo(legendBarX, yPos);
+            ctx.lineTo(legendBarX + legendBarWidth, yPos);
+            ctx.stroke();
+        }
+
         // Legend border
         ctx.strokeStyle = '#AAAAAA';
         ctx.lineWidth = 1;
         ctx.strokeRect(legendBarX, legendBarTop, legendBarWidth, legendBarHeight);
 
-        // Legend tick marks and values - WHITE text
+        // Legend tick marks and values at every 5 degrees - WHITE text
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '11px Arial, sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
 
-        const maxLegendValue = Math.ceil(colorScaleMax);
-        const tickCount = 6;
-        for (let i = 0; i <= tickCount; i++) {
-            const value = Math.round((maxLegendValue * i) / tickCount);
-            const yPos = legendBarBottom - (i / tickCount) * legendBarHeight;
+        for (let deg = 0; deg <= maxLegendValue; deg += 5) {
+            const yPos = legendBarBottom - (deg / colorScaleMax) * legendBarHeight;
 
             // Tick mark
             ctx.strokeStyle = '#AAAAAA';
@@ -536,7 +545,7 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
 
             // Value label - WHITE
             ctx.fillStyle = '#FFFFFF';
-            ctx.fillText(`${value}`, legendBarX + legendBarWidth + 6, yPos);
+            ctx.fillText(`${deg}`, legendBarX + legendBarWidth + 6, yPos);
         }
 
         // "Max roll" indicator line on legend
