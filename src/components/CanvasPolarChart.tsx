@@ -547,10 +547,23 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
             ctx.fillText('Max', legendBarX + legendBarWidth + 6, maxRollYPos - 8);
             ctx.fillText('roll', legendBarX + legendBarWidth + 6, maxRollYPos + 4);
         } else {
-            // Traffic light mode: dashed boundary lines at zone transitions
+            // Traffic light mode: regular interval lines + boundary lines
             const greenBoundary = Math.max(maxRollAngle - 5, 0);
             const redBoundary = maxRollAngle;
 
+            // Small horizontal lines at every 1° through the bar
+            for (let deg = 1; deg < colorScaleMax; deg++) {
+                const yPos = legendBarBottom - (deg / colorScaleMax) * legendBarHeight;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.moveTo(legendBarX, yPos);
+                ctx.lineTo(legendBarX + legendBarWidth, yPos);
+                ctx.stroke();
+            }
+
+            // Thick white boundary lines at zone transitions
             const boundaries = [
                 { value: 0, label: '0' },
                 { value: greenBoundary, label: `${greenBoundary}` },
@@ -582,6 +595,22 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
                 // Value label
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillText(label, legendBarX + legendBarWidth + 6, yPos);
+            }
+
+            // Labels at every 5° (without boundary lines)
+            for (let deg = 5; deg < colorScaleMax; deg += 5) {
+                if (deg === greenBoundary || deg === redBoundary) continue;
+                const yPos = legendBarBottom - (deg / colorScaleMax) * legendBarHeight;
+
+                ctx.strokeStyle = '#AAAAAA';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(legendBarX + legendBarWidth, yPos);
+                ctx.lineTo(legendBarX + legendBarWidth + 4, yPos);
+                ctx.stroke();
+
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(`${deg}`, legendBarX + legendBarWidth + 6, yPos);
             }
         }
 
