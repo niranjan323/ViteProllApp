@@ -504,54 +504,87 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
         ctx.lineWidth = 1;
         ctx.strokeRect(legendBarX, legendBarTop, legendBarWidth, legendBarHeight);
 
-        // Horizontal divider lines and labels at every 5 degrees only (0, 5, 10, 15, 20, 25)
+        // Legend labels and boundary lines (mode-specific)
         const maxLegendValue = Math.ceil(colorScaleMax);
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '11px Arial, sans-serif';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
 
-        for (let deg = 0; deg <= maxLegendValue; deg += 5) {
-            const yPos = legendBarBottom - (deg / colorScaleMax) * legendBarHeight;
+        if (mode === 'continuous') {
+            // Continuous mode: tick marks and labels at every 5° (no lines through bar)
+            for (let deg = 0; deg <= maxLegendValue; deg += 5) {
+                const yPos = legendBarBottom - (deg / colorScaleMax) * legendBarHeight;
 
-            // Horizontal line across the bar
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-            ctx.lineWidth = 0.75;
+                // Tick mark only (no line through bar)
+                ctx.strokeStyle = '#AAAAAA';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(legendBarX + legendBarWidth, yPos);
+                ctx.lineTo(legendBarX + legendBarWidth + 4, yPos);
+                ctx.stroke();
+
+                // Value label
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(`${deg}`, legendBarX + legendBarWidth + 6, yPos);
+            }
+
+            // "Max roll" indicator line on legend (continuous mode only)
+            const maxRollYPos = legendBarBottom - (maxRollAngle / colorScaleMax) * legendBarHeight;
+            ctx.strokeStyle = '#E4262B';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 2]);
             ctx.beginPath();
-            ctx.moveTo(legendBarX, yPos);
-            ctx.lineTo(legendBarX + legendBarWidth, yPos);
+            ctx.moveTo(legendBarX - 3, maxRollYPos);
+            ctx.lineTo(legendBarX + legendBarWidth + 3, maxRollYPos);
             ctx.stroke();
+            ctx.setLineDash([]);
 
-            // Tick mark
-            ctx.strokeStyle = '#AAAAAA';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(legendBarX + legendBarWidth, yPos);
-            ctx.lineTo(legendBarX + legendBarWidth + 4, yPos);
-            ctx.stroke();
+            // Max roll label - RED
+            ctx.fillStyle = '#FF6666';
+            ctx.font = 'bold 10px Arial, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('Max', legendBarX + legendBarWidth + 6, maxRollYPos - 8);
+            ctx.fillText('roll', legendBarX + legendBarWidth + 6, maxRollYPos + 4);
+        } else {
+            // Traffic light mode: dashed boundary lines at zone transitions
+            const greenBoundary = Math.max(maxRollAngle - 5, 0);
+            const redBoundary = maxRollAngle;
 
-            // Value label - WHITE
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillText(`${deg}`, legendBarX + legendBarWidth + 6, yPos);
+            const boundaries = [
+                { value: 0, label: '0' },
+                { value: greenBoundary, label: `${greenBoundary}` },
+                { value: redBoundary, label: `${redBoundary}` },
+            ];
+
+            for (const { value, label } of boundaries) {
+                const yPos = legendBarBottom - (value / colorScaleMax) * legendBarHeight;
+
+                // Dashed line through bar (at zone boundaries)
+                if (value > 0) {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([4, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(legendBarX, yPos);
+                    ctx.lineTo(legendBarX + legendBarWidth, yPos);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // Tick mark
+                ctx.strokeStyle = '#AAAAAA';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(legendBarX + legendBarWidth, yPos);
+                ctx.lineTo(legendBarX + legendBarWidth + 4, yPos);
+                ctx.stroke();
+
+                // Value label
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(label, legendBarX + legendBarWidth + 6, yPos);
+            }
         }
-
-        // "Max roll" indicator line on legend
-        const maxRollYPos = legendBarBottom - (maxRollAngle / colorScaleMax) * legendBarHeight;
-        ctx.strokeStyle = '#E4262B';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([4, 2]);
-        ctx.beginPath();
-        ctx.moveTo(legendBarX - 3, maxRollYPos);
-        ctx.lineTo(legendBarX + legendBarWidth + 3, maxRollYPos);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Max roll label - RED
-        ctx.fillStyle = '#FF6666';
-        ctx.font = 'bold 10px Arial, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText('Max', legendBarX + legendBarWidth + 6, maxRollYPos - 8);
-        ctx.fillText('roll', legendBarX + legendBarWidth + 6, maxRollYPos + 4);
 
     }, [rollMatrix, speeds, headings, vesselHeading, vesselSpeed, maxRollAngle, meanWaveDirection, width, height, mode, orientation]);
 
