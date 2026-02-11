@@ -560,14 +560,14 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
             for (const { value, label } of boundaries) {
                 const yPos = legendBarBottom - (value / colorScaleMax) * legendBarHeight;
 
-                // Solid dark line through bar (at zone boundaries)
+                // White line through bar (at zone boundaries)
                 if (value > 0) {
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = 3;
                     ctx.setLineDash([]);
                     ctx.beginPath();
-                    ctx.moveTo(legendBarX, yPos);
-                    ctx.lineTo(legendBarX + legendBarWidth, yPos);
+                    ctx.moveTo(legendBarX - 1, yPos);
+                    ctx.lineTo(legendBarX + legendBarWidth + 1, yPos);
                     ctx.stroke();
                 }
 
