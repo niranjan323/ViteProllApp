@@ -554,8 +554,8 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
             // Small horizontal lines at every 1° through the bar
             for (let deg = 1; deg < colorScaleMax; deg++) {
                 const yPos = legendBarBottom - (deg / colorScaleMax) * legendBarHeight;
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 1.5;
                 ctx.setLineDash([]);
                 ctx.beginPath();
                 ctx.moveTo(legendBarX, yPos);
