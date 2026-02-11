@@ -129,65 +129,42 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // Smooth color interpolation helper
-    const interpolateColor = (stops: Array<{value: number, color: [number, number, number]}>, value: number): [number, number, number] => {
-        if (value <= stops[0].value) return stops[0].color;
-        if (value >= stops[stops.length - 1].value) return stops[stops.length - 1].color;
+    // RdYlBu 10-class discrete colors (reversed: blue=low, red=high)
+    const discreteColors: [number, number, number][] = [
+        [49, 54, 149],    // Bin 1  - #313695 (lowest)
+        [69, 117, 180],   // Bin 2  - #4575B4
+        [116, 173, 209],  // Bin 3  - #74ADD1
+        [171, 217, 233],  // Bin 4  - #ABD9E9
+        [224, 243, 248],  // Bin 5  - #E0F3F8
+        [254, 224, 144],  // Bin 6  - #FEE090
+        [253, 174, 97],   // Bin 7  - #FDAE61
+        [244, 109, 67],   // Bin 8  - #F46D43
+        [215, 48, 39],    // Bin 9  - #D73027
+        [165, 0, 38],     // Bin 10 - #A50026 (above MaxRoll)
+    ];
 
-        for (let i = 0; i < stops.length - 1; i++) {
-            if (value >= stops[i].value && value <= stops[i + 1].value) {
-                const t = (value - stops[i].value) / (stops[i + 1].value - stops[i].value);
-                const r = stops[i].color[0] + t * (stops[i + 1].color[0] - stops[i].color[0]);
-                const g = stops[i].color[1] + t * (stops[i + 1].color[1] - stops[i].color[1]);
-                const b = stops[i].color[2] + t * (stops[i + 1].color[2] - stops[i].color[2]);
-                return [r, g, b];
-            }
-        }
-        return stops[stops.length - 1].color;
+    // 10-stage discrete color scale (per specification document)
+    // Bins 1-9: MinRoll to MaxRoll at interval (MaxRoll - MinRoll) / 9
+    // Bin 10: roll angles > MaxRoll
+    const getContinuousColorRGB = (rollAngle: number, minRoll: number, maxRoll: number): [number, number, number] => {
+        if (maxRoll <= minRoll) return discreteColors[0];
+        if (rollAngle > maxRoll) return discreteColors[9];
+        if (rollAngle <= minRoll) return discreteColors[0];
+
+        const interval = (maxRoll - minRoll) / 9;
+        const binIndex = Math.min(Math.floor((rollAngle - minRoll) / interval), 8);
+        return discreteColors[binIndex];
     };
 
-    // ColorBrewer RdYlBu diverging colormap (reversed: blue=low, red=high)
-    const getContinuousColorRGB = (rollAngle: number, colorMax: number): [number, number, number] => {
-        const normalizedValue = Math.min(rollAngle / colorMax, 1.0);
-
-        // RdYlBu 11-class from ColorBrewer (reversed so blue=safe, red=danger)
-        const colorStops = [
-            { value: 0.0,  color: [49, 54, 149] as [number, number, number] },    // #313695
-            { value: 0.1,  color: [69, 117, 180] as [number, number, number] },   // #4575B4
-            { value: 0.2,  color: [116, 173, 209] as [number, number, number] },  // #74ADD1
-            { value: 0.3,  color: [171, 217, 233] as [number, number, number] },  // #ABD9E9
-            { value: 0.4,  color: [224, 243, 248] as [number, number, number] },  // #E0F3F8
-            { value: 0.5,  color: [255, 255, 191] as [number, number, number] },  // #FFFFBF
-            { value: 0.6,  color: [254, 224, 144] as [number, number, number] },  // #FEE090
-            { value: 0.7,  color: [253, 174, 97] as [number, number, number] },   // #FDAE61
-            { value: 0.8,  color: [244, 109, 67] as [number, number, number] },   // #F46D43
-            { value: 0.9,  color: [215, 48, 39] as [number, number, number] },    // #D73027
-            { value: 1.0,  color: [165, 0, 38] as [number, number, number] },     // #A50026
-        ];
-
-        return interpolateColor(colorStops, normalizedValue);
-    };
-
+    // 3-stage discrete traffic light (per specification document)
+    // Green: 0 to (MaxRoll - 5°), Yellow: (MaxRoll - 5°) to MaxRoll, Red: > MaxRoll
     const getTrafficLightColorRGB = (value: number, maxRoll: number): [number, number, number] => {
-        const greenThreshold = maxRoll - 5;
-        const yellowThreshold = maxRoll;
-
-        if (value <= greenThreshold) {
-            return [9, 190, 94]; // #09BE5E
-        } else if (value <= yellowThreshold) {
-            const t = (value - greenThreshold) / 5;
-            return [
-                Math.round(9 + t * (255 - 9)),
-                Math.round(190 + t * (236 - 190)),
-                Math.round(94 + t * (116 - 94))
-            ];
+        if (value <= maxRoll - 5) {
+            return [9, 190, 94];     // Green #09BE5E
+        } else if (value <= maxRoll) {
+            return [255, 236, 116];  // Yellow #FFEC74
         } else {
-            const t = Math.min((value - yellowThreshold) / 5, 1);
-            return [
-                Math.round(255 - t * (255 - 247)),
-                Math.round(236 - t * (236 - 17)),
-                Math.round(116 - t * (116 - 106))
-            ];
+            return [247, 17, 106];   // Red #F7116A
         }
     };
 
@@ -227,8 +204,25 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
         // Fixed speed range: 0-25 kn as per specification
         const maxSpeed = 25;
 
+        // Compute MinRoll from data (per specification)
+        let minRoll = Infinity;
+        for (let si = 0; si < rollMatrix.length; si++) {
+            for (let hi = 0; hi < (rollMatrix[si]?.length || 0); hi++) {
+                const v = rollMatrix[si][hi];
+                if (isFinite(v) && v >= 0 && v <= 90) {
+                    minRoll = Math.min(minRoll, v);
+                }
+            }
+        }
+        if (!isFinite(minRoll) || minRoll >= maxRollAngle) {
+            minRoll = 0;
+        }
 
-        const colorScaleMax = maxRollAngle;
+        // Scale legend to include all bins
+        const binInterval = maxRollAngle > minRoll ? (maxRollAngle - minRoll) / 9 : 1;
+        const colorScaleMax = mode === 'continuous'
+            ? maxRollAngle + binInterval
+            : maxRollAngle + 10;
 
         const imageData = ctx.createImageData(width, height);
         const data = imageData.data;
@@ -265,7 +259,7 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
                     const rollValue = interpolateRoll(rollMatrix, speeds, headings, speed, encounterAngle);
 
                     const [r, g, b] = mode === 'continuous'
-                        ? getContinuousColorRGB(rollValue, colorScaleMax)
+                        ? getContinuousColorRGB(rollValue, minRoll, maxRollAngle)
                         : getTrafficLightColorRGB(rollValue, maxRollAngle);
 
                     const idx = (py * width + px) * 4;
@@ -488,19 +482,19 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
         ctx.fillText('Max roll [deg]', 0, 0);
         ctx.restore();
 
-        // Draw gradient bar
+        // Draw discrete color scale legend
         if (mode === 'continuous') {
             for (let i = 0; i <= legendBarHeight; i++) {
                 const rollValue = (colorScaleMax * (legendBarHeight - i)) / legendBarHeight;
-                const [r, g, b] = getContinuousColorRGB(rollValue, colorScaleMax);
-                ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+                const [r, g, b] = getContinuousColorRGB(rollValue, minRoll, maxRollAngle);
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
                 ctx.fillRect(legendBarX, legendBarTop + i, legendBarWidth, 1);
             }
         } else {
             for (let i = 0; i <= legendBarHeight; i++) {
-                const rollValue = (maxRollAngle * 1.5 * (legendBarHeight - i)) / legendBarHeight;
+                const rollValue = (colorScaleMax * (legendBarHeight - i)) / legendBarHeight;
                 const [r, g, b] = getTrafficLightColorRGB(rollValue, maxRollAngle);
-                ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
                 ctx.fillRect(legendBarX, legendBarTop + i, legendBarWidth, 1);
             }
         }
