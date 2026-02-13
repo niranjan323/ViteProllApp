@@ -1104,3 +1104,582 @@
     justify-content: center;
     align-items: center;
 }
+
+/* ============================================
+   Chart Right Panel - Transparent / Frosted Glass
+   ============================================ */
+.chart-right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 300px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 16px;
+    box-sizing: border-box;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+}
+
+/* Color Mode Heading */
+.color-mode-heading {
+    font-size: 14px;
+    font-weight: 600;
+    font-style: italic;
+    color: #ffffff;
+    padding: 0 4px;
+}
+
+/* Color Mode Toggle Row */
+.color-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 10px;
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+}
+
+.color-mode-icon {
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.color-mode-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* Custom toggle circle for color mode */
+.cm-radio {
+    display: none;
+}
+
+.cm-toggle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    background: transparent;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.cm-radio:checked + .cm-toggle {
+    border-color: #2196f3;
+    background: #2196f3;
+}
+
+.cm-radio:checked + .cm-toggle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ffffff;
+}
+
+/* Direction & Mode Box - Frosted Glass */
+.direction-mode-box {
+    display: flex;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.direction-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1.5px solid rgba(255, 255, 255, 0.25);
+}
+
+.mode-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.dm-header {
+    padding: 10px 14px;
+    border-bottom: 1.5px solid rgba(255, 255, 255, 0.25);
+    font-size: 13px;
+    font-weight: 600;
+    color: #64b5f6;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dm-body {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: transparent;
+}
+
+.dm-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+}
+
+/* Custom radio buttons for Direction/Mode */
+.dm-radio {
+    display: none;
+}
+
+.dm-radio-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    background: transparent;
+    display: inline-block;
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.dm-radio:checked + .dm-radio-dot {
+    border-color: #2196f3;
+    background: #2196f3;
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.9);
+}
+
+/* Chart Info Hint */
+.chart-info-hint {
+    font-size: 12px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 0 4px;
+}
+
+/* Parameters Table - Frosted Glass */
+.params-table {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.params-row {
+    display: grid;
+    grid-template-columns: 55px 40px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    box-sizing: border-box;
+    width: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.params-row:last-child {
+    border-bottom: none;
+}
+
+.params-label {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+}
+
+.params-input {
+    padding: 8px 10px;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    font-size: 12px;
+    text-align: center;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.params-unit {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: right;
+}
+
+/* ============================================
+   DARK MODE OVERRIDES
+   Applied via data-theme="dark" on .project-container
+   ============================================ */
+
+/* Container background */
+[data-theme="dark"].project-container {
+    background: #0b1622;
+}
+
+/* Sidebar */
+[data-theme="dark"] .project-sidebar {
+    background: #1a2332;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .project-tabs {
+    background: #1a2332;
+    border-bottom-color: #2a3a4a;
+}
+
+[data-theme="dark"] .project-tab {
+    color: #8899aa;
+}
+
+[data-theme="dark"] .project-tab:hover {
+    color: #b0bec5;
+}
+
+[data-theme="dark"] .project-tab.active {
+    color: #2196f3;
+}
+
+[data-theme="dark"] .sidebar-content {
+    background: #0d1721;
+}
+
+/* Sections */
+[data-theme="dark"] .section-title {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .section-content {
+    background: #141e2b;
+    border-color: #2a3a4a;
+}
+
+/* Input rows */
+[data-theme="dark"] .input-label {
+    color: #b0bec5;
+}
+
+[data-theme="dark"] .input-with-unit {
+    border-color: #2a3a4a;
+    background: #1a2332;
+}
+
+[data-theme="dark"] .input-field {
+    background: #1a2332;
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .input-unit {
+    color: #6688aa;
+    background: #1a2332;
+}
+
+[data-theme="dark"] .input-range {
+    color: #556677;
+}
+
+[data-theme="dark"] .indicator {
+    color: #4caf50;
+}
+
+[data-theme="dark"] .indicator.invalid {
+    color: #ff5252;
+}
+
+/* Invalid input styling in dark mode */
+[data-theme="dark"] .invalid-input {
+    border-color: #ff5252 !important;
+}
+
+/* Draft select */
+[data-theme="dark"] .draft-select,
+[data-theme="dark"] select {
+    background: #1a2332;
+    color: #e0e0e0;
+    border-color: #2a3a4a;
+}
+
+[data-theme="dark"] .draft-value {
+    color: #b0bec5;
+}
+
+/* Case files */
+[data-theme="dark"] .case-label {
+    color: #b0bec5;
+}
+
+[data-theme="dark"] .case-input {
+    background: #1a2332;
+    color: #e0e0e0;
+    border-color: #2a3a4a;
+}
+
+[data-theme="dark"] .case-select {
+    background: #1a2332;
+    color: #e0e0e0;
+    border-color: #2a3a4a;
+}
+
+/* Project info */
+[data-theme="dark"] .project-info {
+    color: #b0bec5;
+}
+
+[data-theme="dark"] .project-info strong {
+    color: #e0e0e0;
+}
+
+/* Main content area */
+[data-theme="dark"] .project-main {
+    background: #1a2332;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Plot header */
+[data-theme="dark"] .plot-header {
+    background: #1a2332;
+    border-bottom-color: #2a3a4a;
+}
+
+/* Plot canvas */
+[data-theme="dark"] .plot-canvas {
+    background: #1a2a3e;
+}
+
+/* Saved cases section */
+[data-theme="dark"] .saved-cases-section {
+    background: #0d1721;
+    border-top-color: #2a3a4a;
+}
+
+[data-theme="dark"] .saved-cases-title {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .folder-icon {
+    color: #8899aa;
+}
+
+[data-theme="dark"] .case-tile-box {
+    background: #1a2332;
+    border-color: #2a3a4a;
+}
+
+[data-theme="dark"] .case-tile-box:hover {
+    border-color: #2196f3;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .case-tile-id {
+    color: #b0bec5;
+}
+
+[data-theme="dark"] .nav-arrow {
+    background: #1a2332;
+    border-color: #2a3a4a;
+    color: #8899aa;
+}
+
+[data-theme="dark"] .nav-arrow:hover {
+    background: #141e2b;
+    border-color: #3a5a7a;
+}
+
+/* Footer actions */
+[data-theme="dark"] .footer-actions {
+    background: #1a2332;
+    border-top-color: #2a3a4a;
+}
+
+[data-theme="dark"] .radio-label {
+    color: #b0bec5;
+}
+
+[data-theme="dark"] .radio-label .radio-dot {
+    border-color: #3a5a7a;
+}
+
+[data-theme="dark"] .radio-label input[type="radio"]:checked + .radio-dot {
+    border-color: #2196f3;
+    background: #1a2332;
+}
+
+/* Wave period select */
+[data-theme="dark"] .wave-period-select,
+[data-theme="dark"] .wave-period-input {
+    background: #1a2332;
+    color: #e0e0e0;
+    border-color: #2a3a4a;
+}
+
+/* Chart options panel */
+[data-theme="dark"] .chart-options-panel {
+    background: #1a2332;
+    border-color: #2a3a4a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .chart-options-section {
+    border-bottom-color: #2a3a4a;
+}
+
+[data-theme="dark"] .options-header {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .option-label {
+    color: #b0bec5;
+}
+
+[data-theme="dark"] .option-label:hover {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .chart-info-section {
+    background: #0d1721;
+}
+
+[data-theme="dark"] .chart-info-text {
+    color: #8899aa;
+}
+
+[data-theme="dark"] .param-row label {
+    color: #6688aa;
+}
+
+[data-theme="dark"] .param-row input {
+    background: #1a2332;
+    border-color: #2a3a4a;
+    color: #e0e0e0;
+}
+
+/* Visualization controls */
+[data-theme="dark"] .visualization-controls {
+    background: #0d1721;
+}
+
+[data-theme="dark"] .control-group label {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .control-select {
+    background: #1a2332;
+    color: #e0e0e0;
+    border-color: #2a3a4a;
+}
+
+/* Wave period section */
+[data-theme="dark"] .wave-period-section {
+    background: #1a2332;
+    border-color: #2a3a4a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Info text */
+[data-theme="dark"] .info-text {
+    color: #8899aa;
+}
+
+/* Full-width input fields */
+[data-theme="dark"] .input-field-full {
+    background: #1a2332;
+    color: #e0e0e0;
+    border-color: #2a3a4a;
+}
+
+[data-theme="dark"] .textarea-field {
+    background: #1a2332;
+    color: #e0e0e0;
+    border-color: #2a3a4a;
+}
+
+[data-theme="dark"] .file-input {
+    background: #1a2332;
+    color: #e0e0e0;
+    border-color: #2a3a4a;
+}
+
+/* Scrollbar dark mode */
+[data-theme="dark"] .project-sidebar::-webkit-scrollbar-track,
+[data-theme="dark"] .sidebar-content::-webkit-scrollbar-track,
+[data-theme="dark"] .project-main::-webkit-scrollbar-track {
+    background: #0d1721;
+}
+
+[data-theme="dark"] .project-sidebar::-webkit-scrollbar-thumb,
+[data-theme="dark"] .sidebar-content::-webkit-scrollbar-thumb,
+[data-theme="dark"] .project-main::-webkit-scrollbar-thumb {
+    background: #3a5a7a;
+}
+
+[data-theme="dark"] .project-sidebar::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .sidebar-content::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .project-main::-webkit-scrollbar-thumb:hover {
+    background: #4a7a9a;
+}
+
+/* Chart placeholder */
+[data-theme="dark"] .chart-placeholder {
+    background: #0d1721;
+    border-color: #2a3a4a;
+}
+
+[data-theme="dark"] .chart-placeholder p {
+    color: #8899aa;
+}
+
+/* Report section */
+[data-theme="dark"] .report-section {
+    background: #0d1721;
+}
+
+/* Delete button dark mode */
+[data-theme="dark"] .delete-btn {
+    background: #1a2332;
+    color: #8899aa;
+    border-color: #2a3a4a;
+}
+
+[data-theme="dark"] .delete-btn:hover {
+    background: #2a1520;
+    color: #ff5252;
+    border-color: #ff5252;
+}
+
+[data-theme="dark"] .delete-case-btn:disabled {
+    background: #2a3a4a;
+    color: #556677;
+}
+
+/* Chart Right Panel - Dark Mode (panel is already transparent, minimal overrides) */
+[data-theme="dark"] .color-mode-heading {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .color-mode-toggle {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .dm-header {
+    color: #64b5f6;
+}

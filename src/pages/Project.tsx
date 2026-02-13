@@ -44,6 +44,7 @@ const Project: React.FC = () => {
     }>({ rollMatrix: null, speeds: null, headings: null });
     const [chartDirection, setChartDirection] = useState<'north-up' | 'heads-up'>('north-up');
     const [chartMode, setChartMode] = useState<'continuous' | 'traffic-light'>('continuous');
+    const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
     const [wavePeriodType, setWavePeriodType] = useState<keyof typeof WAVE_PERIOD_CONVERSIONS>('tz');
 
     // Calculate displayed wave period value based on selected type
@@ -269,7 +270,7 @@ const Project: React.FC = () => {
     ];
 
     return (
-        <div className="project-container">
+        <div className="project-container" data-theme={colorMode}>
             <div className="project-sidebar">
                 <div className="project-tabs">
                     <button
@@ -496,83 +497,138 @@ const Project: React.FC = () => {
                                     />
                                 </div>
                                 
-                                <div className="plot-canvas-right">
-                                    <div className="chart-options-panel">
-                                        <div className="chart-options-section">
-                                            <h4 className="options-header">Direction</h4>
-                                            <div className="option-buttons">
-                                                <label className="option-label">
-                                                    <input 
-                                                        type="radio"
-                                                        name="direction"
-                                                        value="north-up"
-                                                        checked={chartDirection === 'north-up'}
-                                                        onChange={(e) => setChartDirection(e.target.value as 'north-up' | 'heads-up')}
-                                                    />
-                                                    <span>North up</span>
-                                                </label>
-                                                <label className="option-label">
-                                                    <input 
-                                                        type="radio"
-                                                        name="direction"
-                                                        value="heads-up"
-                                                        checked={chartDirection === 'heads-up'}
-                                                        onChange={(e) => setChartDirection(e.target.value as 'north-up' | 'heads-up')}
-                                                    />
-                                                    <span>Heads up</span>
-                                                </label>
+                                 <div className="plot-canvas-right">
+                                    {/* Chart Options Panel Container */}
+                                    <div className="chart-right-panel">
+                                        {/* Color Mode Heading */}
+                                        <div className="color-mode-heading">Color Mode</div>
+                                        {/* Color Mode Toggle */}
+                                        <div className="color-mode-toggle">
+                                            <span className="color-mode-icon">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                                    <line x1="8" y1="21" x2="16" y2="21"/>
+                                                    <line x1="12" y1="17" x2="12" y2="21"/>
+                                                </svg>
+                                            </span>
+                                            <label className="color-mode-option">
+                                                <span>Light Mode</span>
+                                                <input
+                                                    type="radio"
+                                                    name="colorMode"
+                                                    value="light"
+                                                    checked={colorMode === 'light'}
+                                                    onChange={() => setColorMode('light')}
+                                                    className="cm-radio"
+                                                />
+                                                <span className="cm-toggle"></span>
+                                            </label>
+                                            <label className="color-mode-option">
+                                                <span>Dark Mode</span>
+                                                <input
+                                                    type="radio"
+                                                    name="colorMode"
+                                                    value="dark"
+                                                    checked={colorMode === 'dark'}
+                                                    onChange={() => setColorMode('dark')}
+                                                    className="cm-radio"
+                                                />
+                                                <span className="cm-toggle"></span>
+                                            </label>
+                                        </div>
+
+                                        {/* Direction & Mode Section */}
+                                        <div className="direction-mode-box">
+                                            {/* Direction Column */}
+                                            <div className="direction-column">
+                                                <div className="dm-header">Direction</div>
+                                                <div className="dm-body">
+                                                    <label className="dm-label">
+                                                        <input
+                                                            type="radio"
+                                                            name="direction"
+                                                            value="north-up"
+                                                            checked={chartDirection === 'north-up'}
+                                                            onChange={(e) => setChartDirection(e.target.value as 'north-up' | 'heads-up')}
+                                                            className="dm-radio"
+                                                        />
+                                                        <span className="dm-radio-dot"></span>
+                                                        North up
+                                                    </label>
+                                                    <label className="dm-label">
+                                                        <input
+                                                            type="radio"
+                                                            name="direction"
+                                                            value="heads-up"
+                                                            checked={chartDirection === 'heads-up'}
+                                                            onChange={(e) => setChartDirection(e.target.value as 'north-up' | 'heads-up')}
+                                                            className="dm-radio"
+                                                        />
+                                                        <span className="dm-radio-dot"></span>
+                                                        Heads up
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            {/* Mode Column */}
+                                            <div className="mode-column">
+                                                <div className="dm-header">Mode</div>
+                                                <div className="dm-body">
+                                                    <label className="dm-label">
+                                                        <input
+                                                            type="radio"
+                                                            name="mode"
+                                                            value="continuous"
+                                                            checked={chartMode === 'continuous'}
+                                                            onChange={(e) => setChartMode(e.target.value as 'continuous' | 'traffic-light')}
+                                                            className="dm-radio"
+                                                        />
+                                                        <span className="dm-radio-dot"></span>
+                                                        Continuous
+                                                    </label>
+                                                    <label className="dm-label">
+                                                        <input
+                                                            type="radio"
+                                                            name="mode"
+                                                            value="traffic-light"
+                                                            checked={chartMode === 'traffic-light'}
+                                                            onChange={(e) => setChartMode(e.target.value as 'continuous' | 'traffic-light')}
+                                                            className="dm-radio"
+                                                        />
+                                                        <span className="dm-radio-dot"></span>
+                                                        Traffic light
+                                                    </label>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="chart-options-section">
-                                            <h4 className="options-header">Mode</h4>
-                                            <div className="option-buttons">
-                                                <label className="option-label">
-                                                    <input 
-                                                        type="radio"
-                                                        name="mode"
-                                                        value="continuous"
-                                                        checked={chartMode === 'continuous'}
-                                                        onChange={(e) => setChartMode(e.target.value as 'continuous' | 'traffic-light')}
-                                                    />
-                                                    <span>Continuous</span>
-                                                </label>
-                                                <label className="option-label">
-                                                    <input 
-                                                        type="radio"
-                                                        name="mode"
-                                                        value="traffic-light"
-                                                        checked={chartMode === 'traffic-light'}
-                                                        onChange={(e) => setChartMode(e.target.value as 'continuous' | 'traffic-light')}
-                                                    />
-                                                    <span>Traffic light</span>
-                                                </label>
-                                            </div>
+                                        {/* Info Text */}
+                                        <div className="chart-info-hint">
+                                            Polar diagram closest to the user request
                                         </div>
 
-                                        <div className="chart-info-section">
-                                            <p className="chart-info-text">Polar diagram closest to the user request</p>
-                                            <div className="chart-params">
-                                                <div className="param-row">
-                                                    <label>Draft</label>
-                                                    <input type="text" value={userInputData.vesselOperation.draftAftPeak} readOnly />
+                                        {/* Parameters Table */}
+                                        <div className="params-table">
+                                            {[
+                                                { label: 'Draft', value: userInputData.vesselOperation.draftAftPeak, unit: '[m]' },
+                                                { label: 'GM', value: userInputData.vesselOperation.gm, unit: '[m]' },
+                                                { label: 'Hs', value: userInputData.seaState.significantWaveHeight, unit: '[m]' },
+                                                { label: 'Tz', value: userInputData.seaState.wavePeriod, unit: '[s]' },
+                                            ].map((row) => (
+                                                <div key={row.label} className="params-row">
+                                                    <label className="params-label">{row.label}</label>
+                                                    <span className="params-unit">{row.unit}</span>
+                                                    <input
+                                                        readOnly
+                                                        value={row.value}
+                                                        className="params-input"
+                                                    />
                                                 </div>
-                                                <div className="param-row">
-                                                    <label>GM</label>
-                                                    <input type="text" value={userInputData.vesselOperation.gm} readOnly />
-                                                </div>
-                                                <div className="param-row">
-                                                    <label>Hs</label>
-                                                    <input type="text" value={userInputData.seaState.significantWaveHeight} readOnly />
-                                                </div>
-                                                <div className="param-row">
-                                                    <label>Tz</label>
-                                                    <input type="text" value={userInputData.seaState.wavePeriod.toFixed(1)} readOnly />
-                                                </div>
-                                            </div>
+                                            ))}
                                         </div>
                                     </div>
                                 </div>
+
                             </>
                         ) : (
                             <>
