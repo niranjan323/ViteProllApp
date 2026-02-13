@@ -118,8 +118,22 @@
 }
 
 .indicator {
-    color: #4caf50;
-    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4caf50;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.indicator.invalid {
+    background: #ff5252;
 }
 
 .input-with-unit {
@@ -138,16 +152,44 @@
     border: none;
     font-size: 0.85rem;
     background: white;
-    color: #333;
+    color: #1473E6;
     text-align: center;
     outline: none;
+    font-weight: 500;
 }
 
 .input-unit {
     font-size: 0.75rem;
-    color: #666;
+    color: #1473E6;
     padding-right: 0.5rem;
     background: white;
+    font-weight: 500;
+}
+
+/* Inline unit label (next to label text) */
+.input-unit-inline {
+    font-size: 0.75rem;
+    color: #1473E6;
+    font-weight: 500;
+}
+
+/* Standalone input field (without unit wrapper) */
+.input-field-standalone {
+    width: 80px;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background: white;
+    color: #1473E6;
+    text-align: center;
+    outline: none;
+    font-weight: 500;
+}
+
+.input-field-standalone:focus {
+    border-color: #1473E6;
+    box-shadow: 0 0 3px rgba(20, 115, 230, 0.2);
 }
 
 .input-range {
@@ -292,6 +334,49 @@
     background: #f8f9fa;
     color: #dc3545;
     border-color: #dc3545;
+}
+
+.case-select {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background: white;
+    cursor: pointer;
+}
+
+.save-message {
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    animation: fadeIn 0.2s ease;
+}
+
+.save-message.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+.save-message.error {
+    background: #fce4ec;
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+}
+
+.case-count {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 0.5rem;
+    text-align: right;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Main Content Area */
@@ -1385,12 +1470,27 @@
 
 [data-theme="dark"] .input-field {
     background: #1a2332;
-    color: #e0e0e0;
+    color: #1473E6;
 }
 
 [data-theme="dark"] .input-unit {
-    color: #6688aa;
+    color: #1473E6;
     background: #1a2332;
+}
+
+[data-theme="dark"] .input-unit-inline {
+    color: #1473E6;
+}
+
+[data-theme="dark"] .input-field-standalone {
+    background: #1a2332;
+    color: #1473E6;
+    border-color: #2a3a4a;
+}
+
+[data-theme="dark"] .input-field-standalone:focus {
+    border-color: #1473E6;
+    box-shadow: 0 0 3px rgba(20, 115, 230, 0.3);
 }
 
 [data-theme="dark"] .input-range {
@@ -1398,11 +1498,13 @@
 }
 
 [data-theme="dark"] .indicator {
-    color: #4caf50;
+    background: #4caf50;
+    color: #ffffff;
 }
 
 [data-theme="dark"] .indicator.invalid {
-    color: #ff5252;
+    background: #ff5252;
+    color: #ffffff;
 }
 
 /* Invalid input styling in dark mode */
@@ -1437,6 +1539,22 @@
     background: #1a2332;
     color: #e0e0e0;
     border-color: #2a3a4a;
+}
+
+[data-theme="dark"] .save-message.success {
+    background: #1b3a2a;
+    color: #81c784;
+    border-color: #2e7d32;
+}
+
+[data-theme="dark"] .save-message.error {
+    background: #3a1b1b;
+    color: #ef9a9a;
+    border-color: #c62828;
+}
+
+[data-theme="dark"] .case-count {
+    color: #6688aa;
 }
 
 /* Project info */

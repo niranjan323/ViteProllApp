@@ -35,6 +35,7 @@ const Project: React.FC = () => {
     const [draftType, setDraftType] = useState<'design' | 'intermediate' | 'scantling'>('design');
     const [caseManager] = useState(() => new CaseManager());
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    const [saveMessage, setSaveMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const { fileSystem } = useElectron();
     const [dataLoader] = useState(() => new DataLoader(fileSystem));
     const [polarData, setPolarData] = useState<{
@@ -71,14 +72,24 @@ const Project: React.FC = () => {
     };
 
     // ... rest of your existing handlers (handleSaveCase, handleDeleteCase, handleLoadCase)
+    const showMessage = (text: string, type: 'success' | 'error') => {
+        setSaveMessage({ text, type });
+        setTimeout(() => setSaveMessage(null), 3000);
+    };
+
     const handleSaveCase = () => {
         if (!caseId.trim()) {
-            alert('Please enter a case ID');
+            showMessage('Please enter a case ID', 'error');
             return;
         }
-        
-        const caseIdToSave = caseId;
-        
+
+        const caseIdToSave = caseId.trim();
+
+        if (caseManager.caseExists(caseIdToSave)) {
+            showMessage(`Case "${caseIdToSave}" already exists. Use a different ID.`, 'error');
+            return;
+        }
+
         const newCase: AnalysisCase = {
             id: caseIdToSave,
             timestamp: Date.now(),
@@ -106,17 +117,20 @@ const Project: React.FC = () => {
             parameters: c,
         })));
         setCaseId('');
-        alert(`Case "${caseIdToSave}" saved successfully`);
+        showMessage(`Case "${caseIdToSave}" saved`, 'success');
     };
 
     const handleDeleteCase = (id: string) => {
-        caseManager.deleteCase(id);
-        const allCases = caseManager.getAllCases();
-        setSavedCases(allCases.map((c, idx) => ({
-            id: c.id,
-            color: idx % 2 === 0 ? 'green' : 'pink',
-            parameters: c,
-        })));
+        const deleted = caseManager.deleteCase(id);
+        if (deleted) {
+            const allCases = caseManager.getAllCases();
+            setSavedCases(allCases.map((c, idx) => ({
+                id: c.id,
+                color: idx % 2 === 0 ? 'green' : 'pink',
+                parameters: c,
+            })));
+            showMessage(`Case "${id}" deleted`, 'success');
+        }
     };
 
     const handleLoadCase = (item: SavedCase) => {
@@ -319,20 +333,19 @@ const Project: React.FC = () => {
                                     {vesselConditions.map((item, index) => (
                                         <div key={index} className="input-row-wrapper">
                                             <div className="input-row">
-                                                <label className="input-label">{item.label}</label>
+                                                <label className="input-label">
+                                                    {item.label} <span className="input-unit-inline">{item.unit}</span>
+                                                </label>
                                                 <div className="input-group">
                                                     <span className={`indicator ${item.isInvalid ? 'invalid' : ''}`}>
                                                         {item.isInvalid ? '✗' : '✓'}
                                                     </span>
-                                                    <div className="input-with-unit">
-                                                        <input
-                                                            type="number"
-                                                            className={`input-field ${item.isInvalid ? 'invalid-input' : ''}`}
-                                                            value={item.value}
-                                                            onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
-                                                        />
-                                                        <span className="input-unit">{item.unit}</span>
-                                                    </div>
+                                                    <input
+                                                        type="number"
+                                                        className={`input-field-standalone ${item.isInvalid ? 'invalid-input' : ''}`}
+                                                        value={item.value}
+                                                        onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
+                                                    />
                                                 </div>
                                             </div>
                                             <div className="input-range">{item.range}</div>
@@ -347,20 +360,19 @@ const Project: React.FC = () => {
                                     {seaState.map((item, index) => (
                                         <div key={index} className="input-row-wrapper">
                                             <div className="input-row">
-                                                <label className="input-label">{item.label}</label>
+                                                <label className="input-label">
+                                                    {item.label} <span className="input-unit-inline">{item.unit}</span>
+                                                </label>
                                                 <div className="input-group">
                                                     <span className={`indicator ${item.isInvalid ? 'invalid' : ''}`}>
                                                         {item.isInvalid ? '✗' : '✓'}
                                                     </span>
-                                                    <div className="input-with-unit">
-                                                        <input
-                                                            type="number"
-                                                            className={`input-field ${item.isInvalid ? 'invalid-input' : ''}`}
-                                                            value={item.value}
-                                                            onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
-                                                        />
-                                                        <span className="input-unit">{item.unit}</span>
-                                                    </div>
+                                                    <input
+                                                        type="number"
+                                                        className={`input-field-standalone ${item.isInvalid ? 'invalid-input' : ''}`}
+                                                        value={item.value}
+                                                        onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
+                                                    />
                                                 </div>
                                             </div>
                                             {item.range && <div className="input-range">{item.range}</div>}
@@ -384,16 +396,14 @@ const Project: React.FC = () => {
                                                         <option key={key} value={key}>{config.label}</option>
                                                     ))}
                                                 </select>
-                                                <div className="input-with-unit">
-                                                    <input
-                                                        type="number"
-                                                        className={`input-field ${validation?.tz.outOfRange ? 'invalid-input' : ''}`}
-                                                        value={displayedWavePeriod.toFixed(1)}
-                                                        onChange={(e) => handleWavePeriodChange(parseFloat(e.target.value) || 0)}
-                                                        step="0.1"
-                                                    />
-                                                    <span className="input-unit">[s]</span>
-                                                </div>
+                                                <span className="input-unit-inline">[s]</span>
+                                                <input
+                                                    type="number"
+                                                    className={`input-field-standalone ${validation?.tz.outOfRange ? 'invalid-input' : ''}`}
+                                                    value={displayedWavePeriod.toFixed(1)}
+                                                    onChange={(e) => handleWavePeriodChange(parseFloat(e.target.value) || 0)}
+                                                    step="0.1"
+                                                />
                                             </div>
                                         </div>
                                         <div className="input-range">
@@ -410,6 +420,11 @@ const Project: React.FC = () => {
                                     <h3 className="section-title">Case Files</h3>
                                 </div>
                                 <div className="section-content">
+                                    {saveMessage && (
+                                        <div className={`save-message ${saveMessage.type}`}>
+                                            {saveMessage.text}
+                                        </div>
+                                    )}
                                     <div className="case-row">
                                         <label className="case-label">Save to case ID</label>
                                         <input
@@ -417,8 +432,10 @@ const Project: React.FC = () => {
                                             className="case-input"
                                             value={caseId}
                                             onChange={(e) => setCaseId(e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveCase(); }}
                                             maxLength={12}
                                             placeholder="Max 12 chars"
+                                            autoComplete="off"
                                         />
                                         <button className="save-btn" onClick={handleSaveCase}>💾</button>
                                     </div>
@@ -436,7 +453,7 @@ const Project: React.FC = () => {
                                                 </option>
                                             ))}
                                         </select>
-                                        <button 
+                                        <button
                                             className="delete-case-btn"
                                             onClick={() => {
                                                 if (deleteConfirmId) {
@@ -449,6 +466,11 @@ const Project: React.FC = () => {
                                             🗑️ Delete
                                         </button>
                                     </div>
+                                    {savedCases.length > 0 && (
+                                        <div className="case-count">
+                                            {savedCases.length} case{savedCases.length !== 1 ? 's' : ''} saved
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </>
