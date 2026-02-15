@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 
 interface CanvasPolarChartProps {
     rollMatrix: number[][];
@@ -114,7 +114,11 @@ function interpolateRoll(
     return r0 * (1 - sT) + r1 * sT;
 }
 
-export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
+export interface CanvasPolarChartHandle {
+    getImageDataURL: () => string | null;
+}
+
+export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarChartProps>(({
     rollMatrix,
     speeds,
     headings,
@@ -126,8 +130,17 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
     height = 750,
     mode = 'continuous',
     orientation = 'north-up',
-}) => {
+}, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useImperativeHandle(ref, () => ({
+        getImageDataURL: () => {
+            if (canvasRef.current) {
+                return canvasRef.current.toDataURL('image/png');
+            }
+            return null;
+        }
+    }));
 
     // RdYlBu 10-class discrete colors (reversed: blue=low, red=high)
     const discreteColors: [number, number, number][] = [
@@ -617,4 +630,4 @@ export const CanvasPolarChart: React.FC<CanvasPolarChartProps> = ({
     }, [rollMatrix, speeds, headings, vesselHeading, vesselSpeed, maxRollAngle, meanWaveDirection, width, height, mode, orientation]);
 
     return <canvas ref={canvasRef} style={{ width: `${width}px`, height: `${height}px` }} />;
-};
+});

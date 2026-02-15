@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import './Project.css';
 import { useUserData } from '../context/UserDataContext';
@@ -8,6 +8,8 @@ import { CaseManager } from '../services/caseManager';
 import type { AnalysisCase } from '../services/caseManager';
 import { DataLoader } from '../services/dataLoader';
 import { CanvasPolarChart } from '../components/CanvasPolarChart';
+import type { CanvasPolarChartHandle } from '../components/CanvasPolarChart';
+import { jsPDF } from 'jspdf';
 
 interface SavedCase {
     id: string;
@@ -47,6 +49,13 @@ const Project: React.FC = () => {
     const [chartMode, setChartMode] = useState<'continuous' | 'traffic-light'>('continuous');
     const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
     const [wavePeriodType, setWavePeriodType] = useState<keyof typeof WAVE_PERIOD_CONVERSIONS>('tz');
+
+    // Report modal state
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportType, setReportType] = useState<'current' | 'all'>('current');
+    const [showReportMenu, setShowReportMenu] = useState(false);
+    const [selectedCaseForReport, setSelectedCaseForReport] = useState<SavedCase | null>(null);
+    const chartRef = useRef<CanvasPolarChartHandle>(null);
 
     // Calculate displayed wave period value based on selected type
     const displayedWavePeriod = useMemo(() => {
@@ -149,6 +158,143 @@ const Project: React.FC = () => {
             meanWaveDirection: caseData.seaState.waveDirection,
         });
     };
+
+    // Get report data for a case (or current inputs if no case selected)
+    const getReportData = useCallback((caseItem?: SavedCase) => {
+        if (caseItem) {
+            const c = caseItem.parameters as AnalysisCase;
+            return {
+                caseId: caseItem.id,
+                draftAft: c.vesselData.draftAft,
+                draftFore: c.vesselData.draftFore,
+                gm: c.vesselData.gm,
+                heading: c.vesselData.heading,
+                speed: c.vesselData.speed,
+                maxRoll: c.vesselData.maxRoll,
+                waveDirection: c.seaState.waveDirection,
+                hs: c.seaState.hs,
+                tz: c.seaState.tz,
+            };
+        }
+        return {
+            caseId: caseId || 'Current',
+            draftAft: userInputData.vesselOperation.draftAftPeak,
+            draftFore: userInputData.vesselOperation.draftForePeak,
+            gm: userInputData.vesselOperation.gm,
+            heading: userInputData.vesselOperation.heading,
+            speed: userInputData.vesselOperation.speed,
+            maxRoll: userInputData.vesselOperation.maxAllowedRoll,
+            waveDirection: userInputData.seaState.meanWaveDirection,
+            hs: userInputData.seaState.significantWaveHeight,
+            tz: userInputData.seaState.wavePeriod,
+        };
+    }, [caseId, userInputData]);
+
+    const handleGenerateReport = () => {
+        if (reportType === 'current') {
+            // Use the currently loaded/selected case or current inputs
+            const currentCase = savedCases.length > 0 ? savedCases[0] : null;
+            setSelectedCaseForReport(currentCase);
+        } else {
+            setSelectedCaseForReport(null);
+        }
+        setShowReportModal(true);
+        setShowReportMenu(false);
+    };
+
+    const handleDownloadPDF = useCallback((cases: ReturnType<typeof getReportData>[]) => {
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        const contentWidth = pageWidth - margin * 2;
+
+        cases.forEach((data, caseIndex) => {
+            if (caseIndex > 0) doc.addPage();
+
+            let y = 20;
+
+            // Title
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(40, 40, 40);
+            doc.text('Vessel Operation Conditions', margin, y);
+            y += 12;
+
+            // Case ID
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(100, 100, 100);
+            doc.text('Case ID', margin, y);
+            doc.setTextColor(20, 115, 230);
+            doc.setFont('helvetica', 'bold');
+            doc.text(String(data.caseId), margin + 70, y);
+            y += 10;
+
+            // Table of parameters
+            const rows = [
+                ['Draft Aft Peak', String(data.draftAft), '[m]'],
+                ['Draft Fore Peak', String(data.draftFore), '[m]'],
+                ['Metacentric Height, GM', String(data.gm), '[m]'],
+                ['Heading', String(data.heading), '[degree]'],
+                ['Speed', String(data.speed), '[kn]'],
+                ['Maximum Allowed Roll Angle', String(data.maxRoll), '[degree]'],
+                ['Mean Wave Direction', String(data.waveDirection), '[degree]'],
+                ['Significant Wave Height, Hs', String(data.hs), '[m]'],
+                ['Mean Wave Period, Tz', String(data.tz), '[s]'],
+            ];
+
+            rows.forEach((row) => {
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(60, 60, 60);
+                doc.setFontSize(10);
+                doc.text(row[0], margin, y);
+
+                doc.setTextColor(20, 115, 230);
+                doc.setFont('helvetica', 'bold');
+                doc.text(row[1], margin + 70, y);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(100, 100, 100);
+                doc.text(row[2], margin + 90, y);
+                y += 8;
+            });
+
+            y += 5;
+
+            // Polar chart image
+            const chartImage = chartRef.current?.getImageDataURL();
+            if (chartImage) {
+                const imgSize = Math.min(contentWidth, 140);
+                const imgX = margin + (contentWidth - imgSize) / 2;
+                doc.addImage(chartImage, 'PNG', imgX, y, imgSize, imgSize);
+                y += imgSize + 10;
+            }
+
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text('Polar diagram closest to the user request', margin, y);
+            doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y + 5);
+        });
+
+        return doc;
+    }, [getReportData]);
+
+    const handleDownloadReport = useCallback(() => {
+        let cases: ReturnType<typeof getReportData>[];
+        if (reportType === 'all' && savedCases.length > 0) {
+            cases = savedCases.map(c => getReportData(c));
+        } else if (selectedCaseForReport) {
+            cases = [getReportData(selectedCaseForReport)];
+        } else {
+            cases = [getReportData()];
+        }
+
+        const doc = handleDownloadPDF(cases);
+        const caseLabel = reportType === 'all' ? 'all_cases' : (cases[0]?.caseId || 'report');
+        doc.save(`polar_report_${caseLabel}.pdf`);
+        setShowReportMenu(false);
+    }, [reportType, savedCases, selectedCaseForReport, getReportData, handleDownloadPDF]);
 
     // Validate all parameters
     const validation = useMemo(() => {
@@ -505,6 +651,7 @@ const Project: React.FC = () => {
                             <>
                                 <div className="plot-canvas-left">
                                     <CanvasPolarChart
+                                        ref={chartRef}
                                         rollMatrix={polarData.rollMatrix}
                                         speeds={polarData.speeds}
                                         headings={polarData.headings}
@@ -716,21 +863,132 @@ const Project: React.FC = () => {
                     <div className="pdf-icon-box">
                         <span>PDF</span>
                     </div>
-                    <button className="generate-report-btn">Generate Report</button>
+                    <button className="generate-report-btn" onClick={handleGenerateReport}>Generate Report</button>
                     <div className="report-options">
                         <label className="radio-label">
-                            <input type="radio" name="report" value="current" defaultChecked />
+                            <input type="radio" name="report" value="current" checked={reportType === 'current'} onChange={() => setReportType('current')} />
                             <span className="radio-dot"></span>
                             <span>Current Case</span>
                         </label>
                         <label className="radio-label">
-                            <input type="radio" name="report" value="all" />
+                            <input type="radio" name="report" value="all" checked={reportType === 'all'} onChange={() => setReportType('all')} />
                             <span className="radio-dot"></span>
                             <span>All Cases</span>
                         </label>
                     </div>
                 </div>
             </div>
+
+            {/* Report Modal */}
+            {showReportModal && (() => {
+                const casesToShow = reportType === 'all' && savedCases.length > 0
+                    ? savedCases.map(c => getReportData(c))
+                    : selectedCaseForReport
+                        ? [getReportData(selectedCaseForReport)]
+                        : [getReportData()];
+
+                return (
+                    <div className="report-modal-overlay" onClick={() => { setShowReportModal(false); setShowReportMenu(false); }}>
+                        <div className="report-modal" onClick={(e) => e.stopPropagation()}>
+                            <div className="report-modal-header">
+                                <div className="report-modal-title">
+                                    <div className="pdf-icon-box-small"><span>PDF</span></div>
+                                    <span>Report</span>
+                                </div>
+                                <div className="report-modal-actions">
+                                    <div className="report-menu-wrapper">
+                                        <button className="report-menu-btn" onClick={() => setShowReportMenu(!showReportMenu)}>•••</button>
+                                        {showReportMenu && (
+                                            <div className="report-menu-dropdown">
+                                                <button onClick={handleDownloadReport}>
+                                                    📥 Download PDF
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button className="report-close-btn" onClick={() => { setShowReportModal(false); setShowReportMenu(false); }}>✕</button>
+                                </div>
+                            </div>
+                            <div className="report-modal-body">
+                                {casesToShow.map((data, idx) => (
+                                    <div key={idx} className="report-case-section">
+                                        <h3 className="report-section-title">Vessel Operation Conditions</h3>
+                                        <div className="report-row">
+                                            <span className="report-label">Case ID</span>
+                                            <span className="report-value highlight">{data.caseId}</span>
+                                        </div>
+                                        <div className="report-row">
+                                            <span className="report-label">Draft Aft Peak</span>
+                                            <span className="report-value highlight">{data.draftAft}</span>
+                                            <span className="report-unit">[m]</span>
+                                        </div>
+                                        <div className="report-row">
+                                            <span className="report-label">Draft Fore Peak</span>
+                                            <span className="report-value highlight">{data.draftFore}</span>
+                                            <span className="report-unit">[m]</span>
+                                        </div>
+                                        <div className="report-row">
+                                            <span className="report-label">Metacentric Height, GM</span>
+                                            <span className="report-value highlight">{data.gm}</span>
+                                            <span className="report-unit">[m]</span>
+                                        </div>
+                                        <div className="report-row">
+                                            <span className="report-label">Heading</span>
+                                            <span className="report-value highlight">{data.heading}</span>
+                                            <span className="report-unit">[degree]</span>
+                                        </div>
+                                        <div className="report-row">
+                                            <span className="report-label">Speed</span>
+                                            <span className="report-value highlight">{data.speed}</span>
+                                            <span className="report-unit">[kn]</span>
+                                        </div>
+                                        <div className="report-row">
+                                            <span className="report-label">Maximum Allowed Roll Angle</span>
+                                            <span className="report-value highlight">{data.maxRoll}</span>
+                                            <span className="report-unit">[degree]</span>
+                                        </div>
+                                        <div className="report-row">
+                                            <span className="report-label">Mean Wave Direction</span>
+                                            <span className="report-value highlight">{data.waveDirection}</span>
+                                            <span className="report-unit">[degree]</span>
+                                        </div>
+                                        <div className="report-row">
+                                            <span className="report-label">Significant Wave Height, Hs</span>
+                                            <span className="report-value highlight">{data.hs}</span>
+                                            <span className="report-unit">[m]</span>
+                                        </div>
+                                        <div className="report-row">
+                                            <span className="report-label">Mean Wave Period, Tz</span>
+                                            <span className="report-value highlight">{data.tz}</span>
+                                            <span className="report-unit">[s]</span>
+                                        </div>
+
+                                        <div className="report-chart-section">
+                                            {polarData.rollMatrix && polarData.speeds && polarData.headings && (
+                                                <CanvasPolarChart
+                                                    rollMatrix={polarData.rollMatrix}
+                                                    speeds={polarData.speeds}
+                                                    headings={polarData.headings}
+                                                    vesselHeading={data.heading}
+                                                    vesselSpeed={data.speed}
+                                                    maxRollAngle={data.maxRoll}
+                                                    meanWaveDirection={data.waveDirection}
+                                                    width={400}
+                                                    height={400}
+                                                    mode={chartMode}
+                                                    orientation={chartDirection}
+                                                />
+                                            )}
+                                        </div>
+                                        <p className="report-chart-caption">Polar diagram closest to the user request</p>
+                                        {idx < casesToShow.length - 1 && <hr className="report-divider" />}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };
