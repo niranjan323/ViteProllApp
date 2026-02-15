@@ -490,12 +490,15 @@ const Project: React.FC = () => {
                                                     <span className={`indicator ${item.isInvalid ? 'invalid' : ''}`}>
                                                         {item.isInvalid ? '✗' : '✓'}
                                                     </span>
-                                                    <input
-                                                        type="number"
-                                                        className={`input-field-standalone ${item.isInvalid ? 'invalid-input' : ''}`}
-                                                        value={item.value}
-                                                        onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
-                                                    />
+                                                    <div className="input-tooltip-wrapper">
+                                                        <input
+                                                            type="number"
+                                                            className={`input-field-standalone ${item.isInvalid ? 'invalid-input' : ''}`}
+                                                            value={item.value}
+                                                            onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
+                                                        />
+                                                        <span className="input-tooltip">{item.range}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="input-range">{item.range}</div>
@@ -517,12 +520,15 @@ const Project: React.FC = () => {
                                                     <span className={`indicator ${item.isInvalid ? 'invalid' : ''}`}>
                                                         {item.isInvalid ? '✗' : '✓'}
                                                     </span>
-                                                    <input
-                                                        type="number"
-                                                        className={`input-field-standalone ${item.isInvalid ? 'invalid-input' : ''}`}
-                                                        value={item.value}
-                                                        onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
-                                                    />
+                                                    <div className="input-tooltip-wrapper">
+                                                        <input
+                                                            type="number"
+                                                            className={`input-field-standalone ${item.isInvalid ? 'invalid-input' : ''}`}
+                                                            value={item.value}
+                                                            onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
+                                                        />
+                                                        {item.range && <span className="input-tooltip">{item.range}</span>}
+                                                    </div>
                                                 </div>
                                             </div>
                                             {item.range && <div className="input-range">{item.range}</div>}
@@ -547,18 +553,25 @@ const Project: React.FC = () => {
                                                     ))}
                                                 </select>
                                                 <span className="input-unit-inline">[s]</span>
-                                                <input
-                                                    type="number"
-                                                    className={`input-field-standalone ${validation?.tz.outOfRange ? 'invalid-input' : ''}`}
-                                                    value={displayedWavePeriod.toFixed(1)}
-                                                    onChange={(e) => handleWavePeriodChange(parseFloat(e.target.value) || 0)}
-                                                    step="0.1"
-                                                />
+                                                <div className="input-tooltip-wrapper">
+                                                    <input
+                                                        type="number"
+                                                        className={`input-field-standalone ${validation?.tz.outOfRange ? 'invalid-input' : ''}`}
+                                                        value={displayedWavePeriod.toFixed(1)}
+                                                        onChange={(e) => handleWavePeriodChange(parseFloat(e.target.value) || 0)}
+                                                        step="0.1"
+                                                    />
+                                                    {displayedWavePeriodRange && (
+                                                        <span className="input-tooltip">
+                                                            {`value range [${displayedWavePeriodRange.lower.toFixed(1)}-${displayedWavePeriodRange.upper.toFixed(1)} s]`}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="input-range">
-                                            {displayedWavePeriodRange ? 
-                                                `value range [${displayedWavePeriodRange.lower.toFixed(1)}-${displayedWavePeriodRange.upper.toFixed(1)} s]` 
+                                            {displayedWavePeriodRange ?
+                                                `value range [${displayedWavePeriodRange.lower.toFixed(1)}-${displayedWavePeriodRange.upper.toFixed(1)} s]`
                                                 : ''}
                                         </div>
                                     </div>

@@ -192,12 +192,60 @@
     box-shadow: 0 0 3px rgba(20, 115, 230, 0.2);
 }
 
+/* Remove number input spinner arrows */
+.input-field-standalone::-webkit-outer-spin-button,
+.input-field-standalone::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.input-field-standalone[type="number"] {
+    -moz-appearance: textfield;
+}
+
 .input-range {
     font-size: 0.65rem;
     color: #999;
     margin-top: 0.25rem;
     font-style: italic;
     text-align: right;
+}
+
+/* Hover tooltip on input fields */
+.input-tooltip-wrapper {
+    position: relative;
+    display: inline-flex;
+}
+
+.input-tooltip-wrapper .input-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1473E6;
+    color: #fff;
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(20, 115, 230, 0.35);
+    pointer-events: none;
+}
+
+.input-tooltip-wrapper .input-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1473E6;
+}
+
+.input-tooltip-wrapper:hover .input-tooltip {
+    display: block;
 }
 
 /* User Data Input Tab Content */
