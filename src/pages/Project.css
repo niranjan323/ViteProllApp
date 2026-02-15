@@ -721,6 +721,12 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.case-tile-box.active {
+    border-color: #1473E6;
+    box-shadow: 0 2px 10px rgba(20, 115, 230, 0.25);
+    background: #f0f7ff;
+}
+
 .case-tile-icon {
     width: 30px;
     height: 24px;
@@ -1884,6 +1890,12 @@
 [data-theme="dark"] .case-tile-box:hover {
     border-color: #2196f3;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .case-tile-box.active {
+    border-color: #1473E6;
+    box-shadow: 0 2px 10px rgba(20, 115, 230, 0.3);
+    background: #141e2b;
 }
 
 [data-theme="dark"] .case-tile-id {

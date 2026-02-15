@@ -55,6 +55,7 @@ const Project: React.FC = () => {
     const [reportType, setReportType] = useState<'current' | 'all'>('current');
     const [showReportMenu, setShowReportMenu] = useState(false);
     const [selectedCaseForReport, setSelectedCaseForReport] = useState<SavedCase | null>(null);
+    const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
     const chartRef = useRef<CanvasPolarChartHandle>(null);
 
     // Calculate displayed wave period value based on selected type
@@ -144,6 +145,7 @@ const Project: React.FC = () => {
 
     const handleLoadCase = (item: SavedCase) => {
         const caseData = item.parameters as AnalysisCase;
+        setActiveCaseId(item.id);
         updateVesselOperation({
             draftAftPeak: caseData.vesselData.draftAft,
             draftForePeak: caseData.vesselData.draftFore,
@@ -192,9 +194,11 @@ const Project: React.FC = () => {
 
     const handleGenerateReport = () => {
         if (reportType === 'current') {
-            // Use the currently loaded/selected case or current inputs
-            const currentCase = savedCases.length > 0 ? savedCases[0] : null;
-            setSelectedCaseForReport(currentCase);
+            // Use the actively selected case, or fall back to current inputs
+            const activeCase = activeCaseId
+                ? savedCases.find(c => c.id === activeCaseId) || null
+                : null;
+            setSelectedCaseForReport(activeCase);
         } else {
             setSelectedCaseForReport(null);
         }
@@ -849,7 +853,7 @@ const Project: React.FC = () => {
                         <button className="nav-arrow">‹</button>
                         <div className="saved-cases-list">
                             {savedCases.map((item) => (
-                                <div key={item.id} className="case-tile-box" onClick={() => handleLoadCase(item)}>
+                                <div key={item.id} className={`case-tile-box ${activeCaseId === item.id ? 'active' : ''}`} onClick={() => handleLoadCase(item)}>
                                     <div className={`case-tile-icon ${item.color}`}></div>
                                     <span className="case-tile-id">{item.id}</span>
                                 </div>
