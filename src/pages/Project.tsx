@@ -381,7 +381,7 @@ const Project: React.FC = () => {
             isInvalid: validation?.draftFore.outOfRange || false
         },
         {
-            label: 'GM',
+            label: 'Metacentric Height(GM)',
             value: userInputData.vesselOperation.gm,
             unit: '[m]',
             range: parameterBounds ? `value range [${parameterBounds.gmLower.toFixed(1)}-${parameterBounds.gmUpper.toFixed(1)} m]` : '',
