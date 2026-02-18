@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">
+  <defs>
+    <style>
+      .cls-1 {
+        stroke: #666;
+        stroke-width: .25px;
+      }
+
+      .cls-1, .cls-2 {
+        fill: none;
+      }
+
+      .cls-3 {
+        fill: #e5e5e5;
+      }
+
+      .cls-2 {
+        stroke: #626266;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <g>
+      <g id="Rectangle_4936" data-name="Rectangle 4936">
+        <rect class="cls-3" width="30" height="30" rx="5" ry="5" transform="translate(30 30) rotate(180)"/>
+        <rect class="cls-1" x=".12" y=".12" width="29.75" height="29.75" rx="4.88" ry="4.88" transform="translate(30 30) rotate(180)"/>
+      </g>
+      <path id="arrow" class="cls-2" d="M16.4,10.54l-3.93,3.93,4.07,4.07"/>
+    </g>
+  </g>
+</svg>

@@ -36,6 +36,17 @@
     background: #666;
 }
 
+/* Copyright Footer */
+.app-footer {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 0.6rem 1rem;
+    font-size: 0.75rem;
+    color: #A3ABC7;
+    background: transparent;
+    letter-spacing: 0.2px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .content-area {

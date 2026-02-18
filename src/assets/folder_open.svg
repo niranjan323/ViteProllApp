@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 16 13.24">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#linear-gradient-2);
+      }
+
+      .cls-2 {
+        fill: url(#linear-gradient-3);
+      }
+
+      .cls-3 {
+        fill: url(#linear-gradient);
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="-116.61" y1="974.98" x2="-116.61" y2="973.98" gradientTransform="translate(1694.61 12909.71) scale(14.47 -13.24)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffce0d"/>
+      <stop offset=".82" stop-color="#ff6817"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="-119.59" y1="982" x2="-119.59" y2="981" gradientTransform="translate(1595.94 7326.83) scale(13.28 -7.46)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fbfbfb"/>
+      <stop offset="1" stop-color="#f1d27c"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-3" x1="-113.43" y1="978.96" x2="-113.43" y2="977.96" gradientTransform="translate(1823.49 9007.02) scale(16.01 -9.2)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffce0d"/>
+      <stop offset="1" stop-color="#ff9c14"/>
+    </linearGradient>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <g id="folder_open_icon" data-name="folder open icon">
+      <g id="Group_4048" data-name="Group 4048">
+        <path id="Path_8448" data-name="Path 8448" class="cls-3" d="M14.47,3.6v8.37c0,.7-.41,1.26-.9,1.26H.9C.4,13.24,0,12.67,0,11.97V1.26C0,.57.41,0,.9,0h4c.38.04.7.31.8.68l.37.98c.1.37.42.64.8.68h6.69c.5,0,.91.57.91,1.27Z"/>
+        <path id="Path_8449" data-name="Path 8449" class="cls-1" d="M1.89,1.12h12.27c.28,0,.5.22.5.5v6.96H1.39V1.63c0-.28.22-.5.5-.5,0,0,0,0,0,0Z"/>
+        <path id="Path_8450" data-name="Path 8450" class="cls-2" d="M1.08,6.54L.02,12.36c-.08.39.17.78.56.86.06.01.13.02.19.01h12.78c.52-.01.96-.37,1.07-.88l1.36-7.44c.08-.39-.17-.78-.56-.86-.06-.01-.13-.02-.19-.01h-4.04c-.36,0-.69.18-.89.47l-.5.68c-.21.29-.54.46-.89.47H2.16c-.52.01-.96.37-1.07.88h0Z"/>
+      </g>
+    </g>
+  </g>
+</svg>

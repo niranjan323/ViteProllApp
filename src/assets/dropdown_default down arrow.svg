@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: silver;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .cls-2 {
+        fill: #f5f5f5;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <g id="Group_4067" data-name="Group 4067">
+      <circle id="Ellipse_122" data-name="Ellipse 122" class="cls-2" cx="8" cy="8" r="8"/>
+      <path id="arrow" class="cls-1" d="M5.33,6.74l2.62,2.62,2.71-2.71"/>
+    </g>
+  </g>
+</svg>

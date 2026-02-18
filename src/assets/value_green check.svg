@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #09be5e;
+      }
+
+      .cls-2 {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <g id="check">
+      <path id="Rectangle_5041" data-name="Rectangle 5041" class="cls-1" d="M8,0h0c4.42,0,8,3.58,8,8h0c0,4.42-3.58,8-8,8h0C3.58,16,0,12.42,0,8h0C0,3.58,3.58,0,8,0Z"/>
+      <path id="green_check" data-name="green check" class="cls-2" d="M11.51,5.01c.33-.08.66.12.74.45.04.17,0,.35-.09.49l-5,4.97c-.24.23-.61.23-.85,0-.69-.86-1.79-1.65-2.43-2.52-.21-.26-.17-.65.09-.86.19-.15.44-.18.66-.07l2.13,2.15,4.49-4.44c.08-.07.17-.12.27-.15"/>
+    </g>
+  </g>
+</svg>

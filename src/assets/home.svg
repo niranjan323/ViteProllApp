@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 19.42 21">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: #626266;
+        stroke-miterlimit: 10;
+      }
+    </style>
+  </defs>
+  <g id="Icons">
+    <path id="Home_icon" data-name="Home icon" class="cls-1" d="M18.17,6.99L11.07,1c-.78-.67-1.94-.67-2.72,0L1.25,6.99c-.48.4-.75.99-.75,1.61v10.32c0,.87.71,1.58,1.58,1.58h3.68c.87,0,1.58-.71,1.58-1.58v-5.79c0-.29.23-.52.52-.52h3.68c.29,0,.52.23.52.52h0v5.79c0,.87.71,1.58,1.58,1.58h3.68c.87,0,1.58-.71,1.58-1.58v-10.32c0-.62-.28-1.21-.75-1.61Z"/>
+  </g>
+</svg>

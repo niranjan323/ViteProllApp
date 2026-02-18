@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+      }
+
+      .cls-2 {
+        fill: #1473e6;
+      }
+    </style>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <g id="Group_4012" data-name="Group 4012">
+      <path id="Rectangle_38" data-name="Rectangle 38" class="cls-2" d="M10,0h0c5.52,0,10,4.48,10,10h0c0,5.52-4.48,10-10,10h0C4.48,20,0,15.52,0,10h0C0,4.48,4.48,0,10,0Z"/>
+      <path id="Path_8355" data-name="Path 8355" class="cls-1" d="M10,5c2.76,0,5,2.24,5,5s-2.24,5-5,5-5-2.24-5-5,2.24-5,5-5Z"/>
+    </g>
+  </g>
+</svg>

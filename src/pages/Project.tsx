@@ -7,9 +7,20 @@ import { ParameterValidator } from '../services/parameterValidator';
 import { CaseManager } from '../services/caseManager';
 import type { AnalysisCase } from '../services/caseManager';
 import { DataLoader } from '../services/dataLoader';
-import { CanvasPolarChart } from '../components/CanvasPolarChart';
+import { CanvasPolarChart, interpolateRoll } from '../components/CanvasPolarChart';
 import type { CanvasPolarChartHandle } from '../components/CanvasPolarChart';
 import { jsPDF } from 'jspdf';
+
+// SVG icon imports
+import saveCaseGreenIcon from '../assets/save case_green.svg';
+import saveCaseGrayIcon from '../assets/save case_gray.svg'; // used for disabled state
+import deleteIcon from '../assets/delete.svg';
+import folderIcon from '../assets/folder.svg';
+import arrowLeftIcon from '../assets/case scroll_arrow_left.svg';
+import arrowRightIcon from '../assets/case scroll_arrow_right.svg';
+import pdfIcon from '../assets/PDF.svg';
+import checkGreenIcon from '../assets/value_green check.svg';
+import redXIcon from '../assets/value_red x.svg';
 
 interface SavedCase {
     id: string;
@@ -58,6 +69,23 @@ const Project: React.FC = () => {
     const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
     const chartRef = useRef<CanvasPolarChartHandle>(null);
 
+    // Responsive chart size based on window width
+    const [chartSize, setChartSize] = useState(650);
+    useEffect(() => {
+        const updateChartSize = () => {
+            const w = window.innerWidth;
+            if (w <= 1024) setChartSize(380);
+            else if (w <= 1280) setChartSize(450);
+            else if (w <= 1440) setChartSize(520);
+            else if (w <= 1680) setChartSize(600);
+            else if (w <= 1920) setChartSize(680);
+            else setChartSize(750);
+        };
+        updateChartSize();
+        window.addEventListener('resize', updateChartSize);
+        return () => window.removeEventListener('resize', updateChartSize);
+    }, []);
+
     // Calculate displayed wave period value based on selected type
     const displayedWavePeriod = useMemo(() => {
         const factor = WAVE_PERIOD_CONVERSIONS[wavePeriodType].factor;
@@ -81,7 +109,21 @@ const Project: React.FC = () => {
         updateSeaState({ wavePeriod: tzValue });
     };
 
-    // ... rest of your existing handlers (handleSaveCase, handleDeleteCase, handleLoadCase)
+    // Determine vessel safety: green=safe (roll <= maxRoll), pink=danger (roll > maxRoll)
+    const getVesselSafetyColor = (caseData: AnalysisCase): 'green' | 'pink' => {
+        if (!polarData.rollMatrix || !polarData.speeds || !polarData.headings) {
+            return 'green'; // default if no data available
+        }
+        const roll = interpolateRoll(
+            polarData.rollMatrix,
+            polarData.speeds,
+            polarData.headings,
+            caseData.vesselData.speed,
+            caseData.vesselData.heading
+        );
+        return roll <= caseData.vesselData.maxRoll ? 'green' : 'pink';
+    };
+
     const showMessage = (text: string, type: 'success' | 'error') => {
         setSaveMessage({ text, type });
         setTimeout(() => setSaveMessage(null), 3000);
@@ -121,9 +163,9 @@ const Project: React.FC = () => {
 
         caseManager.addCase(caseIdToSave, newCase);
         const allCases = caseManager.getAllCases();
-        setSavedCases(allCases.map((c, idx) => ({
+        setSavedCases(allCases.map((c) => ({
             id: c.id,
-            color: idx % 2 === 0 ? 'green' : 'pink',
+            color: getVesselSafetyColor(c),
             parameters: c,
         })));
         setCaseId('');
@@ -134,9 +176,9 @@ const Project: React.FC = () => {
         const deleted = caseManager.deleteCase(id);
         if (deleted) {
             const allCases = caseManager.getAllCases();
-            setSavedCases(allCases.map((c, idx) => ({
+            setSavedCases(allCases.map((c) => ({
                 id: c.id,
-                color: idx % 2 === 0 ? 'green' : 'pink',
+                color: getVesselSafetyColor(c),
                 parameters: c,
             })));
             showMessage(`Case "${id}" deleted`, 'success');
@@ -487,9 +529,7 @@ const Project: React.FC = () => {
                                                     {item.label} <span className="input-unit-inline">{item.unit}</span>
                                                 </label>
                                                 <div className="input-group">
-                                                    <span className={`indicator ${item.isInvalid ? 'invalid' : ''}`}>
-                                                        {item.isInvalid ? '✗' : '✓'}
-                                                    </span>
+                                                    <img src={item.isInvalid ? redXIcon : checkGreenIcon} alt="" className="indicator-icon" />
                                                     <div className="input-tooltip-wrapper">
                                                         <input
                                                             type="number"
@@ -517,9 +557,7 @@ const Project: React.FC = () => {
                                                     {item.label} <span className="input-unit-inline">{item.unit}</span>
                                                 </label>
                                                 <div className="input-group">
-                                                    <span className={`indicator ${item.isInvalid ? 'invalid' : ''}`}>
-                                                        {item.isInvalid ? '✗' : '✓'}
-                                                    </span>
+                                                    <img src={item.isInvalid ? redXIcon : checkGreenIcon} alt="" className="indicator-icon" />
                                                     <div className="input-tooltip-wrapper">
                                                         <input
                                                             type="number"
@@ -538,12 +576,8 @@ const Project: React.FC = () => {
                                     {/* WAVE PERIOD WITH CONVERSION */}
                                     <div className="input-row-wrapper">
                                         <div className="input-row">
-                                            <label className="input-label">Wave Period</label>
                                             <div className="input-group wave-period-group">
-                                                <span className={`indicator ${validation?.tz.outOfRange ? 'invalid' : ''}`}>
-                                                    {validation?.tz.outOfRange ? '✗' : '✓'}
-                                                </span>
-                                                <select 
+                                                <select
                                                     className="wave-period-select"
                                                     value={wavePeriodType}
                                                     onChange={(e) => setWavePeriodType(e.target.value as keyof typeof WAVE_PERIOD_CONVERSIONS)}
@@ -553,6 +587,7 @@ const Project: React.FC = () => {
                                                     ))}
                                                 </select>
                                                 <span className="input-unit-inline">[s]</span>
+                                                <img src={validation?.tz.outOfRange ? redXIcon : checkGreenIcon} alt="" className="indicator-icon" />
                                                 <div className="input-tooltip-wrapper">
                                                     <input
                                                         type="number"
@@ -589,7 +624,7 @@ const Project: React.FC = () => {
                                         </div>
                                     )}
                                     <div className="case-row">
-                                        <label className="case-label">Save to case ID</label>
+                                        <label className="case-label">Save</label>
                                         <input
                                             type="text"
                                             className="case-input"
@@ -600,10 +635,10 @@ const Project: React.FC = () => {
                                             placeholder="Max 12 chars"
                                             autoComplete="off"
                                         />
-                                        <button className="save-btn" onClick={handleSaveCase}>💾</button>
+                                        <button className="save-btn" onClick={handleSaveCase}><img src={saveCaseGreenIcon} alt="Save" className="btn-icon" /></button>
                                     </div>
                                     <div className="case-row">
-                                        <label className="case-label">Delete saved case</label>
+                                        <label className="case-label">Delete</label>
                                         <select
                                             className="case-select"
                                             value={deleteConfirmId || ''}
@@ -626,7 +661,7 @@ const Project: React.FC = () => {
                                             }}
                                             disabled={!deleteConfirmId}
                                         >
-                                            🗑️ Delete
+                                            <img src={deleteIcon} alt="Delete" className="btn-icon" />
                                         </button>
                                     </div>
                                     {savedCases.length > 0 && (
@@ -660,9 +695,6 @@ const Project: React.FC = () => {
 
             <div className="project-main">
                 <div className="plot-section">
-                    <div className="plot-header">
-                        <span className="plot-tab">Plot Area</span>
-                    </div>
                     <div className="plot-canvas">
                         {polarData.rollMatrix && polarData.speeds && polarData.headings ? (
                             <>
@@ -676,8 +708,8 @@ const Project: React.FC = () => {
                                         vesselSpeed={userInputData.vesselOperation.speed}
                                         maxRollAngle={userInputData.vesselOperation.maxAllowedRoll}
                                         meanWaveDirection={userInputData.seaState.meanWaveDirection}
-                                        width={750}
-                                        height={750}
+                                        width={chartSize}
+                                        height={chartSize}
                                         mode={chartMode}
                                         orientation={chartDirection}
                                     />
@@ -859,11 +891,11 @@ const Project: React.FC = () => {
 
                 <div className="saved-cases-section">
                     <div className="saved-cases-header">
-                        <span className="folder-icon">📁</span>
+                        <img src={folderIcon} alt="" className="folder-icon-img" />
                         <h3 className="saved-cases-title">Saved Cases</h3>
                     </div>
                     <div className="saved-cases-content">
-                        <button className="nav-arrow">‹</button>
+                        <button className="nav-arrow"><img src={arrowLeftIcon} alt="‹" className="nav-arrow-icon" /></button>
                         <div className="saved-cases-list">
                             {savedCases.map((item) => (
                                 <div key={item.id} className={`case-tile-box ${activeCaseId === item.id ? 'active' : ''}`} onClick={() => handleLoadCase(item)}>
@@ -872,14 +904,12 @@ const Project: React.FC = () => {
                                 </div>
                             ))}
                         </div>
-                        <button className="nav-arrow">›</button>
+                        <button className="nav-arrow"><img src={arrowRightIcon} alt="›" className="nav-arrow-icon" /></button>
                     </div>
                 </div>
 
                 <div className="footer-actions">
-                    <div className="pdf-icon-box">
-                        <span>PDF</span>
-                    </div>
+                    <img src={pdfIcon} alt="PDF" className="pdf-icon-img" />
                     <button className="generate-report-btn" onClick={handleGenerateReport}>Generate Report</button>
                     <div className="report-options">
                         <label className="radio-label">
@@ -909,7 +939,7 @@ const Project: React.FC = () => {
                         <div className="report-modal" onClick={(e) => e.stopPropagation()}>
                             <div className="report-modal-header">
                                 <div className="report-modal-title">
-                                    <div className="pdf-icon-box-small"><span>PDF</span></div>
+                                    <img src={pdfIcon} alt="PDF" className="pdf-icon-small" />
                                     <span>Report</span>
                                 </div>
                                 <div className="report-modal-actions">
@@ -918,7 +948,7 @@ const Project: React.FC = () => {
                                         {showReportMenu && (
                                             <div className="report-menu-dropdown">
                                                 <button onClick={handleDownloadReport}>
-                                                    📥 Download PDF
+                                                    Download PDF
                                                 </button>
                                             </div>
                                         )}

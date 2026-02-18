@@ -5,15 +5,15 @@
     height: 100%;
     background: url('../assets/Homebg.png') no-repeat center center;
     background-size: cover;
-    padding: 1.5rem;
-    gap: 1.5rem;
+    padding: clamp(0.75rem, 1.2vw, 1.5rem);
+    gap: clamp(0.75rem, 1.2vw, 1.5rem);
     box-sizing: border-box;
 }
 
 /* Left Sidebar */
 .project-sidebar {
-    width: 440px;
-    min-width: 440px;
+    width: clamp(300px, 26vw, 480px);
+    min-width: 300px;
     background: white;
     display: flex;
     flex-direction: column;
@@ -117,23 +117,41 @@
     gap: 0.5rem;
 }
 
-.indicator {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+.indicator-icon {
     width: 20px;
     height: 20px;
-    border-radius: 50%;
-    background: #4caf50;
-    color: #ffffff;
-    font-size: 0.7rem;
-    font-weight: 700;
     flex-shrink: 0;
-    line-height: 1;
 }
 
-.indicator.invalid {
-    background: #ff5252;
+/* Button icons */
+.btn-icon {
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+
+/* Folder icon in saved cases header */
+.folder-icon-img {
+    width: 20px;
+    height: 20px;
+}
+
+/* Nav arrow icons */
+.nav-arrow-icon {
+    width: 12px;
+    height: 12px;
+}
+
+/* PDF icon in footer */
+.pdf-icon-img {
+    width: 32px;
+    height: 32px;
+}
+
+/* PDF icon in report modal */
+.pdf-icon-small {
+    width: 22px;
+    height: 22px;
 }
 
 .input-with-unit {
@@ -355,13 +373,14 @@
 }
 
 .save-btn {
-    padding: 0.5rem 0.75rem;
-    background: #28a745;
-    color: white;
+    padding: 0.3rem;
+    background: none;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .save-btn:hover {
@@ -430,16 +449,14 @@
 /* Main Content Area */
 .project-main {
     flex: 1;
-    max-width: 1650px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    padding: 1.5rem;
+    padding: clamp(0.75rem, 1.2vw, 1.5rem);
     overflow-y: auto;
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    margin-left: 1rem;
-    margin-right: 1rem;
 }
 
 /* Plot Section */
@@ -479,29 +496,34 @@
 .plot-canvas {
     flex: 1;
     width: 100%;
-    min-height: 400px;
+    min-height: 300px;
     background: #576574;
     position: relative;
     display: flex;
     flex-direction: row;
     align-items: flex-start;
     justify-content: flex-start;
-    padding: 2rem;
-    gap: 1rem;
+    padding: clamp(0.75rem, 1.5vw, 2rem);
+    gap: clamp(0.5rem, 1vw, 1rem);
+    overflow: hidden;
+    border-radius: 8px;
 }
 
 .plot-canvas-left {
-    flex: 0 0 70%;
+    flex: 1 1 auto;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .plot-canvas-right {
-    flex: 0 0 30%;
+    flex: 0 0 auto;
+    width: clamp(200px, 18vw, 280px);
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 /* Y-Axis Container */
@@ -712,7 +734,7 @@
 /* Saved Cases Section */
 .saved-cases-section {
     background: #f8f9fa;
-    padding: 1rem 1.5rem;
+    padding: clamp(0.5rem, 0.8vw, 1rem) clamp(0.75rem, 1.2vw, 1.5rem);
     margin-bottom: 0;
     border-top: 1px solid #e0e0e0;
 }
@@ -720,17 +742,12 @@
 .saved-cases-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-}
-
-.folder-icon {
-    font-size: 1rem;
-    color: #666;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
 }
 
 .saved-cases-title {
-    font-size: 0.85rem;
+    font-size: clamp(0.75rem, 0.8vw, 0.85rem);
     font-weight: 600;
     color: #333;
     margin: 0;
@@ -739,29 +756,29 @@
 .saved-cases-content {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: clamp(0.5rem, 0.8vw, 1rem);
 }
 
 .saved-cases-list {
     display: flex;
-    gap: 1rem;
+    gap: clamp(0.5rem, 0.8vw, 1rem);
     align-items: center;
     flex: 1;
     overflow-x: auto;
-    padding: 0.5rem 0;
+    padding: 0.4rem 0;
 }
 
 .case-tile-box {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     cursor: pointer;
-    padding: 0.75rem 1.5rem;
+    padding: clamp(0.5rem, 0.6vw, 0.75rem) clamp(0.75rem, 1vw, 1.5rem);
     background: white;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    min-width: 80px;
+    min-width: clamp(60px, 5vw, 80px);
 }
 
 .case-tile-box:hover {
@@ -795,36 +812,35 @@
 }
 
 .delete-case-btn {
-    padding: 0.5rem 1rem;
-    background: #ff5252;
-    color: white;
+    padding: 0.3rem;
+    background: none;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s ease;
-    margin-top: 0.5rem;
 }
 
 .delete-case-btn:hover:not(:disabled) {
-    background: #ff1744;
+    opacity: 0.7;
 }
 
 .delete-case-btn:disabled {
-    background: #ccc;
     cursor: not-allowed;
-    opacity: 0.6;
+    opacity: 0.3;
 }
 
 .nav-arrow {
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.6rem;
     background: white;
     border: 1px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 1rem;
-    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
 }
 
@@ -836,31 +852,24 @@
 /* Footer Actions */
 .footer-actions {
     background: white;
-    padding: 1rem 1.5rem;
+    padding: clamp(0.5rem, 0.8vw, 1rem) clamp(0.75rem, 1.2vw, 1.5rem);
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: clamp(0.5rem, 0.8vw, 1rem);
     border-top: 1px solid #e0e0e0;
-
 }
 
-.pdf-icon-box {
-    background: #dc3545;
-    color: white;
-    padding: 0.4rem 0.6rem;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    margin-left: 70%;
+.pdf-icon-img {
+    margin-left: auto;
 }
 
 .generate-report-btn {
-    padding: 0.7rem 2rem;
+    padding: clamp(0.5rem, 0.6vw, 0.7rem) clamp(1rem, 1.5vw, 2rem);
     background: #dc3545;
     color: white;
     border: none;
     border-radius: 4px;
-    font-size: 0.9rem;
+    font-size: clamp(0.75rem, 0.8vw, 0.9rem);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -874,15 +883,14 @@
 
 .report-options {
     display: flex;
-    gap: 1.5rem;
-    margin-left: auto;
+    gap: clamp(0.75rem, 1vw, 1.5rem);
 }
 
 .radio-label {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
+    gap: 0.4rem;
+    font-size: clamp(0.75rem, 0.8vw, 0.85rem);
     color: #333;
     cursor: pointer;
 }
@@ -1093,7 +1101,6 @@
     display: flex;
     align-items: center;
     padding: 6px 0;
-    border-bottom: 1px solid #f0f0f0;
 }
 
 .report-label {
@@ -1193,9 +1200,7 @@
     color: #e0e0e0;
 }
 
-[data-theme="dark"] .report-row {
-    border-bottom-color: #2a3a4a;
-}
+/* report-row has no border */
 
 [data-theme="dark"] .report-label {
     color: #8899aa;
@@ -1222,38 +1227,119 @@
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
+
+/* Small laptops (1024-1280) */
+@media (max-width: 1280px) {
     .project-sidebar {
-        width: 240px;
+        width: 290px;
+        min-width: 290px;
     }
 
-    .plot-canvas {
-        height: 400px;
+    .sidebar-content {
+        padding: 0.6rem;
     }
 
-    .polar-chart {
-        width: 350px;
-        height: 350px;
+    .section-title {
+        font-size: 0.78rem;
+    }
+
+    .input-label {
+        font-size: 0.75rem;
+    }
+
+    .input-field-standalone {
+        width: 65px;
+        padding: 0.3rem 0.4rem;
+        font-size: 0.78rem;
+    }
+
+    .input-range {
+        font-size: 0.58rem;
+    }
+
+    .plot-canvas-right {
+        width: 190px;
+    }
+
+    .footer-actions {
+        padding: 0.6rem 1rem;
+    }
+
+    .generate-report-btn {
+        padding: 0.5rem 1.2rem;
+        font-size: 0.78rem;
+    }
+
+    .saved-cases-section {
+        padding: 0.4rem 0.75rem;
     }
 }
 
+/* Very small laptops / tablets (below 1024) */
+@media (max-width: 1024px) {
+    .project-sidebar {
+        width: 270px;
+        min-width: 270px;
+    }
+
+    .plot-canvas {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .plot-canvas-left {
+        width: 100%;
+    }
+
+    .plot-canvas-right {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+/* Tablets / mobile (below 768) */
 @media (max-width: 768px) {
     .project-container {
         flex-direction: column;
+        padding: 0.5rem;
     }
 
     .project-sidebar {
         width: 100%;
+        min-width: unset;
         max-height: 40vh;
     }
 
     .footer-actions {
         flex-wrap: wrap;
+        gap: 0.5rem;
     }
 
     .report-options {
         margin-left: 0;
         width: 100%;
+    }
+}
+
+/* Large desktops (1920+) */
+@media (min-width: 1920px) {
+    .project-sidebar {
+        width: 480px;
+    }
+
+    .section-title {
+        font-size: 0.95rem;
+    }
+
+    .input-label {
+        font-size: 0.9rem;
+    }
+
+    .input-field-standalone {
+        width: 85px;
+        font-size: 0.9rem;
     }
 }
 
@@ -1323,24 +1409,9 @@
     align-items: center;
 }
 
-.generate-report-btn {
-    padding: 10px 20px;
-    background-color: #ff9800;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.generate-report-btn:hover {
-    background-color: #f57c00;
-}
-
 .report-options {
     display: flex;
-    gap: 20px;
+    gap: clamp(0.75rem, 1vw, 1.5rem);
 }
 
 .radio-label {
@@ -1830,15 +1901,7 @@
     color: #556677;
 }
 
-[data-theme="dark"] .indicator {
-    background: #4caf50;
-    color: #ffffff;
-}
-
-[data-theme="dark"] .indicator.invalid {
-    background: #ff5252;
-    color: #ffffff;
-}
+/* indicator-icon inherits from SVG - no dark mode override needed */
 
 /* Invalid input styling in dark mode */
 [data-theme="dark"] .invalid-input {
@@ -2123,8 +2186,7 @@
 }
 
 [data-theme="dark"] .delete-case-btn:disabled {
-    background: #2a3a4a;
-    color: #556677;
+    opacity: 0.3;
 }
 
 /* Chart Right Panel - Dark Mode (panel is already transparent, minimal overrides) */

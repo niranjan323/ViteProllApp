@@ -33,6 +33,9 @@ const MainLayout: React.FC = () =>
             {/* Main Content Area - Router Outlet will render pages here */}
             <main className="content-area">
                 <Outlet />
+                <footer className="app-footer">
+                    &copy; 2026 American Bureau of Shipping. All rights reserved.
+                </footer>
             </main>
         </div>
     );

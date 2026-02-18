@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 16 8.01">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #09be5e;
+      }
+
+      .cls-2 {
+        fill: none;
+      }
+
+      .cls-3 {
+        clip-path: url(#clippath);
+      }
+    </style>
+    <clipPath id="clippath">
+      <rect class="cls-2" width="16" height="8.01"/>
+    </clipPath>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <g id="double_check" data-name="double check">
+      <g class="cls-3">
+        <g id="Group_4047" data-name="Group 4047">
+          <path id="Path_8446" data-name="Path 8446" class="cls-1" d="M10.23.02c.43-.11.86.14.98.57.06.23.02.47-.12.66l-6.59,6.54c-.32.3-.81.3-1.13,0-.9-1.13-2.35-2.18-3.18-3.31-.28-.34-.23-.85.11-1.14.25-.2.59-.24.87-.1l2.8,2.83L9.87.22c.1-.09.23-.16.36-.2"/>
+          <path id="Path_8447" data-name="Path 8447" class="cls-1" d="M15.79.28c.27.3.28.76.02,1.07l-6.53,6.47c-.22.18-.51.24-.78.16-.57-.34-1.02-.84-1.31-1.43-.11-1,1.08-1.21,1.6-.47L14.76.17c.33-.21.76-.16,1.04.11"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

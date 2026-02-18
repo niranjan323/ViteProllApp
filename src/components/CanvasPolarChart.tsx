@@ -14,13 +14,13 @@ interface CanvasPolarChartProps {
     orientation?: 'north-up' | 'heads-up';
 }
 
-function normalizeAngle(angle: number): number {
+export function normalizeAngle(angle: number): number {
     let a = angle % 360;
     if (a < 0) a += 360;
     return a;
 }
 
-function interpolateRoll(
+export function interpolateRoll(
     rollMatrix: number[][],
     speeds: number[],
     headings: number[],
