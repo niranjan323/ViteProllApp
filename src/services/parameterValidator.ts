@@ -59,6 +59,8 @@ export class ParameterValidator {
       gmUpper: number;
       speedLower: number;
       speedUpper: number;
+      rollLower: number;
+      rollUpper: number;
       hsLower: number;
       hsUpper: number;
       tzLower: number;
@@ -71,7 +73,7 @@ export class ParameterValidator {
       gm: this.validateParameter(gm, bounds.gmLower, bounds.gmUpper),
       heading: this.validateParameter(heading, 0, 360),
       speed: this.validateParameter(speed, bounds.speedLower, bounds.speedUpper),
-      maxRoll: this.validateParameter(maxRoll, 0, 60),
+      maxRoll: this.validateParameter(maxRoll, bounds.rollLower, bounds.rollUpper),
       hs: this.validateParameter(hs, bounds.hsLower, bounds.hsUpper),
       tz: this.validateParameter(tz, bounds.tzLower, bounds.tzUpper),
       waveDirection: this.validateParameter(waveDirection, 0, 360),

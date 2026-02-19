@@ -454,15 +454,15 @@ const Project: React.FC = () => {
             label: 'Heading',
             value: userInputData.vesselOperation.heading,
             unit: '[degree]',
-            range: '0 absolute from the North',
+            range: 'Clockwise from the North to the Bow - value range [0, 360]',
             onChange: (val: number) => updateVesselOperation({ heading: val }),
             isInvalid: validation?.heading.outOfRange || false
         },
         {
             label: 'Speed',
             value: userInputData.vesselOperation.speed,
-            unit: '[kt]',
-            range: parameterBounds ? `value range [${parameterBounds.speedLower.toFixed(1)}-${parameterBounds.speedUpper.toFixed(1)} kt]` : '',
+            unit: '[kn]',
+            range: parameterBounds ? `value range [${parameterBounds.speedLower.toFixed(1)}-${parameterBounds.speedUpper.toFixed(1)} kn]` : '',
             onChange: (val: number) => updateVesselOperation({ speed: val }),
             isInvalid: validation?.speed.outOfRange || false
         },
@@ -470,7 +470,7 @@ const Project: React.FC = () => {
             label: 'Max Allowed Roll',
             value: userInputData.vesselOperation.maxAllowedRoll,
             unit: '[degree]',
-            range: '',
+            range: parameterBounds ? `value range [${parameterBounds.rollLower.toFixed(1)}-${parameterBounds.rollUpper.toFixed(1)} degree]` : '',
             onChange: (val: number) => updateVesselOperation({ maxAllowedRoll: val }),
             isInvalid: validation?.maxRoll.outOfRange || false
         }
@@ -481,7 +481,7 @@ const Project: React.FC = () => {
             label: 'Mean Wave Direction',
             value: userInputData.seaState.meanWaveDirection,
             unit: '[degree]',
-            range: '0 absolute from the North in incoming direction',
+            range: 'Clockwise from the North to the coming wave - value range [0, 360]',
             onChange: (val: number) => updateSeaState({ meanWaveDirection: val }),
             isInvalid: validation?.waveDirection.outOfRange || false
         },

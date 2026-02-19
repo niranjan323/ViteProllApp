@@ -16,6 +16,8 @@ export interface ParameterBounds {
   gmUpper: number;
   speedLower: number;
   speedUpper: number;
+  rollLower: number;
+  rollUpper: number;
   hsLower: number;
   hsUpper: number;
   tzLower: number;
@@ -99,9 +101,14 @@ export class DataLoader {
       };
 
       // Helper: find a line by comment keyword (case-insensitive)
+      // Searches for keyword anywhere in the comment part after "!"
       const findLineByComment = (keyword: string): string | undefined => {
-        return lines.find(l => l.toLowerCase().includes(`!${keyword.toLowerCase()}`) ||
-                                l.toLowerCase().includes(`! ${keyword.toLowerCase()}`));
+        return lines.find(l => {
+          const bangIndex = l.indexOf('!');
+          if (bangIndex === -1) return false;
+          const commentPart = l.substring(bangIndex + 1).toLowerCase();
+          return commentPart.includes(keyword.toLowerCase());
+        });
       };
 
       // Parse IMO
@@ -125,6 +132,10 @@ export class DataLoader {
       const speedLine = findLineByComment('speed');
       const speedValues = speedLine ? parseLine(speedLine) : [];
 
+      // Parse Allowed Roll bounds
+      const rollLine = findLineByComment('allowed roll') || findLineByComment('roll');
+      const rollValues = rollLine ? parseLine(rollLine) : [];
+
       // Parse Hs bounds
       const hsLine = findLineByComment('wave height') || findLineByComment('hs');
       const hsValues = hsLine ? parseLine(hsLine) : [];
@@ -140,6 +151,8 @@ export class DataLoader {
         gmUpper: parseFloat(gmValues[1] || '5.0'),
         speedLower: parseFloat(speedValues[0] || '0'),
         speedUpper: parseFloat(speedValues[1] || '30'),
+        rollLower: parseFloat(rollValues[0] || '0'),
+        rollUpper: parseFloat(rollValues[1] || '60'),
         hsLower: parseFloat(hsValues[0] || '3.0'),
         hsUpper: parseFloat(hsValues[1] || '12.0'),
         tzLower: parseFloat(tzValues[0] || '5.0'),
