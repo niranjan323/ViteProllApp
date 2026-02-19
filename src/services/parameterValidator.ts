@@ -53,8 +53,12 @@ export class ParameterValidator {
     tz: number,
     waveDirection: number,
     bounds: {
+      draftLower: number;
+      draftUpper: number;
       gmLower: number;
       gmUpper: number;
+      speedLower: number;
+      speedUpper: number;
       hsLower: number;
       hsUpper: number;
       tzLower: number;
@@ -62,11 +66,11 @@ export class ParameterValidator {
     }
   ): ParameterValidation {
     return {
-      draftAft: this.validateParameter(draftAft, 0, 50),
-      draftFore: this.validateParameter(draftFore, 0, 50),
+      draftAft: this.validateParameter(draftAft, bounds.draftLower, bounds.draftUpper),
+      draftFore: this.validateParameter(draftFore, bounds.draftLower, bounds.draftUpper),
       gm: this.validateParameter(gm, bounds.gmLower, bounds.gmUpper),
       heading: this.validateParameter(heading, 0, 360),
-      speed: this.validateParameter(speed, 0, 30),
+      speed: this.validateParameter(speed, bounds.speedLower, bounds.speedUpper),
       maxRoll: this.validateParameter(maxRoll, 0, 60),
       hs: this.validateParameter(hs, bounds.hsLower, bounds.hsUpper),
       tz: this.validateParameter(tz, bounds.tzLower, bounds.tzUpper),

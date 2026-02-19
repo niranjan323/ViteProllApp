@@ -430,7 +430,7 @@ const Project: React.FC = () => {
             label: 'Draft Aft Peak',
             value: userInputData.vesselOperation.draftAftPeak,
             unit: '[m]',
-            range: parameterBounds ? `value range [0-${validation?.draftAft.maxValue ?? 50} m]` : '',
+            range: parameterBounds ? `value range [${parameterBounds.draftLower.toFixed(1)}-${parameterBounds.draftUpper.toFixed(1)} m]` : '',
             onChange: (val: number) => updateVesselOperation({ draftAftPeak: val }),
             isInvalid: validation?.draftAft.outOfRange || false
         },
@@ -438,7 +438,7 @@ const Project: React.FC = () => {
             label: 'Draft Fore Peak',
             value: userInputData.vesselOperation.draftForePeak,
             unit: '[m]',
-            range: parameterBounds ? `value range [0-${validation?.draftFore.maxValue ?? 50} m]` : '',
+            range: parameterBounds ? `value range [${parameterBounds.draftLower.toFixed(1)}-${parameterBounds.draftUpper.toFixed(1)} m]` : '',
             onChange: (val: number) => updateVesselOperation({ draftForePeak: val }),
             isInvalid: validation?.draftFore.outOfRange || false
         },
@@ -454,7 +454,7 @@ const Project: React.FC = () => {
             label: 'Heading',
             value: userInputData.vesselOperation.heading,
             unit: '[degree]',
-            range: parameterBounds ? '0 absolute from the North' : '',
+            range: '0 absolute from the North',
             onChange: (val: number) => updateVesselOperation({ heading: val }),
             isInvalid: validation?.heading.outOfRange || false
         },
@@ -462,7 +462,7 @@ const Project: React.FC = () => {
             label: 'Speed',
             value: userInputData.vesselOperation.speed,
             unit: '[kt]',
-            range: parameterBounds ? `value range [0-${validation?.speed.maxValue ?? 30} kt]` : '',
+            range: parameterBounds ? `value range [${parameterBounds.speedLower.toFixed(1)}-${parameterBounds.speedUpper.toFixed(1)} kt]` : '',
             onChange: (val: number) => updateVesselOperation({ speed: val }),
             isInvalid: validation?.speed.outOfRange || false
         },
@@ -470,7 +470,7 @@ const Project: React.FC = () => {
             label: 'Max Allowed Roll',
             value: userInputData.vesselOperation.maxAllowedRoll,
             unit: '[degree]',
-            range: parameterBounds ? `value range [0-${validation?.maxRoll.maxValue ?? 60} degree]` : '',
+            range: '',
             onChange: (val: number) => updateVesselOperation({ maxAllowedRoll: val }),
             isInvalid: validation?.maxRoll.outOfRange || false
         }
@@ -481,7 +481,7 @@ const Project: React.FC = () => {
             label: 'Mean Wave Direction',
             value: userInputData.seaState.meanWaveDirection,
             unit: '[degree]',
-            range: parameterBounds ? '0 absolute from the North in incoming direction' : '',
+            range: '0 absolute from the North in incoming direction',
             onChange: (val: number) => updateSeaState({ meanWaveDirection: val }),
             isInvalid: validation?.waveDirection.outOfRange || false
         },

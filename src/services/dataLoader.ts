@@ -10,8 +10,12 @@ export interface VesselInfo {
 }
 
 export interface ParameterBounds {
+  draftLower: number;
+  draftUpper: number;
   gmLower: number;
   gmUpper: number;
+  speedLower: number;
+  speedUpper: number;
   hsLower: number;
   hsUpper: number;
   tzLower: number;
@@ -75,31 +79,85 @@ export class DataLoader {
     try {
       const text = await this.fs.readTextFile(controlFilePath);
 
-      // Parse control file (format based on key=value pairs)
+      // Parse control file - format: "values  !comment"
+      // Lines:
+      //   IMO_NUMBER        !Vessel IMO number
+      //   MIN  MAX           !Min, Max Draft
+      //   MIN  MAX           !Min, Max GM
+      //   MIN  MAX           !Min, Max Speed
+      //   MIN  MAX           !Min, Max Significant Wave Height (Hs)
+      //   MIN  MAX           !Min, Max Wave Period
       const lines = text
         .split('\n')
         .map((l) => l.trim())
-        .filter((l) => l && !l.startsWith('#'));
+        .filter((l) => l.length > 0);
+
+      // Helper: parse a line with "!comment" format, returning the values before "!"
+      const parseLine = (line: string): string[] => {
+        const dataPart = line.split('!')[0].trim();
+        return dataPart.split(/\s+/).filter(s => s.length > 0);
+      };
+
+      // Helper: find a line by comment keyword (case-insensitive)
+      const findLineByComment = (keyword: string): string | undefined => {
+        return lines.find(l => l.toLowerCase().includes(`!${keyword.toLowerCase()}`) ||
+                                l.toLowerCase().includes(`! ${keyword.toLowerCase()}`));
+      };
+
+      // Parse IMO
+      const imoLine = findLineByComment('imo') || findLineByComment('vessel');
+      const imoValues = imoLine ? parseLine(imoLine) : [];
 
       const vesselInfo: VesselInfo = {
-        imo: this.extractValue(lines, 'IMO') || 'Unknown',
-        name: this.extractValue(lines, 'VesselName') || 'Unknown',
+        imo: imoValues[0] || 'Unknown',
+        name: 'Unknown',
       };
+
+      // Parse Draft bounds
+      const draftLine = findLineByComment('draft');
+      const draftValues = draftLine ? parseLine(draftLine) : [];
+
+      // Parse GM bounds
+      const gmLine = findLineByComment('gm');
+      const gmValues = gmLine ? parseLine(gmLine) : [];
+
+      // Parse Speed bounds
+      const speedLine = findLineByComment('speed');
+      const speedValues = speedLine ? parseLine(speedLine) : [];
+
+      // Parse Hs bounds
+      const hsLine = findLineByComment('wave height') || findLineByComment('hs');
+      const hsValues = hsLine ? parseLine(hsLine) : [];
+
+      // Parse Wave Period (Tz) bounds
+      const tzLine = findLineByComment('wave period');
+      const tzValues = tzLine ? parseLine(tzLine) : [];
 
       const parameterBounds: ParameterBounds = {
-        gmLower: parseFloat(this.extractValue(lines, 'GM_lower') || '0.5'),
-        gmUpper: parseFloat(this.extractValue(lines, 'GM_upper') || '5.0'),
-        hsLower: parseFloat(this.extractValue(lines, 'Hs_lower') || '3.0'),
-        hsUpper: parseFloat(this.extractValue(lines, 'Hs_upper') || '12.0'),
-        tzLower: parseFloat(this.extractValue(lines, 'Tz_lower') || '5.0'),
-        tzUpper: parseFloat(this.extractValue(lines, 'Tz_upper') || '18.0'),
+        draftLower: parseFloat(draftValues[0] || '0'),
+        draftUpper: parseFloat(draftValues[1] || '50'),
+        gmLower: parseFloat(gmValues[0] || '0.5'),
+        gmUpper: parseFloat(gmValues[1] || '5.0'),
+        speedLower: parseFloat(speedValues[0] || '0'),
+        speedUpper: parseFloat(speedValues[1] || '30'),
+        hsLower: parseFloat(hsValues[0] || '3.0'),
+        hsUpper: parseFloat(hsValues[1] || '12.0'),
+        tzLower: parseFloat(tzValues[0] || '5.0'),
+        tzUpper: parseFloat(tzValues[1] || '18.0'),
       };
 
+      // Try to parse representative drafts if present (Td, Ti, Ts lines)
+      const tdLine = findLineByComment('td') || findLineByComment('design draft');
+      const tiLine = findLineByComment('ti') || findLineByComment('intermediate');
+      const tsLine = findLineByComment('ts') || findLineByComment('scantling');
+
       const representativeDrafts: RepresentativeDrafts = {
-        scantling: parseFloat(this.extractValue(lines, 'Ts') || '0'),
-        design: parseFloat(this.extractValue(lines, 'Td') || '0'),
-        intermediate: parseFloat(this.extractValue(lines, 'Ti') || '0'),
+        design: tdLine ? parseFloat(parseLine(tdLine)[0] || '0') : 0,
+        intermediate: tiLine ? parseFloat(parseLine(tiLine)[0] || '0') : 0,
+        scantling: tsLine ? parseFloat(parseLine(tsLine)[0] || '0') : 0,
       };
+
+      console.log('Control file parsed:', { vesselInfo, parameterBounds, representativeDrafts });
 
       this.controlData = {
         vesselInfo,
@@ -121,19 +179,6 @@ export class DataLoader {
         error: errorMsg,
       };
     }
-  }
-
-  /**
-   * Extract a key-value pair from control file lines
-   */
-  private extractValue(lines: string[], key: string): string | null {
-    const line = lines.find((l) => l.startsWith(key));
-    if (!line) return null;
-
-    const parts = line.split('=');
-    if (parts.length < 2) return null;
-
-    return parts[1].trim();
   }
 
   /**
