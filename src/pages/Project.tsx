@@ -41,7 +41,7 @@ const Project: React.FC = () => {
     const location = useLocation();
     const initialTab = (location.state as { activeTab?: string })?.activeTab || 'project';
     const { userInputData, updateVesselOperation, updateSeaState } = useUserData();
-    const { parameterBounds, selectControlFile, controlFilePath, selectedFolder: electronFolder } = useElectron();
+    const { parameterBounds, representativeDrafts, selectControlFile, controlFilePath, selectedFolder: electronFolder } = useElectron();
     const [activeTab, setActiveTab] = useState(initialTab);
     const [caseId, setCaseId] = useState('');
     const [savedCases, setSavedCases] = useState<SavedCase[]>([]);
@@ -56,6 +56,7 @@ const Project: React.FC = () => {
         speeds: number[] | null;
         headings: number[] | null;
     }>({ rollMatrix: null, speeds: null, headings: null });
+    const [fittedParams, setFittedParams] = useState<{ draft: number | null; gm: number | null; hs: number | null; tz: number | null }>({ draft: null, gm: null, hs: null, tz: null });
     const [chartDirection, setChartDirection] = useState<'north-up' | 'heads-up'>('north-up');
     const [chartMode, setChartMode] = useState<'continuous' | 'traffic-light'>('continuous');
     const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
@@ -400,6 +401,12 @@ const Project: React.FC = () => {
                             speeds: dataResult.data.speeds,
                             headings: dataResult.data.headings,
                         });
+                        setFittedParams({
+                            draft: representativeDrafts ? representativeDrafts[draftType as keyof typeof representativeDrafts] : null,
+                            gm: dataResult.fittedGM ?? null,
+                            hs: dataResult.fittedHs ?? null,
+                            tz: dataResult.fittedTz ?? null,
+                        });
                     }
                 }
             } catch (error) {
@@ -414,6 +421,7 @@ const Project: React.FC = () => {
         userInputData.seaState.significantWaveHeight,
         userInputData.seaState.wavePeriod,
         parameterBounds,
+        representativeDrafts,
         dataLoader,
     ]);
 
@@ -422,7 +430,7 @@ const Project: React.FC = () => {
             label: 'Draft Aft Peak',
             value: userInputData.vesselOperation.draftAftPeak,
             unit: '[m]',
-            range: 'value range [0-40 m]',
+            range: parameterBounds ? `value range [0-${validation?.draftAft.maxValue ?? 50} m]` : '',
             onChange: (val: number) => updateVesselOperation({ draftAftPeak: val }),
             isInvalid: validation?.draftAft.outOfRange || false
         },
@@ -430,7 +438,7 @@ const Project: React.FC = () => {
             label: 'Draft Fore Peak',
             value: userInputData.vesselOperation.draftForePeak,
             unit: '[m]',
-            range: 'value range [0-40 m]',
+            range: parameterBounds ? `value range [0-${validation?.draftFore.maxValue ?? 50} m]` : '',
             onChange: (val: number) => updateVesselOperation({ draftForePeak: val }),
             isInvalid: validation?.draftFore.outOfRange || false
         },
@@ -446,7 +454,7 @@ const Project: React.FC = () => {
             label: 'Heading',
             value: userInputData.vesselOperation.heading,
             unit: '[degree]',
-            range: '0 absolute from the North',
+            range: parameterBounds ? '0 absolute from the North' : '',
             onChange: (val: number) => updateVesselOperation({ heading: val }),
             isInvalid: validation?.heading.outOfRange || false
         },
@@ -454,7 +462,7 @@ const Project: React.FC = () => {
             label: 'Speed',
             value: userInputData.vesselOperation.speed,
             unit: '[kt]',
-            range: 'value range [0-30 kt]',
+            range: parameterBounds ? `value range [0-${validation?.speed.maxValue ?? 30} kt]` : '',
             onChange: (val: number) => updateVesselOperation({ speed: val }),
             isInvalid: validation?.speed.outOfRange || false
         },
@@ -462,7 +470,7 @@ const Project: React.FC = () => {
             label: 'Max Allowed Roll',
             value: userInputData.vesselOperation.maxAllowedRoll,
             unit: '[degree]',
-            range: 'value range [0-35 degree]',
+            range: parameterBounds ? `value range [0-${validation?.maxRoll.maxValue ?? 60} degree]` : '',
             onChange: (val: number) => updateVesselOperation({ maxAllowedRoll: val }),
             isInvalid: validation?.maxRoll.outOfRange || false
         }
@@ -473,7 +481,7 @@ const Project: React.FC = () => {
             label: 'Mean Wave Direction',
             value: userInputData.seaState.meanWaveDirection,
             unit: '[degree]',
-            range: '0 absolute from the North in incoming direction',
+            range: parameterBounds ? '0 absolute from the North in incoming direction' : '',
             onChange: (val: number) => updateSeaState({ meanWaveDirection: val }),
             isInvalid: validation?.waveDirection.outOfRange || false
         },
@@ -524,8 +532,8 @@ const Project: React.FC = () => {
                                                         <input
                                                             type="number"
                                                             className={`input-field-standalone ${item.isInvalid ? 'invalid-input' : ''}`}
-                                                            value={item.value}
-                                                            onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
+                                                            value={isNaN(item.value) ? '' : item.value}
+                                                            onChange={(e) => item.onChange(e.target.value === '' ? NaN : parseFloat(e.target.value))}
                                                         />
                                                         <span className="input-tooltip">{item.range}</span>
                                                     </div>
@@ -552,8 +560,8 @@ const Project: React.FC = () => {
                                                         <input
                                                             type="number"
                                                             className={`input-field-standalone ${item.isInvalid ? 'invalid-input' : ''}`}
-                                                            value={item.value}
-                                                            onChange={(e) => item.onChange(parseFloat(e.target.value) || 0)}
+                                                            value={isNaN(item.value) ? '' : item.value}
+                                                            onChange={(e) => item.onChange(e.target.value === '' ? NaN : parseFloat(e.target.value))}
                                                         />
                                                         {item.range && <span className="input-tooltip">{item.range}</span>}
                                                     </div>
@@ -582,8 +590,8 @@ const Project: React.FC = () => {
                                                     <input
                                                         type="number"
                                                         className={`input-field-standalone ${validation?.tz.outOfRange ? 'invalid-input' : ''}`}
-                                                        value={displayedWavePeriod.toFixed(1)}
-                                                        onChange={(e) => handleWavePeriodChange(parseFloat(e.target.value) || 0)}
+                                                        value={isNaN(displayedWavePeriod) ? '' : displayedWavePeriod.toFixed(1)}
+                                                        onChange={(e) => handleWavePeriodChange(e.target.value === '' ? NaN : parseFloat(e.target.value))}
                                                         step="0.1"
                                                     />
                                                     {displayedWavePeriodRange && (
@@ -830,20 +838,20 @@ const Project: React.FC = () => {
                                             Polar diagram closest to the user request
                                         </div>
 
-                                        {/* Parameters Table */}
+                                        {/* Parameters Table - shows actual matched values from control file */}
                                         <div className="params-table">
                                             {[
-                                                { label: 'Draft', value: userInputData.vesselOperation.draftAftPeak, unit: '[m]' },
-                                                { label: 'GM', value: userInputData.vesselOperation.gm, unit: '[m]' },
-                                                { label: 'Hs', value: userInputData.seaState.significantWaveHeight, unit: '[m]' },
-                                                { label: 'Tz', value: userInputData.seaState.wavePeriod, unit: '[s]' },
+                                                { label: 'Draft', value: fittedParams.draft, unit: '[m]' },
+                                                { label: 'GM', value: fittedParams.gm, unit: '[m]' },
+                                                { label: 'Hs', value: fittedParams.hs, unit: '[m]' },
+                                                { label: 'Tz', value: fittedParams.tz, unit: '[s]' },
                                             ].map((row) => (
                                                 <div key={row.label} className="params-row">
                                                     <label className="params-label">{row.label}</label>
                                                     <span className="params-unit">{row.unit}</span>
                                                     <input
                                                         readOnly
-                                                        value={row.value}
+                                                        value={row.value ?? ''}
                                                         className="params-input"
                                                     />
                                                 </div>

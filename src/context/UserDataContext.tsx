@@ -43,17 +43,17 @@ export const UserDataProvider = ({ children }: { children: ReactNode; }) =>
 {
     const [ userInputData, setUserInputData ] = useState<UserInputData>({
         vesselOperation: {
-            draftAftPeak: 10,
-            draftForePeak: 10,
-            gm: 3.0,  // HIGHER GM = GOOD CONTRAST between safe/danger zones
-            heading: 0,  // Head seas - vessel facing north
-            speed: 12,  // Moderate speed for good color distribution
-            maxAllowedRoll: 15,  // Shows all 3 traffic light colors
+            draftAftPeak: NaN,
+            draftForePeak: NaN,
+            gm: NaN,
+            heading: NaN,
+            speed: NaN,
+            maxAllowedRoll: NaN,
         },
         seaState: {
-            meanWaveDirection: 90,  // Beam seas from EAST = danger at 90/270
-            significantWaveHeight: 6,  // MODERATE seas = good roll range
-            wavePeriod: 10.0,
+            meanWaveDirection: NaN,
+            significantWaveHeight: NaN,
+            wavePeriod: NaN,
         },
         selectedFolder: '',
         controlFile: '',
