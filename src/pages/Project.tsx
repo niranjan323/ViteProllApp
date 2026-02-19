@@ -40,12 +40,12 @@ const WAVE_PERIOD_CONVERSIONS = {
 const Project: React.FC = () => {
     const location = useLocation();
     const initialTab = (location.state as { activeTab?: string })?.activeTab || 'project';
-    const { userInputData, updateVesselOperation, updateSeaState, setDraft } = useUserData();
-    const { parameterBounds, representativeDrafts } = useElectron();
+    const { userInputData, updateVesselOperation, updateSeaState } = useUserData();
+    const { parameterBounds, selectControlFile, controlFilePath, selectedFolder: electronFolder } = useElectron();
     const [activeTab, setActiveTab] = useState(initialTab);
     const [caseId, setCaseId] = useState('');
     const [savedCases, setSavedCases] = useState<SavedCase[]>([]);
-    const [draftType, setDraftType] = useState<'design' | 'intermediate' | 'scantling'>('design');
+    const draftType = 'design' as const;
     const [caseManager] = useState(() => new CaseManager());
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [saveMessage, setSaveMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -68,6 +68,18 @@ const Project: React.FC = () => {
     const [selectedCaseForReport, setSelectedCaseForReport] = useState<SavedCase | null>(null);
     const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
     const chartRef = useRef<CanvasPolarChartHandle>(null);
+    const [controlFileLoading, setControlFileLoading] = useState(false);
+
+    const handleLoadControlFile = async () => {
+        setControlFileLoading(true);
+        const result = await selectControlFile();
+        if (result) {
+            showMessage('Control file loaded successfully', 'success');
+        } else {
+            showMessage('Failed to load control file', 'error');
+        }
+        setControlFileLoading(false);
+    };
 
     // Responsive chart size based on window width
     const [chartSize, setChartSize] = useState(650);
@@ -496,28 +508,6 @@ const Project: React.FC = () => {
                 <div className="sidebar-content">
                     {activeTab === 'input' && (
                         <>
-                            <div className="section">
-                                <h3 className="section-title">Draft Type</h3>
-                                <div className="section-content">
-                                    <select
-                                        value={draftType}
-                                        onChange={(e) => {
-                                            setDraftType(e.target.value as 'design' | 'intermediate' | 'scantling');
-                                            setDraft(e.target.value as 'design' | 'intermediate' | 'scantling');
-                                        }}
-                                        className="draft-select"
-                                    >
-                                        <option value="design">Design</option>
-                                        <option value="intermediate">Intermediate</option>
-                                        <option value="scantling">Scantling</option>
-                                    </select>
-                                    {representativeDrafts && draftType in representativeDrafts && (
-                                        <p className="draft-value">
-                                            {representativeDrafts[draftType as keyof typeof representativeDrafts].toFixed(2)} m
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
 
                             <div className="section">
                                 <h3 className="section-title">Vessel Operation Conditions</h3>
@@ -676,17 +666,32 @@ const Project: React.FC = () => {
 
                     {activeTab === 'project' && (
                         <div className="section">
-                            <h3 className="section-title">Project Information</h3>
+                            <h3 className="section-title">Load Project File</h3>
                             <div className="section-content">
-                                <p className="project-info">
-                                    <strong>Selected Folder:</strong> {userInputData.selectedFolder || 'None'}
-                                </p>
-                                <p className="project-info">
-                                    <strong>Control File:</strong> {userInputData.controlFile ? userInputData.controlFile.split('/').pop() : 'None'}
-                                </p>
-                                <p className="project-info">
-                                    <strong>Draft Type:</strong> {draftType}
-                                </p>
+                                {/* Folder Row */}
+                                <div className="project-file-row">
+                                    <span className="project-file-icon">📁</span>
+                                    <span className="project-file-name">
+                                        {electronFolder ? electronFolder.split(/[\\/]/).pop() : 'No folder selected'}
+                                    </span>
+                                    {electronFolder && <img src={checkGreenIcon} alt="✓" className="project-file-check" />}
+                                </div>
+
+                                {/* Control File Row */}
+                                <div className="project-file-row">
+                                    <span className="project-file-icon">📄</span>
+                                    <span className="project-file-name">
+                                        {controlFilePath ? controlFilePath.split(/[\\/]/).pop() : 'No control file'}
+                                    </span>
+                                    {controlFilePath && <img src={checkGreenIcon} alt="✓" className="project-file-check" />}
+                                    <button
+                                        className="load-control-btn"
+                                        onClick={handleLoadControlFile}
+                                        disabled={controlFileLoading}
+                                    >
+                                        {controlFileLoading ? 'Loading...' : 'Load Control File'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -849,7 +854,7 @@ const Project: React.FC = () => {
 
                             </>
                         ) : (
-                            <>
+                            <div className="empty-chart-wrapper">
                                 <div className="y-axis-container">
                                     <div className="y-axis-label">Roll [deg]</div>
                                     <div className="y-axis-scale">
@@ -861,6 +866,12 @@ const Project: React.FC = () => {
 
                                 <div className="polar-chart-container">
                                     <div className="polar-chart">
+                                        {/* Diagonal radial lines */}
+                                        <div className="radial-line deg-30"></div>
+                                        <div className="radial-line deg-60"></div>
+                                        <div className="radial-line deg-120"></div>
+                                        <div className="radial-line deg-150"></div>
+
                                         <div className="compass-label north">N</div>
                                         <div className="compass-label east">E</div>
                                         <div className="compass-label south">S</div>
@@ -884,7 +895,7 @@ const Project: React.FC = () => {
                                 </div>
 
                                 <div className="max-roll-label">Max roll [deg]</div>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>

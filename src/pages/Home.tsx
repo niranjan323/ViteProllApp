@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 import absLogo from '../assets/ABS_Logo.png';
@@ -8,12 +8,20 @@ import { useUserData } from '../context/UserDataContext';
 const Home: React.FC = () =>
 {
     const navigate = useNavigate();
-    const { selectFolder, selectControlFile, vesselInfo, selectedFolder: electronFolder, controlFilePath } = useElectron();
-    const { userInputData, setSelectedFolder, setControlFile } = useUserData();
+    const { selectFolder, selectedFolder: electronFolder } = useElectron();
+    const { setSelectedFolder } = useUserData();
     const [ activeTab, setActiveTab ] = useState('project');
     const [ loading, setLoading ] = useState(false);
     const [ error, setError ] = useState('');
     const [ success, setSuccess ] = useState('');
+
+    // Sync ElectronContext folder to UserDataContext whenever it changes
+    useEffect(() => {
+        if (electronFolder) {
+            setSelectedFolder(electronFolder);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [electronFolder]);
 
     const handleSelectFolder = async () =>
     {
@@ -22,9 +30,8 @@ const Home: React.FC = () =>
         setSuccess('');
 
         const result = await selectFolder();
-        if (result && electronFolder)
+        if (result)
         {
-            setSelectedFolder(electronFolder);
             setSuccess('Folder selected successfully');
         } else
         {
@@ -34,50 +41,14 @@ const Home: React.FC = () =>
         setLoading(false);
     };
 
-    const handleSelectControlFile = async () =>
-    {
-        console.log('handleSelectControlFile called');
-        console.log('window.electronAPI available:', !!window.electronAPI);
-        
-        setLoading(true);
-        setError('');
-        setSuccess('');
-
-        try {
-            const result = await selectControlFile();
-            console.log('selectControlFile result:', result);
-            
-            if (result)
-            {
-                // Update both contexts - electron context already has it, now update user context
-                if (controlFilePath) {
-                    setControlFile(controlFilePath);
-                    console.log('Updated UserDataContext with controlFile:', controlFilePath);
-                }
-                setSuccess('Control file loaded successfully');
-            } else
-            {
-                setError('Failed to load control file');
-            }
-        } catch (err) {
-            console.error('Error in handleSelectControlFile:', err);
-            setError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-        }
-
-        setLoading(false);
-    };
-
     const handleViewUserInput = () =>
     {
-        console.log('handleViewUserInput - vesselInfo:', vesselInfo, 'controlFilePath:', controlFilePath);
-        
-        if (!controlFilePath)
+        if (!electronFolder)
         {
-            setError('Please select a folder and load a control file first');
+            setError('Please select a project folder first');
             return;
         }
-        // Allow navigation if control file is loaded (vesselInfo might be Unknown but file is loaded)
-        navigate('/project', { state: { activeTab: 'input' } });
+        navigate('/project', { state: { activeTab: 'project' } });
     };
 
     const handleTabClick = (tab: string) =>
@@ -124,12 +95,12 @@ const Home: React.FC = () =>
                         <div className="card-body">
                             <h3 className="section-title">Load Project File</h3>
 
-                            {/* Folder Item */}
+                            {/* Folder Selection */}
                             <div className="file-row">
                                 <div className="file-item">
                                     <span className="folder-icon">📁</span>
                                     <span className="file-name">
-                                        {electronFolder || 'No folder selected'}
+                                        {electronFolder || 'Select project folder'}
                                     </span>
                                 </div>
                                 <button
@@ -140,31 +111,6 @@ const Home: React.FC = () =>
                                     {loading ? 'Loading...' : 'Select Folder'}
                                 </button>
                             </div>
-
-                            {/* File Item with Button */}
-                            <div className="file-row">
-                                <div className="file-item">
-                                    <span className="file-icon">📄</span>
-                                    <span className="file-name">
-                                        {controlFilePath ? controlFilePath.split(/[\\/]/).pop() : 'No file selected'}
-                                    </span>
-                                </div>
-                                <button
-                                    className="load-control-btn"
-                                    onClick={handleSelectControlFile}
-                                    disabled={loading || !electronFolder}
-                                >
-                                    {loading ? 'Loading...' : 'Load Control File'}
-                                </button>
-                            </div>
-
-                            {/* Vessel Info */}
-                            {vesselInfo && (
-                                <div className="vessel-info">
-                                    <p><strong>Vessel Name:</strong> {vesselInfo.name}</p>
-                                    <p><strong>IMO:</strong> {vesselInfo.imo}</p>
-                                </div>
-                            )}
 
                             {/* Status Messages */}
                             {error && (
@@ -184,7 +130,7 @@ const Home: React.FC = () =>
                                 <button
                                     className="view-input-btn"
                                     onClick={handleViewUserInput}
-                                    disabled={!vesselInfo || !userInputData.controlFile}
+                                    disabled={!electronFolder}
                                 >
                                     View User Data Input
                                 </button>
