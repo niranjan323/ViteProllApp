@@ -99,6 +99,34 @@ const Project: React.FC = () => {
         return () => window.removeEventListener('resize', updateChartSize);
     }, []);
 
+    // Keep tooltips inside viewport - prevent horizontal scroll
+useEffect(() => {
+    const handleMouseOver = (e: MouseEvent) => {
+        const wrapper = (e.target as HTMLElement).closest('.input-tooltip-wrapper');
+        if (!wrapper) return;
+        const tooltip = wrapper.querySelector('.input-tooltip') as HTMLElement;
+        if (!tooltip) return;
+
+        const inputEl = wrapper.querySelector('input');
+        if (!inputEl) return;
+        const rect = inputEl.getBoundingClientRect();
+
+        // Position above the input
+        tooltip.style.top = `${rect.top - tooltip.offsetHeight - 10}px`;
+
+        // Center horizontally, but clamp within viewport
+        let left = rect.left + rect.width / 2;
+        const tipWidth = Math.min(260, window.innerWidth * 0.9);
+        const halfTip = tipWidth / 2;
+        left = Math.max(halfTip + 8, Math.min(left, window.innerWidth - halfTip - 8));
+        tooltip.style.left = `${left}px`;
+        tooltip.style.transform = 'translateX(-50%)';
+    };
+
+    document.addEventListener('mouseover', handleMouseOver);
+    return () => document.removeEventListener('mouseover', handleMouseOver);
+}, []);
+
     // Calculate displayed wave period value based on selected type
     const displayedWavePeriod = useMemo(() => {
         const factor = WAVE_PERIOD_CONVERSIONS[wavePeriodType].factor;
@@ -534,6 +562,7 @@ const Project: React.FC = () => {
                                                             className={`input-field-standalone ${item.isInvalid ? 'invalid-input' : ''}`}
                                                             value={isNaN(item.value) ? '' : item.value}
                                                             onChange={(e) => item.onChange(e.target.value === '' ? NaN : parseFloat(e.target.value))}
+                                                            style={{ textAlign: 'left' }}
                                                         />
                                                         <span className="input-tooltip">{item.range}</span>
                                                     </div>
@@ -562,6 +591,7 @@ const Project: React.FC = () => {
                                                             className={`input-field-standalone ${item.isInvalid ? 'invalid-input' : ''}`}
                                                             value={isNaN(item.value) ? '' : item.value}
                                                             onChange={(e) => item.onChange(e.target.value === '' ? NaN : parseFloat(e.target.value))}
+                                                            style={{ textAlign: 'left' }}
                                                         />
                                                         {item.range && <span className="input-tooltip">{item.range}</span>}
                                                     </div>
@@ -590,9 +620,10 @@ const Project: React.FC = () => {
                                                     <input
                                                         type="number"
                                                         className={`input-field-standalone ${validation?.tz.outOfRange ? 'invalid-input' : ''}`}
-                                                        value={isNaN(displayedWavePeriod) ? '' : displayedWavePeriod.toFixed(1)}
+                                                        value={isNaN(displayedWavePeriod) ? '' : displayedWavePeriod}
                                                         onChange={(e) => handleWavePeriodChange(e.target.value === '' ? NaN : parseFloat(e.target.value))}
                                                         step="0.1"
+                                                        style={{ textAlign: 'left' }}
                                                     />
                                                     {displayedWavePeriodRange && (
                                                         <span className="input-tooltip">
