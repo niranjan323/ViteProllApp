@@ -383,11 +383,11 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         }
         const waveRad = (displayWaveAngle - 90) * (Math.PI / 180);
 
-        // Arrow from inner edge toward outer (label) area
-        const waveInnerX = centerX + maxRadius * 0.88 * Math.cos(waveRad);
-        const waveInnerY = centerY + maxRadius * 0.88 * Math.sin(waveRad);
-        const waveOuterX = centerX + maxRadius * 1.20 * Math.cos(waveRad);
-        const waveOuterY = centerY + maxRadius * 1.20 * Math.sin(waveRad);
+        // Arrow from chart edge outward (fully outside the chart)
+        const waveInnerX = centerX + maxRadius * 1.02 * Math.cos(waveRad);
+        const waveInnerY = centerY + maxRadius * 1.02 * Math.sin(waveRad);
+        const waveOuterX = centerX + maxRadius * 1.25 * Math.cos(waveRad);
+        const waveOuterY = centerY + maxRadius * 1.25 * Math.sin(waveRad);
 
         // Arrow shaft
         ctx.strokeStyle = '#CCCCCC';
@@ -413,14 +413,26 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.closePath();
         ctx.fill();
 
-        // "Wave Direction" label (white text)
+        // "Wave Direction" label - positioned along the arrow direction
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '11px Arial, sans-serif';
-        ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        const waveLabelDist = maxRadius * 1.35;
+        const waveLabelDist = maxRadius * 1.42;
         const waveLabelX = centerX + waveLabelDist * Math.cos(waveRad);
         const waveLabelY = centerY + waveLabelDist * Math.sin(waveRad);
+
+        // Determine text alignment based on angle to keep text visible
+        const angleDeg = ((displayWaveAngle % 360) + 360) % 360;
+        if (angleDeg > 45 && angleDeg < 135) {
+            ctx.textAlign = 'center';
+        } else if (angleDeg >= 135 && angleDeg <= 225) {
+            ctx.textAlign = 'right';
+        } else if (angleDeg > 225 && angleDeg < 315) {
+            ctx.textAlign = 'center';
+        } else {
+            ctx.textAlign = 'left';
+        }
+
         ctx.save();
         ctx.translate(waveLabelX, waveLabelY);
         drawTextWithOutline(ctx, 'Wave', 0, -7);

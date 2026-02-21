@@ -30,11 +30,11 @@ interface SavedCase {
 
 // Wave period conversion factors
 const WAVE_PERIOD_CONVERSIONS = {
-    'tz': { factor: 1.0, label: 'Zero Up-crossing Wave Period, Tz (s)' },
-    'tp-pm': { factor: 0.71, label: 'Peak Wave Period – Pierson-Moskowitz Spectrum, Tp (s)' },
-    'tm-pm': { factor: 0.92, label: 'Mean Wave Period – Pierson-Moskowitz Spectrum, Tm (s)' },
-    'tp-jonswap': { factor: 0.78, label: 'Peak Wave Period – JONSWAP Spectrum (mean), Tp (s)' },
-    'tm-jonswap': { factor: 0.93, label: 'Mean Wave Period – JONSWAP Spectrum (mean), Tm (s)' }
+    'tz': { factor: 1.0, label: 'Zero Up-crossing Wave Period, Tz (s)', shortLabel: 'Wave Period' },
+    'tp-pm': { factor: 0.71, label: 'Peak Wave Period – Pierson-Moskowitz Spectrum, Tp (s)', shortLabel: 'Wave Period' },
+    'tm-pm': { factor: 0.92, label: 'Mean Wave Period – Pierson-Moskowitz Spectrum, Tm (s)', shortLabel: 'Wave Period' },
+    'tp-jonswap': { factor: 0.78, label: 'Peak Wave Period – JONSWAP Spectrum (mean), Tp (s)', shortLabel: 'Wave Period' },
+    'tm-jonswap': { factor: 0.93, label: 'Mean Wave Period – JONSWAP Spectrum (mean), Tm (s)', shortLabel: 'Wave Period' }
 };
 
 const Project: React.FC = () => {
@@ -70,6 +70,8 @@ const Project: React.FC = () => {
     const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
     const chartRef = useRef<CanvasPolarChartHandle>(null);
     const [controlFileLoading, setControlFileLoading] = useState(false);
+    const [wavePeriodDropdownOpen, setWavePeriodDropdownOpen] = useState(false);
+    const wavePeriodDropdownRef = useRef<HTMLDivElement>(null);
 
     const handleLoadControlFile = async () => {
         setControlFileLoading(true);
@@ -125,6 +127,21 @@ const Project: React.FC = () => {
 
         document.addEventListener('mouseover', handleMouseOver);
         return () => document.removeEventListener('mouseover', handleMouseOver);
+    }, []);
+
+    // Close wave period dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as Node;
+            if (wavePeriodDropdownRef.current && !wavePeriodDropdownRef.current.contains(target)) {
+                const dropdown = document.querySelector('.wave-period-dropdown');
+                if (!dropdown || !dropdown.contains(target)) {
+                    setWavePeriodDropdownOpen(false);
+                }
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     // Calculate displayed wave period value based on selected type
@@ -552,7 +569,7 @@ const Project: React.FC = () => {
                                         <div key={index} className="input-row-wrapper">
                                             <div className="input-row">
                                                 <label className="input-label">
-                                                    {item.label} <span className="input-unit-inline">{item.unit}</span>
+                                                    <span className="input-label-text">{item.label}</span> <span className="input-unit-inline">{item.unit}</span>
                                                 </label>
                                                 <div className="input-group">
                                                     <img src={item.isInvalid ? redXIcon : checkGreenIcon} alt="" className="indicator-icon" />
@@ -581,7 +598,7 @@ const Project: React.FC = () => {
                                         <div key={index} className="input-row-wrapper">
                                             <div className="input-row">
                                                 <label className="input-label">
-                                                    {item.label} <span className="input-unit-inline">{item.unit}</span>
+                                                    <span className="input-label-text">{item.label}</span> <span className="input-unit-inline">{item.unit}</span>
                                                 </label>
                                                 <div className="input-group">
                                                     <img src={item.isInvalid ? redXIcon : checkGreenIcon} alt="" className="indicator-icon" />
@@ -604,17 +621,17 @@ const Project: React.FC = () => {
                                     {/* WAVE PERIOD WITH CONVERSION */}
                                     <div className="input-row-wrapper">
                                         <div className="input-row">
-                                            <div className="input-group wave-period-group">
-                                                <select
-                                                    className="wave-period-select"
-                                                    value={wavePeriodType}
-                                                    onChange={(e) => setWavePeriodType(e.target.value as keyof typeof WAVE_PERIOD_CONVERSIONS)}
+                                            <div className="input-label wave-period-label" ref={wavePeriodDropdownRef}>
+                                                <div
+                                                    className="wave-period-trigger"
+                                                    onClick={() => setWavePeriodDropdownOpen(!wavePeriodDropdownOpen)}
                                                 >
-                                                    {Object.entries(WAVE_PERIOD_CONVERSIONS).map(([key, config]) => (
-                                                        <option key={key} value={key}>{config.label}</option>
-                                                    ))}
-                                                </select>
+                                                    <span>{WAVE_PERIOD_CONVERSIONS[wavePeriodType].shortLabel}</span>
+                                                    <span className={`wave-period-arrow ${wavePeriodDropdownOpen ? 'open' : ''}`}>&#9662;</span>
+                                                </div>
                                                 <span className="input-unit-inline">[s]</span>
+                                            </div>
+                                            <div className="input-group">
                                                 <img src={validation?.tz.outOfRange ? redXIcon : checkGreenIcon} alt="" className="indicator-icon" />
                                                 <div className="input-tooltip-wrapper">
                                                     <input
@@ -638,6 +655,35 @@ const Project: React.FC = () => {
                                                 `value range [${displayedWavePeriodRange.lower.toFixed(1)}-${displayedWavePeriodRange.upper.toFixed(1)} s]`
                                                 : ''}
                                         </div>
+                                        {wavePeriodDropdownOpen && (
+                                            <div
+                                                className="wave-period-dropdown"
+                                                style={{
+                                                    position: 'fixed',
+                                                    top: wavePeriodDropdownRef.current
+                                                        ? wavePeriodDropdownRef.current.getBoundingClientRect().bottom + 4
+                                                        : 0,
+                                                    left: wavePeriodDropdownRef.current
+                                                        ? wavePeriodDropdownRef.current.getBoundingClientRect().left
+                                                        : 0,
+                                                }}
+                                            >
+                                                {Object.entries(WAVE_PERIOD_CONVERSIONS).map(([key, config]) => (
+                                                    <div
+                                                        key={key}
+                                                        className={`wave-period-option ${wavePeriodType === key ? 'active' : ''}`}
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setWavePeriodType(key as keyof typeof WAVE_PERIOD_CONVERSIONS);
+                                                            setWavePeriodDropdownOpen(false);
+                                                        }}
+                                                    >
+                                                        {config.label}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

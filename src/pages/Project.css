@@ -150,6 +150,22 @@
 /* Input Row Wrapper */
 .input-row-wrapper {
     margin-bottom: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.input-row-wrapper:hover .input-label-text {
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    padding: 0.2rem 0.4rem;
+    margin: -0.2rem -0.4rem;
+}
+
+.input-row-wrapper:hover .input-field-standalone {
+    border-color: #1473E6;
+    box-shadow: 0 0 4px rgba(20, 115, 230, 0.25);
+    background-color: #eef4ff;
 }
 
 .input-row-wrapper:last-child {
@@ -175,6 +191,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .indicator-icon {
@@ -1699,27 +1716,79 @@
     gap: 8px;
 }
 
-.wave-period-group {
+.wave-period-label {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 0.3rem;
+    position: relative;
 }
 
-.wave-period-group .indicator {
-    flex-shrink: 0;
+.wave-period-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #1473E6;
+    user-select: none;
+    background: white;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    padding: 0.3rem 0.8rem;
+    min-width: 130px;
 }
 
-.wave-period-group .wave-period-select {
-    flex: 1;
-    width: 40%;
+.wave-period-trigger:hover {
+    border-color: #1473E6;
+}
+
+.wave-period-arrow {
+    font-size: 0.55rem;
+    color: #999;
+    transition: transform 0.2s ease;
+    line-height: 1;
+}
+
+.wave-period-arrow.open {
+    transform: rotate(180deg);
+}
+
+.wave-period-dropdown {
+    position: fixed;
+    z-index: 9999;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 300px;
+    max-width: 420px;
+    padding: 4px 0;
+}
+
+.wave-period-option {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    color: #333;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+}
+
+.wave-period-option:hover {
+    background-color: #e8f0fe;
+}
+
+.wave-period-option.active {
+    background-color: #e8f0fe;
+    color: #1473E6;
+    font-weight: 600;
 }
 
 .wave-period-group .input-with-unit {
     flex: 0 0 auto;
 }
 
-.wave-period-select,
 .wave-period-input {
     padding: 8px 10px;
     border: 1px solid #ddd;
@@ -1728,7 +1797,6 @@
     background: white;
 }
 
-.wave-period-select:focus,
 .wave-period-input:focus {
     outline: none;
     border-color: #2196f3;
@@ -2048,6 +2116,19 @@
 }
 
 /* Input rows */
+[data-theme="dark"] .input-row-wrapper:hover .input-label-text {
+    background-color: #1e2a3a;
+    border-radius: 4px;
+    padding: 0.2rem 0.4rem;
+    margin: -0.2rem -0.4rem;
+}
+
+[data-theme="dark"] .input-row-wrapper:hover .input-field-standalone {
+    border-color: #1473E6;
+    box-shadow: 0 0 4px rgba(20, 115, 230, 0.35);
+    background-color: rgba(20, 115, 230, 0.15);
+}
+
 [data-theme="dark"] .input-label {
     color: #F5F5F5;
 }
@@ -2240,8 +2321,40 @@
     background: #1a2332;
 }
 
-/* Wave period select */
-[data-theme="dark"] .wave-period-select,
+/* Wave period custom dropdown */
+[data-theme="dark"] .wave-period-trigger {
+    color: #64b5f6;
+    background: #1a2332;
+    border-color: #2a3a4a;
+}
+
+[data-theme="dark"] .wave-period-trigger:hover {
+    border-color: #64b5f6;
+}
+
+[data-theme="dark"] .wave-period-arrow {
+    color: #999;
+}
+
+[data-theme="dark"] .wave-period-dropdown {
+    background: #1a2332;
+    border-color: #2a3a4a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .wave-period-option {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .wave-period-option:hover {
+    background-color: rgba(20, 115, 230, 0.2);
+}
+
+[data-theme="dark"] .wave-period-option.active {
+    background-color: rgba(20, 115, 230, 0.25);
+    color: #64b5f6;
+}
+
 [data-theme="dark"] .wave-period-input {
     background: #1a2332;
     color: #e0e0e0;
