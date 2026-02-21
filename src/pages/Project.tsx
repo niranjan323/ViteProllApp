@@ -100,32 +100,32 @@ const Project: React.FC = () => {
     }, []);
 
     // Keep tooltips inside viewport - prevent horizontal scroll
-useEffect(() => {
-    const handleMouseOver = (e: MouseEvent) => {
-        const wrapper = (e.target as HTMLElement).closest('.input-tooltip-wrapper');
-        if (!wrapper) return;
-        const tooltip = wrapper.querySelector('.input-tooltip') as HTMLElement;
-        if (!tooltip) return;
+    useEffect(() => {
+        const handleMouseOver = (e: MouseEvent) => {
+            const wrapper = (e.target as HTMLElement).closest('.input-tooltip-wrapper');
+            if (!wrapper) return;
+            const tooltip = wrapper.querySelector('.input-tooltip') as HTMLElement;
+            if (!tooltip) return;
 
-        const inputEl = wrapper.querySelector('input');
-        if (!inputEl) return;
-        const rect = inputEl.getBoundingClientRect();
+            const inputEl = wrapper.querySelector('input');
+            if (!inputEl) return;
+            const rect = inputEl.getBoundingClientRect();
 
-        // Position above the input
-        tooltip.style.top = `${rect.top - tooltip.offsetHeight - 10}px`;
+            // Position above the input
+            tooltip.style.top = `${rect.top - tooltip.offsetHeight - 10}px`;
 
-        // Center horizontally, but clamp within viewport
-        let left = rect.left + rect.width / 2;
-        const tipWidth = Math.min(260, window.innerWidth * 0.9);
-        const halfTip = tipWidth / 2;
-        left = Math.max(halfTip + 8, Math.min(left, window.innerWidth - halfTip - 8));
-        tooltip.style.left = `${left}px`;
-        tooltip.style.transform = 'translateX(-50%)';
-    };
+            // Center horizontally, but clamp within viewport
+            let left = rect.left + rect.width / 2;
+            const tipWidth = Math.min(260, window.innerWidth * 0.9);
+            const halfTip = tipWidth / 2;
+            left = Math.max(halfTip + 8, Math.min(left, window.innerWidth - halfTip - 8));
+            tooltip.style.left = `${left}px`;
+            tooltip.style.transform = 'translateX(-50%)';
+        };
 
-    document.addEventListener('mouseover', handleMouseOver);
-    return () => document.removeEventListener('mouseover', handleMouseOver);
-}, []);
+        document.addEventListener('mouseover', handleMouseOver);
+        return () => document.removeEventListener('mouseover', handleMouseOver);
+    }, []);
 
     // Calculate displayed wave period value based on selected type
     const displayedWavePeriod = useMemo(() => {
@@ -574,8 +574,8 @@ useEffect(() => {
                                 </div>
                             </div>
 
-                            <div className="section">
-                                <h3 className="section-title">Sea State</h3>
+                            <div className="section border-top" >
+                                <h3 className="section-title" style={{ paddingTop: "9px" }}>Sea State</h3>
                                 <div className="section-content">
                                     {seaState.map((item, index) => (
                                         <div key={index} className="input-row-wrapper">
@@ -600,7 +600,7 @@ useEffect(() => {
                                             {item.range && <div className="input-range">{item.range}</div>}
                                         </div>
                                     ))}
-                                    
+
                                     {/* WAVE PERIOD WITH CONVERSION */}
                                     <div className="input-row-wrapper">
                                         <div className="input-row">
@@ -642,9 +642,9 @@ useEffect(() => {
                                 </div>
                             </div>
 
-                            <div className="section">
+                            <div className="section border-top" >
                                 <div className="section-header">
-                                    <h3 className="section-title">Case Files</h3>
+                                    <h3 className="section-title" style={{ paddingTop: "9px" }}>Case Files</h3>
                                 </div>
                                 <div className="section-content">
                                     {saveMessage && (
@@ -758,21 +758,41 @@ useEffect(() => {
                                         orientation={chartDirection}
                                     />
                                 </div>
-                                
-                                 <div className="plot-canvas-right">
+
+                                <div className="plot-canvas-right">
                                     {/* Chart Options Panel Container */}
                                     <div className="chart-right-panel">
                                         {/* Color Mode Heading */}
+                                        {/* Color Mode Heading */}
                                         <div className="color-mode-heading">Color Mode</div>
+
                                         {/* Color Mode Toggle */}
                                         <div className="color-mode-toggle">
+                                            {/* Monitor + pencil icon */}
                                             <span className="color-mode-icon">
-                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                                                    <line x1="8" y1="21" x2="16" y2="21"/>
-                                                    <line x1="12" y1="17" x2="12" y2="21"/>
+                                                <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    {/* Monitor body */}
+                                                    <rect x="2" y="3" width="22" height="16" rx="2" ry="2"
+                                                        stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" fill="none" />
+                                                    {/* Monitor stand */}
+                                                    <line x1="9" y1="19" x2="9" y2="23"
+                                                        stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
+                                                    <line x1="15" y1="19" x2="15" y2="23"
+                                                        stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
+                                                    <line x1="6" y1="23" x2="18" y2="23"
+                                                        stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
+                                                    {/* Blue pencil overlaid bottom-right */}
+                                                    <g transform="translate(16, 16) rotate(-45)">
+                                                        <rect x="-2" y="-8" width="4" height="10"
+                                                            fill="#2196f3" rx="1" />
+                                                        <polygon points="-2,2 2,2 0,5"
+                                                            fill="#2196f3" />
+                                                        <rect x="-2" y="-10" width="4" height="3"
+                                                            fill="rgba(255,255,255,0.6)" rx="0.5" />
+                                                    </g>
                                                 </svg>
                                             </span>
+
                                             <label className="color-mode-option">
                                                 <span>Light Mode</span>
                                                 <input
@@ -785,6 +805,7 @@ useEffect(() => {
                                                 />
                                                 <span className="cm-toggle"></span>
                                             </label>
+
                                             <label className="color-mode-option">
                                                 <span>Dark Mode</span>
                                                 <input
