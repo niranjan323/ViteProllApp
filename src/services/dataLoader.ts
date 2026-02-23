@@ -64,11 +64,6 @@ export interface LoadPolarDataResult {
 
 export class DataLoader {
   private fs: FileSystemService;
-  private controlData: {
-    vesselInfo: VesselInfo;
-    parameterBounds: ParameterBounds;
-    representativeDrafts: RepresentativeDrafts;
-  } | null = null;
 
   constructor(fileSystemService: FileSystemService) {
     this.fs = fileSystemService;
@@ -172,12 +167,6 @@ export class DataLoader {
 
       console.log('Control file parsed:', { vesselInfo, parameterBounds, representativeDrafts });
 
-      this.controlData = {
-        vesselInfo,
-        parameterBounds,
-        representativeDrafts,
-      };
-
       return {
         success: true,
         vesselInfo,
@@ -265,7 +254,7 @@ export class DataLoader {
   /**
    * Find the closest matching folder by numeric value
    */
-  private findClosestMatch(folders: string[], targetValue: number, prefix: string): string | null {
+  private findClosestMatch(folders: string[], targetValue: number, _prefix: string): string | null {
     let closest: string | null = null;
     let minDiff = Infinity;
 
@@ -317,7 +306,7 @@ export class DataLoader {
     return bestMatch;
   }
 
-  private readDotNetString(dataView: DataView, bytes: Uint8Array, offset: number): { value: string; newOffset: number } {
+  private readDotNetString(_dataView: DataView, bytes: Uint8Array, offset: number): { value: string; newOffset: number } {
     // Read 7-bit encoded integer length
     let length = 0;
     let shift = 0;

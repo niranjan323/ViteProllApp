@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AnalysisCase } from '../services/caseManager';
+import type { AnalysisCase } from '../services/caseManager';
 import './CaseManager.css';
 
 interface CaseManagerProps {
@@ -12,7 +12,7 @@ interface CaseManagerProps {
 
 const CaseManagerComponent: React.FC<CaseManagerProps> = ({
   cases,
-  onSaveCase,
+  onSaveCase: _onSaveCase,
   onDeleteCase,
   onLoadCase,
   canSave,

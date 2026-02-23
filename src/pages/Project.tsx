@@ -13,7 +13,7 @@ import { jsPDF } from 'jspdf';
 
 // SVG icon imports
 import saveCaseGreenIcon from '../assets/save case_green.svg';
-import saveCaseGrayIcon from '../assets/save case_gray.svg'; // used for disabled state
+import _saveCaseGrayIcon from '../assets/save case_gray.svg'; // used for disabled state
 import deleteIcon from '../assets/delete.svg';
 import folderIcon from '../assets/folder.svg';
 import arrowLeftIcon from '../assets/case scroll_arrow_left.svg';
@@ -30,11 +30,11 @@ interface SavedCase {
 
 // Wave period conversion factors
 const WAVE_PERIOD_CONVERSIONS = {
-    'tz': { factor: 1.0, label: 'Zero Up-crossing Wave Period, Tz (s)', shortLabel: 'Wave Period' },
-    'tp-pm': { factor: 0.71, label: 'Peak Wave Period – Pierson-Moskowitz Spectrum, Tp (s)', shortLabel: 'Wave Period' },
-    'tm-pm': { factor: 0.92, label: 'Mean Wave Period – Pierson-Moskowitz Spectrum, Tm (s)', shortLabel: 'Wave Period' },
-    'tp-jonswap': { factor: 0.78, label: 'Peak Wave Period – JONSWAP Spectrum (mean), Tp (s)', shortLabel: 'Wave Period' },
-    'tm-jonswap': { factor: 0.93, label: 'Mean Wave Period – JONSWAP Spectrum (mean), Tm (s)', shortLabel: 'Wave Period' }
+    'tz': { factor: 1.0, label: 'Zero Up-crossing Wave Period, Tz (s)' },
+    'tp-pm': { factor: 0.71, label: 'Peak Wave Period – Pierson-Moskowitz Spectrum, Tp (s)' },
+    'tm-pm': { factor: 0.92, label: 'Mean Wave Period – Pierson-Moskowitz Spectrum, Tm (s)' },
+    'tp-jonswap': { factor: 0.78, label: 'Peak Wave Period – JONSWAP Spectrum (mean), Tp (s)' },
+    'tm-jonswap': { factor: 0.93, label: 'Mean Wave Period – JONSWAP Spectrum (mean), Tm (s)' }
 };
 
 const Project: React.FC = () => {
@@ -61,6 +61,7 @@ const Project: React.FC = () => {
     const [chartMode, setChartMode] = useState<'continuous' | 'traffic-light'>('continuous');
     const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
     const [wavePeriodType, setWavePeriodType] = useState<keyof typeof WAVE_PERIOD_CONVERSIONS>('tz');
+    const [wavePeriodSelected, setWavePeriodSelected] = useState(false);
 
     // Report modal state
     const [showReportModal, setShowReportModal] = useState(false);
@@ -147,7 +148,8 @@ const Project: React.FC = () => {
     // Calculate displayed wave period value based on selected type
     const displayedWavePeriod = useMemo(() => {
         const factor = WAVE_PERIOD_CONVERSIONS[wavePeriodType].factor;
-        return userInputData.seaState.wavePeriod / factor;
+        const raw = userInputData.seaState.wavePeriod / factor;
+        return isNaN(raw) ? raw : parseFloat(raw.toFixed(1));
     }, [userInputData.seaState.wavePeriod, wavePeriodType]);
 
     // Calculate displayed range based on selected type
@@ -626,10 +628,10 @@ const Project: React.FC = () => {
                                                     className="wave-period-trigger"
                                                     onClick={() => setWavePeriodDropdownOpen(!wavePeriodDropdownOpen)}
                                                 >
-                                                    <span>{WAVE_PERIOD_CONVERSIONS[wavePeriodType].shortLabel}</span>
+                                                    <span>{wavePeriodSelected ? WAVE_PERIOD_CONVERSIONS[wavePeriodType].label : 'Wave Period'}</span>
                                                     <span className={`wave-period-arrow ${wavePeriodDropdownOpen ? 'open' : ''}`}>&#9662;</span>
                                                 </div>
-                                                <span className="input-unit-inline">[s]</span>
+                                                {!wavePeriodSelected && <span className="input-unit-inline">[s]</span>}
                                             </div>
                                             <div className="input-group">
                                                 <img src={validation?.tz.outOfRange ? redXIcon : checkGreenIcon} alt="" className="indicator-icon" />
@@ -676,6 +678,7 @@ const Project: React.FC = () => {
                                                             e.preventDefault();
                                                             e.stopPropagation();
                                                             setWavePeriodType(key as keyof typeof WAVE_PERIOD_CONVERSIONS);
+                                                            setWavePeriodSelected(true);
                                                             setWavePeriodDropdownOpen(false);
                                                         }}
                                                     >

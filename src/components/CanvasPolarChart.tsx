@@ -209,7 +209,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.imageSmoothingQuality = 'high';
 
 
-        const legendTotalWidth = 80;
+        const legendTotalWidth = (width < 700 || height < 500) ? 60 : 80;
         const centerX = legendTotalWidth + (width - legendTotalWidth) / 2;
         const centerY = height / 2;
         const maxRadius = Math.min(width - legendTotalWidth - 60, height - 80) * 0.42;
@@ -483,25 +483,30 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.restore();
 
         // --- Color scale legend (left side) ---
-        const legendBarX = 18;
-        const legendBarWidth = 22;
-        const legendBarTop = centerY - maxRadius + 20;
-        const legendBarBottom = centerY + maxRadius - 20;
+        // Responsive: scale legend size based on canvas dimensions
+        const isSmall = width < 700 || height < 500;
+        const legendBarX = isSmall ? 14 : 20;
+        const legendBarWidth = isSmall ? 18 : 22;
+        const legendBarTotalHeight = maxRadius * (isSmall ? 1.4 : 1.6);
+        const legendBarTop = centerY - legendBarTotalHeight / 2;
+        const legendBarBottom = centerY + legendBarTotalHeight / 2;
         const legendBarHeight = legendBarBottom - legendBarTop;
+        const legendFontSize = isSmall ? 10 : 12;
+        const legendTickFontSize = isSmall ? 9 : 11;
 
         // Title: "Roll [deg]" - WHITE text
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 12px Arial, sans-serif';
+        ctx.font = `bold ${legendFontSize}px Arial, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
-        ctx.fillText('Roll [deg]', 10, legendBarTop - 8);
+        ctx.fillText('Roll [deg]', legendBarX - 4, legendBarTop - 8);
 
         // "Max roll [deg]" rotated vertical label - WHITE
         ctx.save();
-        ctx.translate(8, centerY);
+        ctx.translate(legendBarX - 10, centerY);
         ctx.rotate(-Math.PI / 2);
         ctx.fillStyle = '#CCCCCC';
-        ctx.font = '11px Arial, sans-serif';
+        ctx.font = `${legendTickFontSize}px Arial, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('Max roll [deg]', 0, 0);
@@ -532,7 +537,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         // Legend labels and boundary lines (mode-specific)
         const maxLegendValue = Math.ceil(colorScaleMax);
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = '11px Arial, sans-serif';
+        ctx.font = `${legendTickFontSize}px Arial, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
 
@@ -567,7 +572,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
             // Max roll label - RED
             ctx.fillStyle = '#FF6666';
-            ctx.font = 'bold 10px Arial, sans-serif';
+            ctx.font = `bold ${isSmall ? 8 : 10}px Arial, sans-serif`;
             ctx.textAlign = 'left';
             ctx.fillText('Max', legendBarX + legendBarWidth + 6, maxRollYPos - 8);
             ctx.fillText('roll', legendBarX + legendBarWidth + 6, maxRollYPos + 4);

@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { FileSystemService } from '../services/fileSystem';
-import { DataLoader, VesselInfo, ParameterBounds, RepresentativeDrafts } from '../services/dataLoader';
+import { DataLoader } from '../services/dataLoader';
+import type { VesselInfo, ParameterBounds, RepresentativeDrafts } from '../services/dataLoader';
 import { PolarCalculations } from '../services/polarCalculations';
 
 /**

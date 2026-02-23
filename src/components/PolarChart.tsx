@@ -7,8 +7,8 @@ function generateTestData() {
     const headings = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
     
     // Create a distinctive pattern: high roll angles at specific headings
-    const rollMatrix = speeds.map((speed, speedIdx) => {
-        return headings.map((heading, headingIdx) => {
+    const rollMatrix = speeds.map((_speed, speedIdx) => {
+        return headings.map((heading, _headingIdx) => {
             // Create a pattern that's easy to verify:
             // - Low roll (0-10°) at 0° and 180° (head/following seas)
             // - High roll (20-30°) at 90° and 270° (beam seas)
@@ -202,6 +202,7 @@ export const PolarChartTest: React.FC = () => {
                     vesselHeading={vesselHeading}
                     vesselSpeed={vesselSpeed}
                     maxRollAngle={maxRollAngle}
+                    meanWaveDirection={0}
                     mode={mode}
                     orientation={orientation}
                     width={650}
@@ -230,4 +231,4 @@ export const PolarChartTest: React.FC = () => {
     );
 };
 
-export default PolarChart;
+export default PolarChartTest;
