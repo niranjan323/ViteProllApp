@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path = require("path");
 const fs = require("fs");
-const electron_is_dev_1 = require("electron-is-dev");
+const isDev = !electron_1.app.isPackaged;
 let mainWindow = null;
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
@@ -17,11 +17,11 @@ function createWindow() {
         },
         icon: path.join(__dirname, '../public/icon.ico'),
     });
-    const startUrl = electron_is_dev_1.default
+    const startUrl = isDev
         ? 'http://localhost:5173'
         : `file://${path.join(__dirname, '../dist/index.html')}`;
     mainWindow.loadURL(startUrl);
-    if (electron_is_dev_1.default) {
+    if (isDev) {
         mainWindow.webContents.openDevTools();
     }
     mainWindow.on('closed', () => {

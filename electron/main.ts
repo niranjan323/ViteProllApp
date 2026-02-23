@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import isDev from 'electron-is-dev';
+
+const isDev = !app.isPackaged;
 
 let mainWindow: BrowserWindow | null = null;
 
