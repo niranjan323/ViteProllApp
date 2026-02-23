@@ -57,6 +57,7 @@
     transform: translateX(0);
 }
 
+.sidebar-icon,
 .sidebar-btn svg {
     width: 24px;
     height: 24px;
@@ -81,7 +82,8 @@
         font-size: 0.7rem;
     }
 
-    .sidebar-btn svg {
+    .sidebar-icon,
+.sidebar-btn svg {
         width: 20px;
         height: 20px;
     }
@@ -100,7 +102,8 @@
         gap: 0.3rem;
     }
 
-    .sidebar-btn svg {
+    .sidebar-icon,
+.sidebar-btn svg {
         width: 18px;
         height: 18px;
     }
