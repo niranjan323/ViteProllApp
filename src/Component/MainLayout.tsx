@@ -34,7 +34,7 @@ const MainLayout: React.FC = () =>
             <main className="content-area">
                 <Outlet />
                 <footer className="app-footer">
-                    &copy; 2026 American Bureau of Shipping. All rights reserved.
+                    <strong>&copy; 2026 American Bureau of Shipping. All rights reserved.</strong>
                 </footer>
             </main>
         </div>
