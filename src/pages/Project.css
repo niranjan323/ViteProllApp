@@ -209,8 +209,8 @@
 
 /* Folder icon in saved cases header */
 .folder-icon-img {
-    width: 20px;
-    height: 20px;
+    width: 30px;
+    height: 30px;
 }
 
 /* Nav arrow icons */
@@ -603,6 +603,8 @@
     justify-content: center;
     min-width: 0;
     overflow: visible;
+    position: relative;
+    z-index: 1;
 }
 
 .plot-canvas-right {
@@ -614,6 +616,8 @@
     gap: 0.75rem;
     align-self: flex-start;
     margin-left: auto;
+    position: relative;
+    z-index: 1;
 }
 
 /* Y-Axis Container */
@@ -1793,6 +1797,12 @@
     border-color: #1473E6;
 }
 
+.wave-period-trigger.wave-period-selected {
+    color: #333;
+    border-color: #d0d0d0;
+    font-weight: 500;
+}
+
 .wave-period-arrow {
     font-size: 0.55rem;
     color: #999;
@@ -2380,6 +2390,11 @@
 
 [data-theme="dark"] .wave-period-trigger:hover {
     border-color: #64b5f6;
+}
+
+[data-theme="dark"] .wave-period-trigger.wave-period-selected {
+    color: #e0e0e0;
+    border-color: #2a3a4a;
 }
 
 [data-theme="dark"] .wave-period-arrow {

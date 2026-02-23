@@ -15,7 +15,7 @@ import { jsPDF } from 'jspdf';
 import saveCaseGreenIcon from '../assets/save case_green.svg';
 import _saveCaseGrayIcon from '../assets/save case_gray.svg'; // used for disabled state
 import deleteIcon from '../assets/delete.svg';
-import folderIcon from '../assets/folder.svg';
+import folderIcon from '../assets/save case_gray.svg';
 import arrowLeftIcon from '../assets/case scroll_arrow_left.svg';
 import arrowRightIcon from '../assets/case scroll_arrow_right.svg';
 import pdfIcon from '../assets/PDF.svg';
@@ -625,13 +625,13 @@ const Project: React.FC = () => {
                                         <div className="input-row">
                                             <div className="input-label wave-period-label" ref={wavePeriodDropdownRef}>
                                                 <div
-                                                    className="wave-period-trigger"
+                                                    className={`wave-period-trigger ${wavePeriodSelected ? 'wave-period-selected' : ''}`}
                                                     onClick={() => setWavePeriodDropdownOpen(!wavePeriodDropdownOpen)}
                                                 >
                                                     <span>{wavePeriodSelected ? WAVE_PERIOD_CONVERSIONS[wavePeriodType].label : 'Wave Period'}</span>
                                                     <span className={`wave-period-arrow ${wavePeriodDropdownOpen ? 'open' : ''}`}>&#9662;</span>
                                                 </div>
-                                                {!wavePeriodSelected && <span className="input-unit-inline">[s]</span>}
+                                                <span className="input-unit-inline">[s]</span>
                                             </div>
                                             <div className="input-group">
                                                 <img src={validation?.tz.outOfRange ? redXIcon : checkGreenIcon} alt="" className="indicator-icon" />
