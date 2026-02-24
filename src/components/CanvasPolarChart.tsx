@@ -417,7 +417,17 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '11px Arial, sans-serif';
         ctx.textBaseline = 'middle';
-        const waveLabelDist = maxRadius * 1.42;
+        // Clamp label distance so it stays within canvas bounds
+        const textPad = 48; // enough space for "Direction" text
+        let waveLabelDist = maxRadius * 1.42;
+        if (Math.cos(waveRad) > 0.05)
+            waveLabelDist = Math.min(waveLabelDist, (width - centerX - textPad) / Math.cos(waveRad));
+        if (Math.cos(waveRad) < -0.05)
+            waveLabelDist = Math.min(waveLabelDist, (centerX - textPad) / (-Math.cos(waveRad)));
+        if (Math.sin(waveRad) > 0.05)
+            waveLabelDist = Math.min(waveLabelDist, (height - centerY - textPad) / Math.sin(waveRad));
+        if (Math.sin(waveRad) < -0.05)
+            waveLabelDist = Math.min(waveLabelDist, (centerY - textPad) / (-Math.sin(waveRad)));
         const waveLabelX = centerX + waveLabelDist * Math.cos(waveRad);
         const waveLabelY = centerY + waveLabelDist * Math.sin(waveRad);
 
