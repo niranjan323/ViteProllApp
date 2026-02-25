@@ -418,10 +418,10 @@ export const SimplePolarChart: React.FC<SimplePolarChartProps> = ({
         ctx.lineTo(waveEndX, waveEndY);
         ctx.stroke();
 
-        // Arrow head pointing inward
+        // Arrow head pointing toward the diagram
         const arrowSize = 12;
-        const arrowAngle1 = waveRad + Math.PI - Math.PI / 6;
-        const arrowAngle2 = waveRad + Math.PI + Math.PI / 6;
+        const arrowAngle1 = waveRad - Math.PI / 6;
+        const arrowAngle2 = waveRad + Math.PI / 6;
         
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.beginPath();

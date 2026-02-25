@@ -50,6 +50,7 @@ export interface LoadControlFileResult {
 export interface FindDataFileResult {
   success: boolean;
   filePath?: string;
+  fittedDraft?: number;
   error?: string;
 }
 
@@ -155,14 +156,31 @@ export class DataLoader {
       };
 
       // Try to parse representative drafts if present (Td, Ti, Ts lines)
+      // Strategy 1: comment-based format  "10.5  !Ts - Scantling draft"
       const tdLine = findLineByComment('td') || findLineByComment('design draft');
       const tiLine = findLineByComment('ti') || findLineByComment('intermediate');
       const tsLine = findLineByComment('ts') || findLineByComment('scantling');
 
+      // Strategy 2: key=value format  "Td=10.0" or "Td = 10.0"
+      const findKeyValue = (key: string): number | null => {
+        const re = new RegExp(`^${key}\\s*=\\s*([\\d.]+)`, 'i');
+        for (const l of lines) {
+          const m = l.match(re);
+          if (m) return parseFloat(m[1]);
+        }
+        return null;
+      };
+
       const representativeDrafts: RepresentativeDrafts = {
-        design: tdLine ? parseFloat(parseLine(tdLine)[0] || '0') : 0,
-        intermediate: tiLine ? parseFloat(parseLine(tiLine)[0] || '0') : 0,
-        scantling: tsLine ? parseFloat(parseLine(tsLine)[0] || '0') : 0,
+        design: tdLine
+          ? parseFloat(parseLine(tdLine)[0] || '0')
+          : (findKeyValue('td') ?? findKeyValue('design') ?? 0),
+        intermediate: tiLine
+          ? parseFloat(parseLine(tiLine)[0] || '0')
+          : (findKeyValue('ti') ?? findKeyValue('intermediate') ?? 0),
+        scantling: tsLine
+          ? parseFloat(parseLine(tsLine)[0] || '0')
+          : (findKeyValue('ts') ?? findKeyValue('scantling') ?? 0),
       };
 
       console.log('Control file parsed:', { vesselInfo, parameterBounds, representativeDrafts });
@@ -184,28 +202,78 @@ export class DataLoader {
   }
 
   /**
-   * Find the data file that best matches the input parameters
+   * Find the data file that best matches the input parameters.
+   * Supports two draft folder naming conventions:
+   *   New-style: "Draft=11m", "Draft=15m", "Draft=16m" (numeric matching)
+   *   Old-style: "design", "intermediate", "scantling" (mapped to draftLower, mid, draftUpper)
+   * Average draft = 0.5 * (draftAft + draftFore) is used to find the closest folder.
    */
   async findDataFile(parameters: {
-    draft: string;
+    draft: number;  // average draft in metres
     gm: number;
     hs: number;
     tz: number;
+    draftLower?: number;  // from parameterBounds, used for old-style folder mapping
+    draftUpper?: number;
   }): Promise<FindDataFileResult> {
     try {
-      const draftFolder = parameters.draft; // scantling, design, or intermediate
-     // const draftPath = `PolarData/${draftFolder}`;
+      console.log('Looking for files with parameters:', parameters);
+
+      // 1st search: Find closest draft folder in the root of the selected folder
+      // Filter out files (entries with extensions like .ctl)
+      const rootEntries = await this.fs.listDirectory('');
+      const draftCandidates = rootEntries.filter(e => !e.includes('.'));
+      console.log('Draft folder candidates:', draftCandidates);
+
+      // Try numeric matching first (new-style: Draft=11m)
+      let draftFolder = this.findClosestMatch(draftCandidates, parameters.draft, 'Draft');
+
+      if (!draftFolder) {
+        // Fall back to old-style names: design / intermediate / scantling
+        // Map them to numeric values using draft bounds from the control file
+        const lower = parameters.draftLower ?? 11;
+        const upper = parameters.draftUpper ?? 16;
+        const mid = (lower + upper) / 2;
+
+        const oldStyleMap: Record<string, number> = {
+          design: lower,
+          intermediate: mid,
+          scantling: upper,
+        };
+
+        let minDiff = Infinity;
+        for (const candidate of draftCandidates) {
+          const mappedValue = oldStyleMap[candidate.toLowerCase()];
+          if (mappedValue === undefined) continue;
+          const diff = Math.abs(mappedValue - parameters.draft);
+          if (diff < minDiff) {
+            minDiff = diff;
+            draftFolder = candidate;
+          }
+        }
+      }
+
+      console.log('Selected draft folder:', draftFolder);
+
+      if (!draftFolder) {
+        return { success: false, error: 'No matching draft folder found' };
+      }
+
+      // Extract the numeric draft value from the folder name (e.g. "Draft=11m" → 11)
+      // For old-style names, use the mapped value
+      const draftNumMatch = draftFolder.match(/[\d.]+/);
+      const lower = parameters.draftLower ?? 11;
+      const upper = parameters.draftUpper ?? 16;
+      const oldStyleValues: Record<string, number> = {
+        design: lower, intermediate: (lower + upper) / 2, scantling: upper,
+      };
+      const fittedDraft = draftNumMatch
+        ? parseFloat(draftNumMatch[0])
+        : (oldStyleValues[draftFolder.toLowerCase()] ?? parameters.draft);
+
       const draftPath = draftFolder;
 
-      console.log('Looking for files with parameters:', {
-        hs: parameters.hs,
-        tz: parameters.tz,
-        gm: parameters.gm,
-        draft: parameters.draft,
-      });
-      console.log('Draft path:', draftPath);
-
-      // 2nd search: Find GM subfolder
+      // 2nd search: Find closest GM=XXm subfolder
       const gmFolders = await this.fs.listDirectory(draftPath);
       console.log('Available GM folders:', gmFolders);
 
@@ -213,10 +281,7 @@ export class DataLoader {
       console.log('Selected GM folder:', gmFolder);
 
       if (!gmFolder) {
-        return {
-          success: false,
-          error: 'No matching GM folder found',
-        };
+        return { success: false, error: 'No matching GM folder found' };
       }
 
       const gmPath = `${draftPath}/${gmFolder}`;
@@ -224,22 +289,19 @@ export class DataLoader {
       // 3rd search: Find Hs/Tz data file in bin subfolder
       const binPath = `${gmPath}/bin`;
       const dataFiles = await this.fs.listDirectory(binPath);
-      console.log('Available data files:', dataFiles.slice(0, 5)); // Log first 5 files
+      console.log('Available data files:', dataFiles.slice(0, 5));
 
-      // Find file matching Hs and Tz
       const matchingFile = this.findMatchingDataFile(dataFiles, parameters.hs, parameters.tz);
       console.log('Selected data file:', matchingFile);
 
       if (!matchingFile) {
-        return {
-          success: false,
-          error: 'No matching data file found',
-        };
+        return { success: false, error: 'No matching data file found' };
       }
 
       return {
         success: true,
         filePath: `${binPath}/${matchingFile}`,
+        fittedDraft,
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -459,10 +521,14 @@ export class DataLoader {
         averageRoll: rollCount > 0 ? (rollSum / rollCount).toFixed(2) : 'N/A'
       });
 
-      // Extract fitted values from filename
+      // Extract fitted values from filename (Hs, Tz)
       const filenameMatch = filePath.match(/_H([\d.]+)_T([\d.]+)/);
       const fittedHs = filenameMatch ? parseFloat(filenameMatch[1]) : parameters.hs;
       const fittedTz = filenameMatch ? parseFloat(filenameMatch[2]) : parameters.tz;
+
+      // Extract fitted GM from the folder name in the path (e.g. .../GM=1.5m/...)
+      const gmFolderMatch = filePath.match(/GM[=_]?([\d.]+)/i);
+      const fittedGM = gmFolderMatch ? parseFloat(gmFolderMatch[1]) : parameters.gm;
 
       console.log('Successfully loaded polar data:', { numSpeeds, numHeadings, speedCount: speeds.length, headingCount: headings.length });
 
@@ -476,7 +542,7 @@ export class DataLoader {
           numHeadings,
           numParameters: 0,
         },
-        fittedGM: parameters.gm,
+        fittedGM: fittedGM,
         fittedHs: fittedHs,
         fittedTz: fittedTz,
       };

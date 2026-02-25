@@ -8,7 +8,7 @@ import { useUserData } from '../context/UserDataContext';
 const Home: React.FC = () =>
 {
     const navigate = useNavigate();
-    const { selectFolder, selectedFolder: electronFolder } = useElectron();
+    const { selectFolder, loadControlFile, selectedFolder: electronFolder } = useElectron();
     const { setSelectedFolder } = useUserData();
     const [ activeTab, setActiveTab ] = useState('project');
     const [ loading, setLoading ] = useState(false);
@@ -41,13 +41,30 @@ const Home: React.FC = () =>
         setLoading(false);
     };
 
-    const handleViewUserInput = () =>
+    const handleViewUserInput = async () =>
     {
         if (!electronFolder)
         {
             setError('Please select a project folder first');
             return;
         }
+
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        // Auto-load proll.ctl from the selected folder
+        const ctlPath = `${electronFolder}/proll.ctl`;
+        const loaded = await loadControlFile(ctlPath);
+
+        setLoading(false);
+
+        if (!loaded)
+        {
+            setError('proll.ctl not found in the selected folder. Please select the correct project folder.');
+            return;
+        }
+
         navigate('/project', { state: { activeTab: 'project' } });
     };
 

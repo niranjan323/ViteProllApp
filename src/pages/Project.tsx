@@ -26,6 +26,7 @@ interface SavedCase {
     id: string;
     color: 'green' | 'pink';
     parameters: any;
+    chartImageUrl?: string;
 }
 
 // Wave period conversion factors
@@ -41,11 +42,11 @@ const Project: React.FC = () => {
     const location = useLocation();
     const initialTab = (location.state as { activeTab?: string })?.activeTab || 'project';
     const { userInputData, updateVesselOperation, updateSeaState } = useUserData();
-    const { parameterBounds, representativeDrafts, selectControlFile, controlFilePath, selectedFolder: electronFolder } = useElectron();
+    const { parameterBounds, selectControlFile, controlFilePath, selectedFolder: electronFolder } = useElectron();
     const [activeTab, setActiveTab] = useState(initialTab);
     const [caseId, setCaseId] = useState('');
     const [savedCases, setSavedCases] = useState<SavedCase[]>([]);
-    const draftType = 'design' as const;
+    const averageDraft = (userInputData.vesselOperation.draftAftPeak + userInputData.vesselOperation.draftForePeak) / 2;
     const [caseManager] = useState(() => new CaseManager());
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [saveMessage, setSaveMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -222,12 +223,15 @@ const Project: React.FC = () => {
         };
 
         caseManager.addCase(caseIdToSave, newCase);
-        const allCases = caseManager.getAllCases();
-        setSavedCases(allCases.map((c) => ({
-            id: c.id,
-            color: getVesselSafetyColor(c),
-            parameters: c,
-        })));
+        // Compute color only for the new case using current polar data.
+        // Existing cases keep their previously computed colors.
+        const newColor = getVesselSafetyColor(newCase);
+        // Capture the chart image at save time so PDF can use it per-case
+        const savedChartImage = chartRef.current?.getImageDataURL();
+        setSavedCases(prev => [
+            ...prev,
+            { id: caseIdToSave, color: newColor, parameters: newCase, chartImageUrl: savedChartImage },
+        ]);
         setCaseId('');
         showMessage(`Case "${caseIdToSave}" saved`, 'success');
     };
@@ -277,7 +281,9 @@ const Project: React.FC = () => {
                 maxRoll: c.vesselData.maxRoll,
                 waveDirection: c.seaState.waveDirection,
                 hs: c.seaState.hs,
-                tz: c.seaState.tz,
+                // Saved cases always store internal Tz
+                wavePeriodLabel: 'Mean Wave Period, Tz',
+                wavePeriodValue: parseFloat(c.seaState.tz.toFixed(1)),
             };
         }
         return {
@@ -290,9 +296,11 @@ const Project: React.FC = () => {
             maxRoll: userInputData.vesselOperation.maxAllowedRoll,
             waveDirection: userInputData.seaState.meanWaveDirection,
             hs: userInputData.seaState.significantWaveHeight,
-            tz: userInputData.seaState.wavePeriod,
+            // Use the user-selected period type label and its converted display value
+            wavePeriodLabel: WAVE_PERIOD_CONVERSIONS[wavePeriodType].label.replace(' (s)', ''),
+            wavePeriodValue: displayedWavePeriod,
         };
-    }, [caseId, userInputData]);
+    }, [caseId, userInputData, wavePeriodType, displayedWavePeriod]);
 
     const handleGenerateReport = () => {
         if (reportType === 'current') {
@@ -308,13 +316,13 @@ const Project: React.FC = () => {
         setShowReportMenu(false);
     };
 
-    const handleDownloadPDF = useCallback((cases: ReturnType<typeof getReportData>[]) => {
+    const handleDownloadPDF = useCallback((cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string }[]) => {
         const doc = new jsPDF('p', 'mm', 'a4');
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 20;
         const contentWidth = pageWidth - margin * 2;
 
-        cases.forEach((data, caseIndex) => {
+        cases.forEach(({ data, chartImageUrl }, caseIndex) => {
             if (caseIndex > 0) doc.addPage();
 
             let y = 20;
@@ -346,7 +354,7 @@ const Project: React.FC = () => {
                 ['Maximum Allowed Roll Angle', String(data.maxRoll), '[degree]'],
                 ['Mean Wave Direction', String(data.waveDirection), '[degree]'],
                 ['Significant Wave Height, Hs', String(data.hs), '[m]'],
-                ['Mean Wave Period, Tz', String(data.tz), '[s]'],
+                [data.wavePeriodLabel, String(data.wavePeriodValue), '[s]'],
             ];
 
             rows.forEach((row) => {
@@ -367,8 +375,8 @@ const Project: React.FC = () => {
 
             y += 5;
 
-            // Polar chart image
-            const chartImage = chartRef.current?.getImageDataURL();
+            // Use the chart image captured at save time (per case), fall back to current chart
+            const chartImage = chartImageUrl ?? chartRef.current?.getImageDataURL();
             if (chartImage) {
                 const imgSize = Math.min(contentWidth, 140);
                 const imgX = margin + (contentWidth - imgSize) / 2;
@@ -387,13 +395,13 @@ const Project: React.FC = () => {
     }, [getReportData]);
 
     const handleDownloadReport = useCallback(() => {
-        let cases: ReturnType<typeof getReportData>[];
+        let cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string }[];
         if (reportType === 'all' && savedCases.length > 0) {
-            cases = savedCases.map(c => getReportData(c));
+            cases = savedCases.map(c => ({ data: getReportData(c), chartImageUrl: c.chartImageUrl }));
         } else if (selectedCaseForReport) {
-            cases = [getReportData(selectedCaseForReport)];
+            cases = [{ data: getReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl }];
         } else {
-            cases = [getReportData()];
+            cases = [{ data: getReportData(), chartImageUrl: chartRef.current?.getImageDataURL() }];
         }
 
         const doc = handleDownloadPDF(cases);
@@ -423,13 +431,20 @@ const Project: React.FC = () => {
     useEffect(() => {
         const loadPolarData = async () => {
             if (!parameterBounds || !dataLoader) return;
+            // Don't load if required inputs are not yet filled
+            if (isNaN(userInputData.vesselOperation.gm) ||
+                isNaN(userInputData.seaState.significantWaveHeight) ||
+                isNaN(userInputData.seaState.wavePeriod) ||
+                isNaN(averageDraft)) return;
 
             try {
                 const findResult = await dataLoader.findDataFile({
-                    draft: draftType,
+                    draft: averageDraft,
                     gm: userInputData.vesselOperation.gm,
                     hs: userInputData.seaState.significantWaveHeight,
                     tz: userInputData.seaState.wavePeriod,
+                    draftLower: parameterBounds.draftLower,
+                    draftUpper: parameterBounds.draftUpper,
                 });
 
                 if (findResult.success && findResult.filePath) {
@@ -449,7 +464,7 @@ const Project: React.FC = () => {
                             headings: dataResult.data.headings,
                         });
                         setFittedParams({
-                            draft: representativeDrafts ? representativeDrafts[draftType as keyof typeof representativeDrafts] : null,
+                            draft: findResult.fittedDraft ?? null,
                             gm: dataResult.fittedGM ?? null,
                             hs: dataResult.fittedHs ?? null,
                             tz: dataResult.fittedTz ?? null,
@@ -463,12 +478,11 @@ const Project: React.FC = () => {
 
         loadPolarData();
     }, [
-        draftType,
+        averageDraft,
         userInputData.vesselOperation.gm,
         userInputData.seaState.significantWaveHeight,
         userInputData.seaState.wavePeriod,
         parameterBounds,
-        representativeDrafts,
         dataLoader,
     ]);
 
@@ -1125,8 +1139,8 @@ const Project: React.FC = () => {
                                             <span className="report-unit">[m]</span>
                                         </div>
                                         <div className="report-row">
-                                            <span className="report-label">Mean Wave Period, Tz</span>
-                                            <span className="report-value highlight">{data.tz}</span>
+                                            <span className="report-label">{data.wavePeriodLabel}</span>
+                                            <span className="report-value highlight">{data.wavePeriodValue}</span>
                                             <span className="report-unit">[s]</span>
                                         </div>
 

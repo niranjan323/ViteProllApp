@@ -397,18 +397,18 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.lineTo(waveOuterX, waveOuterY);
         ctx.stroke();
 
-        // Arrow head at outer end, pointing outward
+        // Arrow head at inner end, pointing toward diagram
         const arrowSize = 12;
         ctx.fillStyle = '#CCCCCC';
         ctx.beginPath();
-        ctx.moveTo(waveOuterX, waveOuterY);
+        ctx.moveTo(waveInnerX, waveInnerY);
         ctx.lineTo(
-            waveOuterX - arrowSize * Math.cos(waveRad - Math.PI / 6),
-            waveOuterY - arrowSize * Math.sin(waveRad - Math.PI / 6)
+            waveInnerX + arrowSize * Math.cos(waveRad - Math.PI / 6),
+            waveInnerY + arrowSize * Math.sin(waveRad - Math.PI / 6)
         );
         ctx.lineTo(
-            waveOuterX - arrowSize * Math.cos(waveRad + Math.PI / 6),
-            waveOuterY - arrowSize * Math.sin(waveRad + Math.PI / 6)
+            waveInnerX + arrowSize * Math.cos(waveRad + Math.PI / 6),
+            waveInnerY + arrowSize * Math.sin(waveRad + Math.PI / 6)
         );
         ctx.closePath();
         ctx.fill();

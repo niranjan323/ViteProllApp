@@ -7,15 +7,8 @@ import './MainLayout.css';
 
 const MainLayout: React.FC = () =>
 {
-    const handleMenuClick = () =>
-    {
-        // Handle files click
-        console.log('Files clicked');
-    };
-
     const handleHomeClick = () =>
     {
-        // Handle home click
         console.log('Home clicked');
     };
 
@@ -26,7 +19,6 @@ const MainLayout: React.FC = () =>
 
             {/* Sidebar Component - Full Height */}
             <Sidebar
-                onFilesClick={handleMenuClick}
                 onHomeClick={handleHomeClick}
             />
 

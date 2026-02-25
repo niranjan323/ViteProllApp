@@ -3,15 +3,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Sidebar.css';
 import homeIcon from '../assets/home.svg';
-import filesIcon from '../assets/files.svg';
 
 interface SidebarProps
 {
-    onFilesClick?: () => void;
     onHomeClick?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onFilesClick, onHomeClick }) =>
+const Sidebar: React.FC<SidebarProps> = ({ onHomeClick }) =>
 {
     const navigate = useNavigate();
 
@@ -32,16 +30,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onFilesClick, onHomeClick }) =>
                 >
                     <img src={homeIcon} alt="Home" className="sidebar-icon" />
                     <span>Home</span>
-                </button>
-
-                <button
-                    className="sidebar-btn files-btn"
-                    title="Files"
-                    onClick={onFilesClick}
-                    aria-label="Files"
-                >
-                    <img src={filesIcon} alt="Files" className="sidebar-icon" />
-                    <span>Files</span>
                 </button>
             </nav>
         </aside>
