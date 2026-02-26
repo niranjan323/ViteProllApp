@@ -27,6 +27,9 @@ interface SavedCase {
     color: 'green' | 'pink';
     parameters: any;
     chartImageUrl?: string;
+    fittedParams?: { draft: number | null; gm: number | null; hs: number | null; tz: number | null };
+    chartMode?: 'continuous' | 'traffic-light';
+    chartOrientation?: 'north-up' | 'heads-up';
 }
 
 // Wave period conversion factors
@@ -175,12 +178,15 @@ const Project: React.FC = () => {
         if (!polarData.rollMatrix || !polarData.speeds || !polarData.headings) {
             return 'green'; // default if no data available
         }
+        // Compute encounter angle: angle between wave direction and vessel heading (0–180°)
+        let encounterAngle = ((caseData.seaState.waveDirection - caseData.vesselData.heading) % 360 + 360) % 360;
+        if (encounterAngle > 180) encounterAngle = 360 - encounterAngle;
         const roll = interpolateRoll(
             polarData.rollMatrix,
             polarData.speeds,
             polarData.headings,
             caseData.vesselData.speed,
-            caseData.vesselData.heading
+            encounterAngle
         );
         return roll <= caseData.vesselData.maxRoll ? 'green' : 'pink';
     };
@@ -230,7 +236,7 @@ const Project: React.FC = () => {
         const savedChartImage = chartRef.current?.getImageDataURL();
         setSavedCases(prev => [
             ...prev,
-            { id: caseIdToSave, color: newColor, parameters: newCase, chartImageUrl: savedChartImage },
+            { id: caseIdToSave, color: newColor, parameters: newCase, chartImageUrl: savedChartImage ?? undefined, fittedParams, chartMode, chartOrientation: chartDirection },
         ]);
         setCaseId('');
         showMessage(`Case "${caseIdToSave}" saved`, 'success');
@@ -265,6 +271,8 @@ const Project: React.FC = () => {
             wavePeriod: caseData.seaState.tz,
             meanWaveDirection: caseData.seaState.waveDirection,
         });
+        if (item.chartMode) setChartMode(item.chartMode);
+        if (item.chartOrientation) setChartDirection(item.chartOrientation);
     };
 
     // Get report data for a case (or current inputs if no case selected)
@@ -284,6 +292,9 @@ const Project: React.FC = () => {
                 // Saved cases always store internal Tz
                 wavePeriodLabel: 'Mean Wave Period, Tz',
                 wavePeriodValue: parseFloat(c.seaState.tz.toFixed(1)),
+                fittedParams: caseItem.fittedParams ?? null,
+                chartMode: caseItem.chartMode ?? 'continuous',
+                chartOrientation: caseItem.chartOrientation ?? 'north-up',
             };
         }
         return {
@@ -299,8 +310,11 @@ const Project: React.FC = () => {
             // Use the user-selected period type label and its converted display value
             wavePeriodLabel: WAVE_PERIOD_CONVERSIONS[wavePeriodType].label.replace(' (s)', ''),
             wavePeriodValue: displayedWavePeriod,
+            fittedParams,
+            chartMode,
+            chartOrientation: chartDirection,
         };
-    }, [caseId, userInputData, wavePeriodType, displayedWavePeriod]);
+    }, [caseId, userInputData, wavePeriodType, displayedWavePeriod, fittedParams]);
 
     const handleGenerateReport = () => {
         if (reportType === 'current') {
@@ -384,11 +398,40 @@ const Project: React.FC = () => {
                 y += imgSize + 10;
             }
 
+            // Polar diagram parameters closest to user request
+            if (data.fittedParams) {
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(40, 40, 40);
+                doc.text('Polar Diagram Parameters Closest to User Request', margin, y);
+                y += 8;
+
+                const fittedRows = [
+                    ['Draft', data.fittedParams.draft != null ? String(data.fittedParams.draft) : 'N/A', '[m]'],
+                    ['GM', data.fittedParams.gm != null ? String(data.fittedParams.gm) : 'N/A', '[m]'],
+                    ['Significant Wave Height, Hs', data.fittedParams.hs != null ? String(data.fittedParams.hs) : 'N/A', '[m]'],
+                    ['Mean Wave Period, Tz', data.fittedParams.tz != null ? String(data.fittedParams.tz) : 'N/A', '[s]'],
+                ];
+                fittedRows.forEach((row) => {
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(60, 60, 60);
+                    doc.setFontSize(10);
+                    doc.text(row[0], margin, y);
+                    doc.setTextColor(20, 115, 230);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(row[1], margin + 70, y);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(100, 100, 100);
+                    doc.text(row[2], margin + 90, y);
+                    y += 8;
+                });
+                y += 5;
+            }
+
             // Footer
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
-            doc.text('Polar diagram closest to the user request', margin, y);
-            doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y + 5);
+            doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
         });
 
         return doc;
@@ -405,7 +448,7 @@ const Project: React.FC = () => {
         }
 
         const doc = handleDownloadPDF(cases);
-        const caseLabel = reportType === 'all' ? 'all_cases' : (cases[0]?.caseId || 'report');
+        const caseLabel = reportType === 'all' ? 'all_cases' : (cases[0]?.data.caseId || 'report');
         doc.save(`polar_report_${caseLabel}.pdf`);
         setShowReportMenu(false);
     }, [reportType, savedCases, selectedCaseForReport, getReportData, handleDownloadPDF]);
@@ -504,7 +547,7 @@ const Project: React.FC = () => {
             isInvalid: validation?.draftFore.outOfRange || false
         },
         {
-            label: 'Metacentric Height(GM)',
+            label: 'Metacentric Height (GM)',
             value: userInputData.vesselOperation.gm,
             unit: '[m]',
             range: parameterBounds ? `value range [${parameterBounds.gmLower.toFixed(1)}-${parameterBounds.gmUpper.toFixed(1)} m]` : '',
@@ -1156,12 +1199,31 @@ const Project: React.FC = () => {
                                                     meanWaveDirection={data.waveDirection}
                                                     width={400}
                                                     height={400}
-                                                    mode={chartMode}
-                                                    orientation={chartDirection}
+                                                    mode={data.chartMode ?? chartMode}
+                                                    orientation={data.chartOrientation ?? chartDirection}
                                                 />
                                             )}
                                         </div>
                                         <p className="report-chart-caption">Polar diagram closest to the user request</p>
+
+                                        {data.fittedParams && (
+                                            <>
+                                                <h3 className="report-section-title" style={{ marginTop: '16px' }}>Polar Diagram Parameters Closest to User Request</h3>
+                                                {[
+                                                    { label: 'Draft', value: data.fittedParams.draft, unit: '[m]' },
+                                                    { label: 'GM', value: data.fittedParams.gm, unit: '[m]' },
+                                                    { label: 'Significant Wave Height, Hs', value: data.fittedParams.hs, unit: '[m]' },
+                                                    { label: 'Mean Wave Period, Tz', value: data.fittedParams.tz, unit: '[s]' },
+                                                ].map((row) => (
+                                                    <div key={row.label} className="report-row">
+                                                        <span className="report-label">{row.label}</span>
+                                                        <span className="report-value highlight">{row.value ?? 'N/A'}</span>
+                                                        <span className="report-unit">{row.unit}</span>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
+
                                         {idx < casesToShow.length - 1 && <hr className="report-divider" />}
                                     </div>
                                 ))}
