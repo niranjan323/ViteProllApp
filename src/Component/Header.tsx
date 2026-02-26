@@ -30,7 +30,7 @@ const Header = () =>
 
                 {/* | Digital Rules */}
                 <span className="app-header__divider">|</span>
-                <span className="app-header__title">PROLL App</span>
+                <span className="app-header__title">PRoll Diagram App</span>
             </div>
 
             {/* RIGHT SIDE */}

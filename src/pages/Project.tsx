@@ -1204,7 +1204,7 @@ const Project: React.FC = () => {
                                                 />
                                             )}
                                         </div>
-                                        <p className="report-chart-caption">Polar diagram closest to the user request</p>
+                                        {/* <p className="report-chart-caption">Polar diagram closest to the user request</p> */}
 
                                         {data.fittedParams && (
                                             <>

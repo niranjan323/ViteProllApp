@@ -7,6 +7,7 @@ const isDev = !electron_1.app.isPackaged;
 let mainWindow = null;
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
+        title: 'PRoll Diagram App',
         width: 1600,
         height: 900,
         webPreferences: {

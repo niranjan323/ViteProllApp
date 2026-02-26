@@ -8,6 +8,7 @@ let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
+    title: 'PRoll Diagram App',
     width: 1600,
     height: 900,
     webPreferences: {

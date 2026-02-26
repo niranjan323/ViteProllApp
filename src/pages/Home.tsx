@@ -85,7 +85,7 @@ const Home: React.FC = () =>
                 {/* Main Title */}
                 <div className="title-section">
                     <h1 className="main-title">
-                        Welcome to <img src={absLogo} alt="ABS Logo" className="abs-logo-img" /> | PROLL App
+                        Welcome to <img src={absLogo} alt="ABS Logo" className="abs-logo-img" /> | PRoll Diagram App
                     </h1>
                 </div>
 
