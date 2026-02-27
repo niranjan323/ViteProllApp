@@ -82,6 +82,11 @@ const electronAPI = {
 
   getFileStats: (filePath: string): Promise<FileStatsResult> =>
     ipcRenderer.invoke('get-file-stats', filePath),
+
+  // Window controls
+  minimizeWindow: (): void => ipcRenderer.send('window-minimize'),
+  maximizeWindow: (): void => ipcRenderer.send('window-maximize'),
+  closeWindow: (): void => ipcRenderer.send('window-close'),
 };
 
 // Expose the electron API to the renderer process

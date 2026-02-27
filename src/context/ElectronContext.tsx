@@ -22,6 +22,7 @@ interface ElectronContextType {
   selectFolder: () => Promise<boolean>;
   selectControlFile: () => Promise<boolean>;
   loadControlFile: (controlPath: string) => Promise<boolean>;
+  resetAll: () => void;
   isReady: boolean;
 }
 
@@ -108,6 +109,18 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   /**
+   * Reset all state to initial values
+   */
+  const resetAll = () => {
+    setSelectedFolder(null);
+    setControlFilePath(null);
+    setVesselInfo(null);
+    setParameterBounds(null);
+    setRepresentativeDrafts(null);
+    fileSystem.setBasePath('');
+  };
+
+  /**
    * Load and parse the control file
    */
   const loadControlFile = async (controlPath: string): Promise<boolean> => {
@@ -144,6 +157,7 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
     selectFolder,
     selectControlFile,
     loadControlFile,
+    resetAll,
     isReady,
   };
 

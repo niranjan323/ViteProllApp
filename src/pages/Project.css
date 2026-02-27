@@ -1188,6 +1188,21 @@
     gap: 8px;
 }
 
+.download-pdf-btn {
+    background: #003087;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.download-pdf-btn:hover {
+    background: #00205b;
+}
+
 .report-menu-wrapper {
     position: relative;
 }

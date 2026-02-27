@@ -68,6 +68,11 @@ interface ElectronAPI {
   fileExists(filePath: string): Promise<FileExistsResult>;
   directoryExists(dirPath: string): Promise<FileExistsResult>;
   getFileStats(filePath: string): Promise<FileStatsResult>;
+
+  // Window controls
+  minimizeWindow(): void;
+  maximizeWindow(): void;
+  closeWindow(): void;
 }
 
 declare global {

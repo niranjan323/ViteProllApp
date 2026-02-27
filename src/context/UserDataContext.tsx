@@ -35,6 +35,7 @@ interface UserDataContextType
     setSelectedFolder: (folder: string) => void;
     setControlFile: (file: string) => void;
     setDraft: (draft: 'design' | 'intermediate' | 'scantling') => void;
+    resetUserData: () => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -100,6 +101,28 @@ export const UserDataProvider = ({ children }: { children: ReactNode; }) =>
         }));
     };
 
+    const resetUserData = () =>
+    {
+        setUserInputData({
+            vesselOperation: {
+                draftAftPeak: NaN,
+                draftForePeak: NaN,
+                gm: NaN,
+                heading: NaN,
+                speed: NaN,
+                maxAllowedRoll: NaN,
+            },
+            seaState: {
+                meanWaveDirection: NaN,
+                significantWaveHeight: NaN,
+                wavePeriod: NaN,
+            },
+            selectedFolder: '',
+            controlFile: '',
+            draft: 'design',
+        });
+    };
+
     return (
         <UserDataContext.Provider
             value={{
@@ -110,6 +133,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode; }) =>
                 setSelectedFolder,
                 setControlFile,
                 setDraft,
+                resetUserData,
             }}
         >
             {children}

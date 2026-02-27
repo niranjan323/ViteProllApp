@@ -11,6 +11,8 @@ function createWindow() {
     title: 'PRoll Diagram App',
     width: 1600,
     height: 900,
+    frame: false,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
@@ -48,6 +50,14 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+// Window control handlers
+ipcMain.on('window-minimize', () => mainWindow?.minimize());
+ipcMain.on('window-maximize', () => {
+  if (mainWindow?.isMaximized()) mainWindow.unmaximize();
+  else mainWindow?.maximize();
+});
+ipcMain.on('window-close', () => mainWindow?.close());
 
 // IPC Handlers
 

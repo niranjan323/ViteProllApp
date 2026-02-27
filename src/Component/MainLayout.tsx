@@ -2,25 +2,14 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
-import Sidebar from './Sidebar';
 import './MainLayout.css';
 
 const MainLayout: React.FC = () =>
 {
-    const handleHomeClick = () =>
-    {
-        console.log('Home clicked');
-    };
-
     return (
         <div className="main-wrapper">
             {/* Header Component */}
             <Header />
-
-            {/* Sidebar Component - Full Height */}
-            <Sidebar
-                onHomeClick={handleHomeClick}
-            />
 
             {/* Main Content Area - Router Outlet will render pages here */}
             <main className="content-area">

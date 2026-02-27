@@ -8,9 +8,8 @@ import { useUserData } from '../context/UserDataContext';
 const Home: React.FC = () =>
 {
     const navigate = useNavigate();
-    const { selectFolder, loadControlFile, selectedFolder: electronFolder } = useElectron();
-    const { setSelectedFolder } = useUserData();
-    const [ activeTab, setActiveTab ] = useState('project');
+    const { selectFolder, loadControlFile, selectedFolder: electronFolder, resetAll } = useElectron();
+    const { setSelectedFolder, resetUserData } = useUserData();
     const [ loading, setLoading ] = useState(false);
     const [ error, setError ] = useState('');
     const [ success, setSuccess ] = useState('');
@@ -41,11 +40,11 @@ const Home: React.FC = () =>
         setLoading(false);
     };
 
-    const handleViewUserInput = async () =>
+    const handleEnterUserInput = async () =>
     {
         if (!electronFolder)
         {
-            setError('Please select a project folder first');
+            setError('Please select a vessel data folder first');
             return;
         }
 
@@ -68,15 +67,12 @@ const Home: React.FC = () =>
         navigate('/project', { state: { activeTab: 'project' } });
     };
 
-    const handleTabClick = (tab: string) =>
+    const handleClearInput = () =>
     {
-        if (tab === 'input')
-        {
-            handleViewUserInput();
-        } else
-        {
-            setActiveTab(tab);
-        }
+        resetAll();
+        resetUserData();
+        setError('');
+        setSuccess('');
     };
 
     return (
@@ -89,71 +85,63 @@ const Home: React.FC = () =>
                     </h1>
                 </div>
 
-                {/* Project Card */}
+                {/* Vessel Data Card */}
                 <div className="project-card">
-                    {/* Tabs */}
+                    {/* Single tab header */}
                     <div className="card-tabs">
-                        <button
-                            className={`tab ${activeTab === 'project' ? 'active' : ''}`}
-                            onClick={() => handleTabClick('project')}
-                        >
-                            Project
-                        </button>
-                        <button
-                            className={`tab ${activeTab === 'input' ? 'active' : ''}`}
-                            onClick={() => handleTabClick('input')}
-                        >
-                            User Data Input
+                        <button className="tab active">
+                            Vessel Data
                         </button>
                     </div>
 
-                    {/* Tab Content */}
-                    {activeTab === 'project' && (
-                        <div className="card-body">
-                            <h3 className="section-title">Load Project File</h3>
-
-                            {/* Folder Selection */}
-                            <div className="file-row">
-                                <div className="file-item">
-                                    <span className="folder-icon">📁</span>
-                                    <span className="file-name">
-                                        {electronFolder || 'Select project folder'}
-                                    </span>
-                                </div>
-                                <button
-                                    className="select-btn"
-                                    onClick={handleSelectFolder}
-                                    disabled={loading}
-                                >
-                                    {loading ? 'Loading...' : 'Select Folder'}
-                                </button>
+                    <div className="card-body">
+                        {/* Folder Selection */}
+                        <div className="file-row">
+                            <div className="file-item">
+                                <span className="folder-icon">📁</span>
+                                <span className="file-name">
+                                    {electronFolder || 'Select vessel data folder'}
+                                </span>
                             </div>
-
-                            {/* Status Messages */}
-                            {error && (
-                                <div className="status-message error">
-                                    <span className="status-text">{error}</span>
-                                </div>
-                            )}
-                            {success && (
-                                <div className="status-message success">
-                                    <span className="status-text">{success}</span>
-                                    <span className="status-icon">✓</span>
-                                </div>
-                            )}
-
-                            {/* View User Data Input Button */}
-                            <div className="button-footer">
-                                <button
-                                    className="view-input-btn"
-                                    onClick={handleViewUserInput}
-                                    disabled={!electronFolder}
-                                >
-                                    View User Data Input
-                                </button>
-                            </div>
+                            <button
+                                className="select-btn"
+                                onClick={handleSelectFolder}
+                                disabled={loading}
+                            >
+                                {loading ? 'Loading...' : 'Select Vessel Data Folder'}
+                            </button>
                         </div>
-                    )}
+
+                        {/* Status Messages */}
+                        {error && (
+                            <div className="status-message error">
+                                <span className="status-text">{error}</span>
+                            </div>
+                        )}
+                        {success && (
+                            <div className="status-message success">
+                                <span className="status-text">{success}</span>
+                                <span className="status-icon">✓</span>
+                            </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="button-footer">
+                            <button
+                                className="view-input-btn"
+                                onClick={handleEnterUserInput}
+                                disabled={!electronFolder || loading}
+                            >
+                                Enter User Input
+                            </button>
+                            <button
+                                className="clear-input-btn"
+                                onClick={handleClearInput}
+                            >
+                                Clear Input
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

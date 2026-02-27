@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './Project.css';
 import { useUserData } from '../context/UserDataContext';
 import { useElectron } from '../context/ElectronContext';
@@ -45,7 +45,8 @@ const Project: React.FC = () => {
     const location = useLocation();
     const initialTab = (location.state as { activeTab?: string })?.activeTab || 'project';
     const { userInputData, updateVesselOperation, updateSeaState } = useUserData();
-    const { parameterBounds, selectControlFile, controlFilePath, selectedFolder: electronFolder } = useElectron();
+    const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo } = useElectron();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(initialTab);
     const [caseId, setCaseId] = useState('');
     const [savedCases, setSavedCases] = useState<SavedCase[]>([]);
@@ -70,24 +71,14 @@ const Project: React.FC = () => {
     // Report modal state
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportType, setReportType] = useState<'current' | 'all'>('current');
-    const [showReportMenu, setShowReportMenu] = useState(false);
+
     const [selectedCaseForReport, setSelectedCaseForReport] = useState<SavedCase | null>(null);
     const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
     const chartRef = useRef<CanvasPolarChartHandle>(null);
-    const [controlFileLoading, setControlFileLoading] = useState(false);
     const [wavePeriodDropdownOpen, setWavePeriodDropdownOpen] = useState(false);
     const wavePeriodDropdownRef = useRef<HTMLDivElement>(null);
 
-    const handleLoadControlFile = async () => {
-        setControlFileLoading(true);
-        const result = await selectControlFile();
-        if (result) {
-            showMessage('Control file loaded successfully', 'success');
-        } else {
-            showMessage('Failed to load control file', 'error');
-        }
-        setControlFileLoading(false);
-    };
+    const handleChangeVesselData = () => { navigate('/'); };
 
     // Responsive chart size based on window width
     const [chartSize, setChartSize] = useState(650);
@@ -327,7 +318,6 @@ const Project: React.FC = () => {
             setSelectedCaseForReport(null);
         }
         setShowReportModal(true);
-        setShowReportMenu(false);
     };
 
     const handleDownloadPDF = useCallback((cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string }[]) => {
@@ -450,7 +440,6 @@ const Project: React.FC = () => {
         const doc = handleDownloadPDF(cases);
         const caseLabel = reportType === 'all' ? 'all_cases' : (cases[0]?.data.caseId || 'report');
         doc.save(`polar_report_${caseLabel}.pdf`);
-        setShowReportMenu(false);
     }, [reportType, savedCases, selectedCaseForReport, getReportData, handleDownloadPDF]);
 
     // Validate all parameters
@@ -607,13 +596,13 @@ const Project: React.FC = () => {
                         className={`project-tab ${activeTab === 'project' ? 'active' : ''}`}
                         onClick={() => setActiveTab('project')}
                     >
-                        Project
+                        Vessel Data
                     </button>
                     <button
                         className={`project-tab ${activeTab === 'input' ? 'active' : ''}`}
                         onClick={() => setActiveTab('input')}
                     >
-                        User Data Input
+                        User Input
                     </button>
                 </div>
 
@@ -767,7 +756,7 @@ const Project: React.FC = () => {
                                             onChange={(e) => setCaseId(e.target.value)}
                                             onKeyDown={(e) => { if (e.key === 'Enter') handleSaveCase(); }}
                                             maxLength={12}
-                                            placeholder="Max 12 chars"
+                                            placeholder="Max 12 characters"
                                             autoComplete="off"
                                         />
                                         <button className="save-btn" onClick={handleSaveCase}><img src={saveCaseGreenIcon} alt="Save" className="btn-icon" /></button>
@@ -811,8 +800,15 @@ const Project: React.FC = () => {
 
                     {activeTab === 'project' && (
                         <div className="section">
-                            <h3 className="section-title">Load Project File</h3>
                             <div className="section-content">
+                                {/* Vessel Number Row */}
+                                {vesselInfo?.imo && (
+                                    <div className="project-vessel-row">
+                                        <span className="project-vessel-label">Vessel Number - </span>
+                                        <span className="project-vessel-value">{vesselInfo.imo}</span>
+                                    </div>
+                                )}
+
                                 {/* Folder Row */}
                                 <div className="project-file-row">
                                     <span className="project-file-icon">📁</span>
@@ -829,12 +825,12 @@ const Project: React.FC = () => {
                                         {controlFilePath ? controlFilePath.split(/[\\/]/).pop() : 'No control file'}
                                     </span>
                                     {controlFilePath && <img src={checkGreenIcon} alt="✓" className="project-file-check" />}
-                                    <button
-                                        className="load-control-btn"
-                                        onClick={handleLoadControlFile}
-                                        disabled={controlFileLoading}
-                                    >
-                                        {controlFileLoading ? 'Loading...' : 'Load Control File'}
+                                </div>
+
+                                {/* Change Vessel Data Button */}
+                                <div className="change-vessel-btn-row" >
+                                    <button className="change-vessel-btn" style={{ backgroundColor: "#1976d2", color: "white" }} onClick={handleChangeVesselData}>
+                                        Change Vessel Data
                                     </button>
                                 </div>
                             </div>
@@ -1086,7 +1082,8 @@ const Project: React.FC = () => {
                 </div>
 
                 <div className="footer-actions">
-                    <img src={pdfIcon} alt="PDF" className="pdf-icon-img" />
+                                        <img src={pdfIcon} alt="PDF" className="pdf-icon-img" />
+
                     <button className="generate-report-btn" onClick={handleGenerateReport}>Generate Report</button>
                     <div className="report-options">
                         <label className="radio-label">
@@ -1112,7 +1109,7 @@ const Project: React.FC = () => {
                         : [getReportData()];
 
                 return (
-                    <div className="report-modal-overlay" onClick={() => { setShowReportModal(false); setShowReportMenu(false); }}>
+                    <div className="report-modal-overlay" onClick={() => setShowReportModal(false)}>
                         <div className="report-modal" onClick={(e) => e.stopPropagation()}>
                             <div className="report-modal-header">
                                 <div className="report-modal-title">
@@ -1120,17 +1117,8 @@ const Project: React.FC = () => {
                                     <span>Report</span>
                                 </div>
                                 <div className="report-modal-actions">
-                                    <div className="report-menu-wrapper">
-                                        <button className="report-menu-btn" onClick={() => setShowReportMenu(!showReportMenu)}>•••</button>
-                                        {showReportMenu && (
-                                            <div className="report-menu-dropdown">
-                                                <button onClick={handleDownloadReport}>
-                                                    Download PDF
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <button className="report-close-btn" onClick={() => { setShowReportModal(false); setShowReportMenu(false); }}>✕</button>
+                                    <button className="download-pdf-btn" onClick={handleDownloadReport}>Download PDF</button>
+                                    <button className="report-close-btn" onClick={() => setShowReportModal(false)}>✕</button>
                                 </div>
                             </div>
                             <div className="report-modal-body">
