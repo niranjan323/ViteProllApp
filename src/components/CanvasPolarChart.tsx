@@ -389,17 +389,17 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         const waveOuterX = centerX + maxRadius * 1.25 * Math.cos(waveRad);
         const waveOuterY = centerY + maxRadius * 1.25 * Math.sin(waveRad);
 
-        // Arrow shaft
-        ctx.strokeStyle = '#CCCCCC';
+        // Arrow shaft - WHITE
+        ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(waveInnerX, waveInnerY);
         ctx.lineTo(waveOuterX, waveOuterY);
         ctx.stroke();
 
-        // Arrow head at inner end, pointing toward diagram
+        // Arrow head at inner end, pointing toward diagram - WHITE
         const arrowSize = 12;
-        ctx.fillStyle = '#CCCCCC';
+        ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
         ctx.moveTo(waveInnerX, waveInnerY);
         ctx.lineTo(
@@ -413,34 +413,54 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.closePath();
         ctx.fill();
 
-        // "Wave Direction" label - positioned along the arrow direction
+        // "Wave Direction" label — placed just outside the arrow, with perpendicular fallback
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '11px Arial, sans-serif';
         ctx.textBaseline = 'middle';
-        // Clamp label distance so it stays within canvas bounds
-        const textPad = 48; // enough space for "Direction" text
+        ctx.textAlign = 'center';
+
+        // Label half-extents and canvas boundaries
+        const halfTW = 33;  // half-width of "Direction" text at 11px
+        const halfTH = 20;  // vertical half-extent of two-line label + margin
+        // Legend right edge matches legendBarX+legendBarWidth declared later in the legend section
+        const _legendRightEdge = (width < 700 || height < 500) ? (36 + 18) : (50 + 22); // 54 or 72
+        const lBound = _legendRightEdge + halfTW + 8;
+        const rBound = width  - halfTW - 10;  // small margin so label stays within canvas width
+        const tBound = halfTH + 28;           // keep label below canvas top edge
+        const bBound = height - halfTH - 28;  // keep label above canvas bottom edge
+
+        // Compute inline distance clamped to canvas bounds
         let waveLabelDist = maxRadius * 1.42;
         if (Math.cos(waveRad) > 0.05)
-            waveLabelDist = Math.min(waveLabelDist, (width - centerX - textPad) / Math.cos(waveRad));
+            waveLabelDist = Math.min(waveLabelDist, (rBound - centerX) / Math.cos(waveRad));
         if (Math.cos(waveRad) < -0.05)
-            waveLabelDist = Math.min(waveLabelDist, (centerX - textPad) / (-Math.cos(waveRad)));
+            waveLabelDist = Math.min(waveLabelDist, (centerX - lBound) / (-Math.cos(waveRad)));
         if (Math.sin(waveRad) > 0.05)
-            waveLabelDist = Math.min(waveLabelDist, (height - centerY - textPad) / Math.sin(waveRad));
+            waveLabelDist = Math.min(waveLabelDist, (bBound - centerY) / Math.sin(waveRad));
         if (Math.sin(waveRad) < -0.05)
-            waveLabelDist = Math.min(waveLabelDist, (centerY - textPad) / (-Math.sin(waveRad)));
-        const waveLabelX = centerX + waveLabelDist * Math.cos(waveRad);
-        const waveLabelY = centerY + waveLabelDist * Math.sin(waveRad);
+            waveLabelDist = Math.min(waveLabelDist, (centerY - tBound) / (-Math.sin(waveRad)));
 
-        // Determine text alignment based on angle to keep text visible
-        const angleDeg = ((displayWaveAngle % 360) + 360) % 360;
-        if (angleDeg > 45 && angleDeg < 135) {
-            ctx.textAlign = 'center';
-        } else if (angleDeg >= 135 && angleDeg <= 225) {
-            ctx.textAlign = 'right';
-        } else if (angleDeg > 225 && angleDeg < 315) {
-            ctx.textAlign = 'center';
-        } else {
-            ctx.textAlign = 'left';
+        let waveLabelX = centerX + waveLabelDist * Math.cos(waveRad);
+        let waveLabelY = centerY + waveLabelDist * Math.sin(waveRad);
+
+        // If the boundary clamp pushed label inside the arrow shaft, use perpendicular offset instead
+        if (waveLabelDist < maxRadius * 1.28) {
+            const baseDist = Math.min(maxRadius * 1.30, waveLabelDist + 10);
+            const bx = centerX + baseDist * Math.cos(waveRad);
+            const by = centerY + baseDist * Math.sin(waveRad);
+            const px = -Math.sin(waveRad);   // perpendicular (CCW)
+            const py =  Math.cos(waveRad);
+            const po = 26;
+            const cx1 = bx + px * po,  cy1 = by + py * po;
+            const cx2 = bx - px * po,  cy2 = by - py * po;
+            const ok1 = cx1 >= lBound && cx1 <= rBound && cy1 >= tBound && cy1 <= bBound;
+            const ok2 = cx2 >= lBound && cx2 <= rBound && cy2 >= tBound && cy2 <= bBound;
+            if (ok1)       { waveLabelX = cx1; waveLabelY = cy1; }
+            else if (ok2)  { waveLabelX = cx2; waveLabelY = cy2; }
+            else { // last resort clamp
+                waveLabelX = Math.max(lBound, Math.min(rBound, cx1));
+                waveLabelY = Math.max(tBound, Math.min(bBound, cy1));
+            }
         }
 
         ctx.save();
@@ -457,35 +477,30 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         const vesselY = centerY + vesselRadius * Math.sin(vesselRad);
 
         ctx.save();
+        ctx.globalAlpha = 0.55;
         ctx.translate(vesselX, vesselY);
         ctx.rotate(vesselRad + Math.PI / 2);
 
-        // Vessel design matching wireframe - pointed bow shape with blue center dot
         const boatLength = 36;
         const boatWidth = 16;
 
-        // White pointed vessel body (tapered bow, rounded stern)
+        // Vessel body: white fill, light grey stroke (matches reference images)
         ctx.fillStyle = '#FFFFFF';
-        ctx.strokeStyle = '#012B4F';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#AAAAAA';
+        ctx.lineWidth = 2.5;
 
         ctx.beginPath();
-        // Start at pointed bow (top)
         ctx.moveTo(0, -boatLength / 2);
-        // Right side curve from bow to widest point
         ctx.quadraticCurveTo(boatWidth / 2, -boatLength / 4, boatWidth / 2, boatLength / 6);
-        // Right side to stern
         ctx.quadraticCurveTo(boatWidth / 2, boatLength / 2.5, 0, boatLength / 2);
-        // Left side from stern
         ctx.quadraticCurveTo(-boatWidth / 2, boatLength / 2.5, -boatWidth / 2, boatLength / 6);
-        // Left side curve back to bow
         ctx.quadraticCurveTo(-boatWidth / 2, -boatLength / 4, 0, -boatLength / 2);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
-        // Blue center dot only (matching wireframe)
-        ctx.fillStyle = '#1473E6';
+        // Grey center dot (matches reference images)
+        ctx.fillStyle = '#AAAAAA';
         ctx.beginPath();
         ctx.arc(0, 0, 5, 0, 2 * Math.PI);
         ctx.fill();
@@ -495,7 +510,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         // --- Color scale legend (left side) ---
         // Responsive: scale legend size based on canvas dimensions
         const isSmall = width < 700 || height < 500;
-        const legendBarX = isSmall ? 14 : 20;
+        const legendBarX = isSmall ? 36 : 50;   // space to the left for "Max roll" label
         const legendBarWidth = isSmall ? 18 : 22;
         const legendBarTotalHeight = maxRadius * (isSmall ? 1.4 : 1.6);
         const legendBarTop = centerY - legendBarTotalHeight / 2;
@@ -580,12 +595,12 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Max roll label - RED
+            // Max roll label - RED, positioned LEFT of the color bar
             ctx.fillStyle = '#FF6666';
             ctx.font = `bold ${isSmall ? 8 : 10}px Arial, sans-serif`;
-            ctx.textAlign = 'left';
-            ctx.fillText('Max', legendBarX + legendBarWidth + 6, maxRollYPos - 8);
-            ctx.fillText('roll', legendBarX + legendBarWidth + 6, maxRollYPos + 4);
+            ctx.textAlign = 'right';
+            ctx.fillText('Max', legendBarX - 4, maxRollYPos - 7);
+            ctx.fillText('roll', legendBarX - 4, maxRollYPos + 5);
         } else {
             // Traffic light mode: regular interval lines + boundary lines
             const greenBoundary = Math.max(maxRollAngle - 5, 0);

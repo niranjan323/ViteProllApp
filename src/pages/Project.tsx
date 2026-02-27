@@ -1082,7 +1082,8 @@ const Project: React.FC = () => {
                 </div>
 
                 <div className="footer-actions">
-                                        <img src={pdfIcon} alt="PDF" className="pdf-icon-img" />
+                                        {/* <img src={pdfIcon} alt="PDF" className="pdf-icon-img" /> */}
+                                        <div className="pdf-icon-img" />
 
                     <button className="generate-report-btn" onClick={handleGenerateReport}>Generate Report</button>
                     <div className="report-options">

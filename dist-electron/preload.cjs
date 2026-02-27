@@ -14,6 +14,10 @@ const electronAPI = {
     fileExists: (filePath) => electron_1.ipcRenderer.invoke('file-exists', filePath),
     directoryExists: (dirPath) => electron_1.ipcRenderer.invoke('directory-exists', dirPath),
     getFileStats: (filePath) => electron_1.ipcRenderer.invoke('get-file-stats', filePath),
+    // Window controls
+    minimizeWindow: () => electron_1.ipcRenderer.send('window-minimize'),
+    maximizeWindow: () => electron_1.ipcRenderer.send('window-maximize'),
+    closeWindow: () => electron_1.ipcRenderer.send('window-close'),
 };
 // Expose the electron API to the renderer process
 electron_1.contextBridge.exposeInMainWorld('electronAPI', electronAPI);
