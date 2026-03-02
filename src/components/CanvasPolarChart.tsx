@@ -477,17 +477,11 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         const vesselY = centerY + vesselRadius * Math.sin(vesselRad);
 
         ctx.save();
-        ctx.globalAlpha = 0.55;
         ctx.translate(vesselX, vesselY);
         ctx.rotate(vesselRad + Math.PI / 2);
 
         const boatLength = 36;
         const boatWidth = 16;
-
-        // Vessel body: white fill, light grey stroke (matches reference images)
-        ctx.fillStyle = '#FFFFFF';
-        ctx.strokeStyle = '#AAAAAA';
-        ctx.lineWidth = 2.5;
 
         ctx.beginPath();
         ctx.moveTo(0, -boatLength / 2);
@@ -496,13 +490,20 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.quadraticCurveTo(-boatWidth / 2, boatLength / 2.5, -boatWidth / 2, boatLength / 6);
         ctx.quadraticCurveTo(-boatWidth / 2, -boatLength / 4, 0, -boatLength / 2);
         ctx.closePath();
+
+        // Very transparent fill so chart background shows through
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
         ctx.fill();
+
+        // Solid white outline so vessel shape is clearly visible
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.90)';
+        ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Grey center dot (matches reference images)
-        ctx.fillStyle = '#AAAAAA';
+        // Center dot
+        ctx.fillStyle = 'rgba(200, 200, 200, 0.85)';
         ctx.beginPath();
-        ctx.arc(0, 0, 5, 0, 2 * Math.PI);
+        ctx.arc(0, 0, 4, 0, 2 * Math.PI);
         ctx.fill();
 
         ctx.restore();
