@@ -484,11 +484,15 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         const boatWidth = 16;
 
         ctx.beginPath();
-        ctx.moveTo(0, -boatLength / 2);
-        ctx.quadraticCurveTo(boatWidth / 2, -boatLength / 4, boatWidth / 2, boatLength / 6);
+        // Flat dome arc at top instead of a pointed tip
+        ctx.arc(0, -boatLength / 2 + boatWidth / 2, boatWidth / 2, Math.PI, 0);
+        // Right side down
+        ctx.lineTo(boatWidth / 2, boatLength / 6);
+        // Bottom curves (unchanged)
         ctx.quadraticCurveTo(boatWidth / 2, boatLength / 2.5, 0, boatLength / 2);
         ctx.quadraticCurveTo(-boatWidth / 2, boatLength / 2.5, -boatWidth / 2, boatLength / 6);
-        ctx.quadraticCurveTo(-boatWidth / 2, -boatLength / 4, 0, -boatLength / 2);
+        // Left side back up to arc start
+        ctx.lineTo(-boatWidth / 2, -boatLength / 2 + boatWidth / 2);
         ctx.closePath();
 
         // Very transparent fill so chart background shows through
