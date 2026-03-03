@@ -478,7 +478,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         ctx.save();
         ctx.translate(vesselX, vesselY);
-        ctx.rotate(vesselRad + Math.PI / 2);
+        ctx.rotate(vesselRad - Math.PI / 2);
 
         const boatLength = 36;
         const boatWidth = 16;
