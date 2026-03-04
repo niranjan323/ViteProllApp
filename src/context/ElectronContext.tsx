@@ -21,7 +21,7 @@ interface ElectronContextType {
   representativeDrafts: RepresentativeDrafts | null;
   selectFolder: () => Promise<boolean>;
   selectControlFile: () => Promise<boolean>;
-  loadControlFile: (controlPath: string) => Promise<boolean>;
+  loadControlFile: (controlPath: string) => Promise<{ success: boolean; error?: string }>;
   resetAll: () => void;
   isReady: boolean;
 }
@@ -101,7 +101,8 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
       console.log('Control file selected:', filePath);
 
       // Attempt to load the control file
-      return loadControlFile(filePath);
+      const loadResult = await loadControlFile(filePath);
+      return loadResult.success;
     } catch (error) {
       console.error('Error selecting control file:', error);
       return false;
@@ -123,13 +124,13 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
   /**
    * Load and parse the control file
    */
-  const loadControlFile = async (controlPath: string): Promise<boolean> => {
+  const loadControlFile = async (controlPath: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const result = await dataLoader.loadControlFile(controlPath);
 
       if (!result.success) {
         console.error('Control file loading error:', result.error);
-        return false;
+        return { success: false, error: result.error };
       }
 
       setVesselInfo(result.vesselInfo || null);
@@ -138,10 +139,11 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
       setControlFilePath(controlPath);
 
       console.log('Control file loaded successfully');
-      return true;
+      return { success: true };
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error loading control file';
       console.error('Error loading control file:', error);
-      return false;
+      return { success: false, error: errorMsg };
     }
   };
 

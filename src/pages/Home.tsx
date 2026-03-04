@@ -54,13 +54,13 @@ const Home: React.FC = () =>
 
         // Auto-load proll.ctl from the selected folder
         const ctlPath = `${electronFolder}/proll.ctl`;
-        const loaded = await loadControlFile(ctlPath);
+        const ctlResult = await loadControlFile(ctlPath);
 
         setLoading(false);
 
-        if (!loaded)
+        if (!ctlResult.success)
         {
-            setError('proll.ctl not found in the selected folder. Please select the correct project folder.');
+            setError(ctlResult.error || 'proll.ctl not found in the selected folder. Please select the correct project folder.');
             return;
         }
 

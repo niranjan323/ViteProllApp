@@ -116,52 +116,7 @@ export class DataLoader {
         name: 'Unknown',
       };
 
-      // Parse Draft bounds
-      const draftLine = findLineByComment('draft');
-      const draftValues = draftLine ? parseLine(draftLine) : [];
-
-      // Parse GM bounds
-      const gmLine = findLineByComment('gm');
-      const gmValues = gmLine ? parseLine(gmLine) : [];
-
-      // Parse Speed bounds
-      const speedLine = findLineByComment('speed');
-      const speedValues = speedLine ? parseLine(speedLine) : [];
-
-      // Parse Allowed Roll bounds
-      const rollLine = findLineByComment('allowed roll') || findLineByComment('roll');
-      const rollValues = rollLine ? parseLine(rollLine) : [];
-
-      // Parse Hs bounds
-      const hsLine = findLineByComment('wave height') || findLineByComment('hs');
-      const hsValues = hsLine ? parseLine(hsLine) : [];
-
-      // Parse Wave Period (Tz) bounds
-      const tzLine = findLineByComment('wave period');
-      const tzValues = tzLine ? parseLine(tzLine) : [];
-
-      const parameterBounds: ParameterBounds = {
-        draftLower: parseFloat(draftValues[0] || '0'),
-        draftUpper: parseFloat(draftValues[1] || '50'),
-        gmLower: parseFloat(gmValues[0] || '0.5'),
-        gmUpper: parseFloat(gmValues[1] || '5.0'),
-        speedLower: parseFloat(speedValues[0] || '0'),
-        speedUpper: parseFloat(speedValues[1] || '30'),
-        rollLower: parseFloat(rollValues[0] || '0'),
-        rollUpper: parseFloat(rollValues[1] || '60'),
-        hsLower: parseFloat(hsValues[0] || '3.0'),
-        hsUpper: parseFloat(hsValues[1] || '12.0'),
-        tzLower: parseFloat(tzValues[0] || '5.0'),
-        tzUpper: parseFloat(tzValues[1] || '18.0'),
-      };
-
-      // Try to parse representative drafts if present (Td, Ti, Ts lines)
-      // Strategy 1: comment-based format  "10.5  !Ts - Scantling draft"
-      const tdLine = findLineByComment('td') || findLineByComment('design draft');
-      const tiLine = findLineByComment('ti') || findLineByComment('intermediate');
-      const tsLine = findLineByComment('ts') || findLineByComment('scantling');
-
-      // Strategy 2: key=value format  "Td=10.0" or "Td = 10.0"
+      // Helper: find a key=value pair anywhere in the file (e.g. "GM_lower=0.5" or "GM_lower = 0.5")
       const findKeyValue = (key: string): number | null => {
         const re = new RegExp(`^${key}\\s*=\\s*([\\d.]+)`, 'i');
         for (const l of lines) {
@@ -170,6 +125,77 @@ export class DataLoader {
         }
         return null;
       };
+
+      // Helper: try comment format first, then key=value format for a single numeric value
+      const resolveValue = (commentLine: string | undefined, idx: number, keyName: string): number | null => {
+        if (commentLine) {
+          const vals = parseLine(commentLine);
+          if (vals[idx] !== undefined) {
+            const v = parseFloat(vals[idx]);
+            if (!isNaN(v)) return v;
+          }
+        }
+        return findKeyValue(keyName);
+      };
+
+      // --- GM bounds (REQUIRED) ---
+      const gmLine = findLineByComment('gm');
+      const gmLower = resolveValue(gmLine, 0, 'GM_lower') ?? resolveValue(gmLine, 0, 'gm_lower');
+      const gmUpper = resolveValue(gmLine, 1, 'GM_upper') ?? resolveValue(gmLine, 1, 'gm_upper');
+      if (gmLower === null || isNaN(gmLower)) {
+        return { success: false, error: 'Control file is missing required range: GM lower bound (GM_lower)' };
+      }
+      if (gmUpper === null || isNaN(gmUpper)) {
+        return { success: false, error: 'Control file is missing required range: GM upper bound (GM_upper)' };
+      }
+
+      // --- Hs bounds (REQUIRED) ---
+      const hsLine = findLineByComment('wave height') || findLineByComment('hs');
+      const hsLower = resolveValue(hsLine, 0, 'Hs_lower') ?? resolveValue(hsLine, 0, 'hs_lower');
+      const hsUpper = resolveValue(hsLine, 1, 'Hs_upper') ?? resolveValue(hsLine, 1, 'hs_upper');
+      if (hsLower === null || isNaN(hsLower)) {
+        return { success: false, error: 'Control file is missing required range: Hs lower bound (Hs_lower)' };
+      }
+      if (hsUpper === null || isNaN(hsUpper)) {
+        return { success: false, error: 'Control file is missing required range: Hs upper bound (Hs_upper)' };
+      }
+
+      // --- Tz bounds (REQUIRED) ---
+      const tzLine = findLineByComment('wave period') || findLineByComment('tz');
+      const tzLower = resolveValue(tzLine, 0, 'Tz_lower') ?? resolveValue(tzLine, 0, 'tz_lower');
+      const tzUpper = resolveValue(tzLine, 1, 'Tz_upper') ?? resolveValue(tzLine, 1, 'tz_upper');
+      if (tzLower === null || isNaN(tzLower)) {
+        return { success: false, error: 'Control file is missing required range: Tz lower bound (Tz_lower)' };
+      }
+      if (tzUpper === null || isNaN(tzUpper)) {
+        return { success: false, error: 'Control file is missing required range: Tz upper bound (Tz_upper)' };
+      }
+
+      // --- Draft / Speed / Roll bounds (optional — use defaults if absent) ---
+      const draftLine = findLineByComment('draft');
+      const speedLine = findLineByComment('speed');
+      const rollLine  = findLineByComment('allowed roll') || findLineByComment('roll');
+
+      const parameterBounds: ParameterBounds = {
+        draftLower:  resolveValue(draftLine, 0, 'Draft_lower') ?? 0,
+        draftUpper:  resolveValue(draftLine, 1, 'Draft_upper') ?? 50,
+        gmLower,
+        gmUpper,
+        speedLower:  resolveValue(speedLine, 0, 'Speed_lower') ?? 0,
+        speedUpper:  resolveValue(speedLine, 1, 'Speed_upper') ?? 30,
+        rollLower:   resolveValue(rollLine,  0, 'Roll_lower')  ?? 0,
+        rollUpper:   resolveValue(rollLine,  1, 'Roll_upper')  ?? 60,
+        hsLower,
+        hsUpper,
+        tzLower,
+        tzUpper,
+      };
+
+      // Try to parse representative drafts if present (Td, Ti, Ts lines)
+      // Strategy 1: comment-based format  "10.5  !Ts - Scantling draft"
+      const tdLine = findLineByComment('td') || findLineByComment('design draft');
+      const tiLine = findLineByComment('ti') || findLineByComment('intermediate');
+      const tsLine = findLineByComment('ts') || findLineByComment('scantling');
 
       const representativeDrafts: RepresentativeDrafts = {
         design: tdLine
