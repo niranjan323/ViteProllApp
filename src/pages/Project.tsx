@@ -475,8 +475,6 @@ const Project: React.FC = () => {
                     gm: userInputData.vesselOperation.gm,
                     hs: userInputData.seaState.significantWaveHeight,
                     tz: userInputData.seaState.wavePeriod,
-                    draftLower: parameterBounds.draftLower,
-                    draftUpper: parameterBounds.draftUpper,
                 });
 
                 if (findResult.success && findResult.filePath) {

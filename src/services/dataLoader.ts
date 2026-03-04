@@ -239,63 +239,39 @@ export class DataLoader {
     gm: number;
     hs: number;
     tz: number;
-    draftLower?: number;  // from parameterBounds, used for old-style folder mapping
-    draftUpper?: number;
   }): Promise<FindDataFileResult> {
     try {
       console.log('Looking for files with parameters:', parameters);
 
       // 1st search: Find closest draft folder in the root of the selected folder
+      // Expected naming convention: "Draft=11m", "Draft=15m", "Draft=16m"
       // Filter out files (entries with extensions like .ctl)
       const rootEntries = await this.fs.listDirectory('');
       const draftCandidates = rootEntries.filter(e => !e.includes('.'));
       console.log('Draft folder candidates:', draftCandidates);
 
-      // Try numeric matching first (new-style: Draft=11m)
-      let draftFolder = this.findClosestMatch(draftCandidates, parameters.draft, 'Draft');
-
-      if (!draftFolder) {
-        // Fall back to old-style names: design / intermediate / scantling
-        // Map them to numeric values using draft bounds from the control file
-        const lower = parameters.draftLower ?? 11;
-        const upper = parameters.draftUpper ?? 16;
-        const mid = (lower + upper) / 2;
-
-        const oldStyleMap: Record<string, number> = {
-          design: lower,
-          intermediate: mid,
-          scantling: upper,
-        };
-
-        let minDiff = Infinity;
-        for (const candidate of draftCandidates) {
-          const mappedValue = oldStyleMap[candidate.toLowerCase()];
-          if (mappedValue === undefined) continue;
-          const diff = Math.abs(mappedValue - parameters.draft);
-          if (diff < minDiff) {
-            minDiff = diff;
-            draftFolder = candidate;
-          }
-        }
-      }
+      // Only numeric-named folders are supported (e.g. Draft=11m)
+      const draftFolder = this.findClosestMatch(draftCandidates, parameters.draft, 'Draft');
 
       console.log('Selected draft folder:', draftFolder);
 
       if (!draftFolder) {
-        return { success: false, error: 'No matching draft folder found' };
+        const found = draftCandidates.join(', ') || '(none)';
+        return {
+          success: false,
+          error: `No valid draft folder found. Expected folders named like "Draft=11m". Found: ${found}`,
+        };
       }
 
-      // Extract the numeric draft value from the folder name (e.g. "Draft=11m" → 11)
-      // For old-style names, use the mapped value
+      // Extract the numeric draft value directly from the folder name (e.g. "Draft=11m" → 11)
       const draftNumMatch = draftFolder.match(/[\d.]+/);
-      const lower = parameters.draftLower ?? 11;
-      const upper = parameters.draftUpper ?? 16;
-      const oldStyleValues: Record<string, number> = {
-        design: lower, intermediate: (lower + upper) / 2, scantling: upper,
-      };
-      const fittedDraft = draftNumMatch
-        ? parseFloat(draftNumMatch[0])
-        : (oldStyleValues[draftFolder.toLowerCase()] ?? parameters.draft);
+      if (!draftNumMatch) {
+        return {
+          success: false,
+          error: `Draft folder "${draftFolder}" does not contain a numeric draft value. Expected format: "Draft=11m"`,
+        };
+      }
+      const fittedDraft = parseFloat(draftNumMatch[0]);
 
       const draftPath = draftFolder;
 
