@@ -286,6 +286,46 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         ctx.putImageData(imageData, 0, 0);
 
+        // --- Dashed contour on the boundary of the red zone (roll = maxRollAngle) ---
+        // Trace the isoline in polar coordinates by binary-searching for the speed
+        // at which roll crosses maxRollAngle, for each heading direction.
+        const contourPts: Array<{ x: number; y: number }> = [];
+        const angleSteps = 360;
+        for (let ai = 0; ai < angleSteps; ai++) {
+            const headingDeg = (ai / angleSteps) * 360;
+            const rollAtMax = interpolateRoll(rollMatrix, speeds, headings, maxSpeed, headingDeg);
+            // Only trace where the red zone actually exists in this direction
+            if (rollAtMax < maxRollAngle) continue;
+            const rollAtZero = interpolateRoll(rollMatrix, speeds, headings, 0, headingDeg);
+            let lo = 0, hi = maxSpeed;
+            for (let iter = 0; iter < 20; iter++) {
+                const mid = (lo + hi) / 2;
+                const roll = interpolateRoll(rollMatrix, speeds, headings, mid, headingDeg);
+                if (roll >= maxRollAngle) hi = mid;
+                else lo = mid;
+            }
+            if (rollAtZero >= maxRollAngle) hi = 0; // entire direction is red — boundary at center
+            const critSpeed = (lo + hi) / 2;
+            const r = (critSpeed / maxSpeed) * maxRadius;
+            const rad = (headingDeg - 90) * (Math.PI / 180);
+            contourPts.push({ x: centerX + r * Math.cos(rad), y: centerY + r * Math.sin(rad) });
+        }
+        if (contourPts.length > 2) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(contourPts[0].x, contourPts[0].y);
+            for (let ci = 1; ci < contourPts.length; ci++) {
+                ctx.lineTo(contourPts[ci].x, contourPts[ci].y);
+            }
+            ctx.closePath();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
+
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.30)';
         ctx.lineWidth = 0.5;
         for (let spd = 1; spd <= maxSpeed; spd++) {
@@ -297,8 +337,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
             ctx.stroke();
         }
 
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(70, 70, 70, 0.65)';
+        ctx.lineWidth = 0.9;
         for (let i = 1; i <= 5; i++) {
             const r = (maxRadius / 5) * i;
             ctx.beginPath();
@@ -499,13 +539,13 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
         ctx.fill();
 
-        // Solid white outline so vessel shape is clearly visible
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.90)';
+        // Light gray outline so vessel shape is clearly visible
+        ctx.strokeStyle = 'rgba(190, 190, 190, 0.90)';
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Center dot
-        ctx.fillStyle = 'rgba(200, 200, 200, 0.85)';
+        // Center dot - slightly darker gray
+        ctx.fillStyle = 'rgba(150, 150, 150, 0.92)';
         ctx.beginPath();
         ctx.arc(0, 0, 4, 0, 2 * Math.PI);
         ctx.fill();
@@ -591,7 +631,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
             // "Max roll" indicator line on legend (continuous mode only)
             const maxRollYPos = legendBarBottom - (maxRollAngle / colorScaleMax) * legendBarHeight;
-            ctx.strokeStyle = '#E4262B';
+            ctx.strokeStyle = '#AAAAAA';
             ctx.lineWidth = 2;
             ctx.setLineDash([4, 2]);
             ctx.beginPath();
@@ -600,9 +640,9 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Max roll label - RED, positioned LEFT of the color bar
-            ctx.fillStyle = '#FF6666';
-            ctx.font = `bold ${isSmall ? 8 : 10}px Arial, sans-serif`;
+            // Max roll label - positioned LEFT of the color bar
+            ctx.fillStyle = '#CCCCCC';
+            ctx.font = `bold ${isSmall ? 9 : 11}px Arial, sans-serif`;
             ctx.textAlign = 'right';
             ctx.fillText('Max', legendBarX - 4, maxRollYPos - 7);
             ctx.fillText('roll', legendBarX - 4, maxRollYPos + 5);

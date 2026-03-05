@@ -44,7 +44,11 @@ const WAVE_PERIOD_CONVERSIONS = {
 const Project: React.FC = () => {
     const location = useLocation();
     const initialTab = (location.state as { activeTab?: string })?.activeTab || 'project';
-    const { userInputData, updateVesselOperation, updateSeaState } = useUserData();
+    const { userInputData, updateVesselOperation, updateSeaState, resetUserData } = useUserData();
+
+    const handleClearInput = () => {
+        resetUserData();
+    };
     const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo } = useElectron();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(initialTab);
@@ -826,9 +830,16 @@ const Project: React.FC = () => {
                                 </div>
 
                                 {/* Change Vessel Data Button */}
-                                <div className="change-vessel-btn-row" >
+                                <div className="change-vessel-btn-row">
                                     <button className="change-vessel-btn" style={{ backgroundColor: "#1976d2", color: "white" }} onClick={handleChangeVesselData}>
                                         Change Vessel Data
+                                    </button>
+                                </div>
+
+                                {/* Clear User Input */}
+                                <div className="change-vessel-btn-row">
+                                    <button className="clear-input-btn" onClick={handleClearInput}>
+                                        Clear User Input
                                     </button>
                                 </div>
                             </div>
@@ -862,37 +873,25 @@ const Project: React.FC = () => {
                                 <div className="plot-canvas-right">
                                     {/* Chart Options Panel Container */}
                                     <div className="chart-right-panel">
-                                        {/* Color Mode Heading */}
-                                        {/* Color Mode Heading */}
-                                        <div className="color-mode-heading">Color Mode</div>
-
-                                        {/* Color Mode Toggle */}
-                                        <div className="color-mode-toggle">
-                                            {/* Monitor + pencil icon */}
+                                        {/* Color Mode Heading with monitor icon */}
+                                        <div className="color-mode-heading">
                                             <span className="color-mode-icon">
-                                                <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    {/* Monitor body */}
-                                                    <rect x="2" y="3" width="22" height="16" rx="2" ry="2"
+                                                <svg width="20" height="20" viewBox="0 0 26 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <rect x="1" y="1" width="24" height="16" rx="2" ry="2"
                                                         stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" fill="none" />
-                                                    {/* Monitor stand */}
-                                                    <line x1="9" y1="19" x2="9" y2="23"
+                                                    <line x1="9" y1="17" x2="9" y2="21"
                                                         stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
-                                                    <line x1="15" y1="19" x2="15" y2="23"
+                                                    <line x1="17" y1="17" x2="17" y2="21"
                                                         stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
-                                                    <line x1="6" y1="23" x2="18" y2="23"
+                                                    <line x1="6" y1="21" x2="20" y2="21"
                                                         stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
-                                                    {/* Blue pencil overlaid bottom-right */}
-                                                    <g transform="translate(16, 16) rotate(-45)">
-                                                        <rect x="-2" y="-8" width="4" height="10"
-                                                            fill="#2196f3" rx="1" />
-                                                        <polygon points="-2,2 2,2 0,5"
-                                                            fill="#2196f3" />
-                                                        <rect x="-2" y="-10" width="4" height="3"
-                                                            fill="rgba(255,255,255,0.6)" rx="0.5" />
-                                                    </g>
                                                 </svg>
                                             </span>
+                                            Color Mode
+                                        </div>
 
+                                        {/* Color Mode Toggle — centered */}
+                                        <div className="color-mode-toggle">
                                             <label className="color-mode-option">
                                                 <span>Light Mode</span>
                                                 <input
@@ -920,7 +919,26 @@ const Project: React.FC = () => {
                                             </label>
                                         </div>
 
-                                        {/* Direction & Mode Section */}
+                                        {/* Plot Setting Heading with wave/oscilloscope icon */}
+                                        <div className="color-mode-heading">
+                                            <span className="color-mode-icon">
+                                                <svg width="20" height="20" viewBox="0 0 26 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <rect x="1" y="1" width="24" height="16" rx="2" ry="2"
+                                                        stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" fill="none" />
+                                                    <polyline points="3,9 6,9 8,4 10,14 13,6 15,12 18,9 23,9"
+                                                        stroke="rgba(100,180,255,0.95)" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                                                    <line x1="9" y1="17" x2="9" y2="21"
+                                                        stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
+                                                    <line x1="17" y1="17" x2="17" y2="21"
+                                                        stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
+                                                    <line x1="6" y1="21" x2="20" y2="21"
+                                                        stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
+                                                </svg>
+                                            </span>
+                                            Plot Setting
+                                        </div>
+
+                                        {/* Direction & Style Section */}
                                         <div className="direction-mode-box">
                                             {/* Direction Column */}
                                             <div className="direction-column">
@@ -948,14 +966,14 @@ const Project: React.FC = () => {
                                                             className="dm-radio"
                                                         />
                                                         <span className="dm-radio-dot"></span>
-                                                        Heads up
+                                                        Bow up
                                                     </label>
                                                 </div>
                                             </div>
 
-                                            {/* Mode Column */}
+                                            {/* Style Column */}
                                             <div className="mode-column">
-                                                <div className="dm-header">Mode</div>
+                                                <div className="dm-header">Style</div>
                                                 <div className="dm-body">
                                                     <label className="dm-label">
                                                         <input

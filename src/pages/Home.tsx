@@ -8,7 +8,7 @@ import { useUserData } from '../context/UserDataContext';
 const Home: React.FC = () =>
 {
     const navigate = useNavigate();
-    const { selectFolder, loadControlFile, selectedFolder: electronFolder, resetAll } = useElectron();
+    const { selectFolder, loadControlFile, selectedFolder: electronFolder } = useElectron();
     const { setSelectedFolder, resetUserData } = useUserData();
     const [ loading, setLoading ] = useState(false);
     const [ error, setError ] = useState('');
@@ -69,7 +69,7 @@ const Home: React.FC = () =>
 
     const handleClearInput = () =>
     {
-        resetAll();
+        // Only clear user input data — do NOT reset the vessel data folder
         resetUserData();
         setError('');
         setSuccess('');
@@ -108,9 +108,11 @@ const Home: React.FC = () =>
                                 onClick={handleSelectFolder}
                                 disabled={loading}
                             >
-                                {loading ? 'Loading...' : 'Select Vessel Data Folder'}
+                                {loading ? 'Loading...' : 'Change Vessel Data Folder'}
                             </button>
                         </div>
+
+                       
 
                         {/* Status Messages */}
                         {error && (
@@ -125,7 +127,7 @@ const Home: React.FC = () =>
                             </div>
                         )}
 
-                        {/* Action Buttons */}
+                        {/* Primary action — Enter User Input */}
                         <div className="button-footer">
                             <button
                                 className="view-input-btn"
@@ -133,12 +135,6 @@ const Home: React.FC = () =>
                                 disabled={!electronFolder || loading}
                             >
                                 Enter User Input
-                            </button>
-                            <button
-                                className="clear-input-btn"
-                                onClick={handleClearInput}
-                            >
-                                Clear Input
                             </button>
                         </div>
                     </div>

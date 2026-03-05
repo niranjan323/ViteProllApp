@@ -1901,24 +1901,15 @@
     border-radius: 12px;
 }
 
-/* Color Mode Heading */
+/* Color Mode / Plot Setting Heading */
 .color-mode-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 14px;
     font-weight: 600;
     color: #ffffff;
     padding: 0 4px;
-}
-
-/* Color Mode Toggle Row */
-.color-mode-toggle {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: transparent;
-    border: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    padding: 0;
 }
 
 .color-mode-icon {
@@ -1926,7 +1917,19 @@
     display: flex;
     align-items: center;
     flex-shrink: 0;
-    width: 26px;
+}
+
+/* Color Mode Toggle Row — centered */
+.color-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: transparent;
+    border: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 0;
 }
 
 /* Each mode option becomes a pill button */
@@ -2681,4 +2684,29 @@
 
 [data-theme="dark"] .border-top {
     border-top: 1px solid #F5F5F5;
+}
+
+/* Change Vessel / Clear User Input row */
+.change-vessel-btn-row {
+    display: flex;
+    justify-content: flex-start;
+    padding: 0.25rem 0;
+}
+
+.clear-input-btn {
+    padding: 0.5rem 1.2rem;
+    background: white;
+    border: 1.5px solid #e57373;
+    border-radius: 4px;
+    color: #c62828;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.clear-input-btn:hover {
+    background: #fff5f5;
+    border-color: #c62828;
+    color: #b71c1c;
 }

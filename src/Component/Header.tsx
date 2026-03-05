@@ -1,10 +1,7 @@
 // Header.tsx
 import './Header.css';
 import logo from '../assets/ABS_Logo.png';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 
 const handleMinimize = () => window.electronAPI?.minimizeWindow?.();
 const handleMaximize = () => window.electronAPI?.maximizeWindow?.();
@@ -39,14 +36,7 @@ const Header = () =>
 
             {/* RIGHT SIDE */}
             <div className="app-header__right">
-                <ChatBubbleOutlineIcon className="app-header__icon" />
-                <SettingsOutlinedIcon className="app-header__icon" />
-                <InfoOutlinedIcon className="app-header__icon" />
-
-                <div className="app-header__login">
-                    <PersonOutlineIcon className="app-header__icon" />
-                    <span>Login</span>
-                </div>
+                <InfoOutlinedIcon className="app-header__icon" title="User Guide" />
 
                 {/* Window controls */}
                 <div className="app-header__win-controls">

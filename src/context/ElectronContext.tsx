@@ -38,11 +38,17 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [representativeDrafts, setRepresentativeDrafts] = useState<RepresentativeDrafts | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  // Check if Electron API is available
+  // Check if Electron API is available + restore saved folder on launch
   useEffect(() => {
     if (window.electronAPI) {
       setIsReady(true);
     }
+    const savedFolder = localStorage.getItem('vesselDataFolder');
+    if (savedFolder) {
+      fileSystem.setBasePath(savedFolder);
+      setSelectedFolder(savedFolder);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -65,6 +71,7 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
       const folderPath = result.folderPath!;
       fileSystem.setBasePath(folderPath);
       setSelectedFolder(folderPath);
+      localStorage.setItem('vesselDataFolder', folderPath);
       console.log('Folder selected:', folderPath);
 
       return true;
