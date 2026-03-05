@@ -286,41 +286,68 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         ctx.putImageData(imageData, 0, 0);
 
-        // --- Dashed contour on the boundary of the red zone (roll = maxRollAngle) ---
-        // Trace the isoline in polar coordinates by binary-searching for the speed
-        // at which roll crosses maxRollAngle, for each heading direction.
-        const contourPts: Array<{ x: number; y: number }> = [];
-        const angleSteps = 360;
+        // --- Dashed contour on the OUTER boundary of the red zone ---
+        // For each heading, scan from maxSpeed inward to find the outermost speed
+        // where roll >= maxRollAngle. This traces the outer edge of the danger zone.
+        const contourPts: Array<{ x: number; y: number; ai: number }> = [];
+        const angleSteps = 720;  // finer resolution for a smoother outer edge
+        const speedSteps = 60;   // coarse scan steps, refined with binary search
         for (let ai = 0; ai < angleSteps; ai++) {
-            const headingDeg = (ai / angleSteps) * 360;
-            const rollAtMax = interpolateRoll(rollMatrix, speeds, headings, maxSpeed, headingDeg);
-            // Only trace where the red zone actually exists in this direction
-            if (rollAtMax < maxRollAngle) continue;
-            const rollAtZero = interpolateRoll(rollMatrix, speeds, headings, 0, headingDeg);
-            let lo = 0, hi = maxSpeed;
-            for (let iter = 0; iter < 20; iter++) {
-                const mid = (lo + hi) / 2;
-                const roll = interpolateRoll(rollMatrix, speeds, headings, mid, headingDeg);
-                if (roll >= maxRollAngle) hi = mid;
-                else lo = mid;
+            const headingDeg = (ai / angleSteps) * 360; // display angle → used for canvas position
+
+            // Match the exact same angle transformation the chart renderer uses
+            const compassHeading = orientation === 'heads-up'
+                ? normalizeAngle(headingDeg + vesselHeading)
+                : headingDeg;
+            let encounterAngle = normalizeAngle(meanWaveDirection - compassHeading);
+            if (encounterAngle > 180) encounterAngle = 360 - encounterAngle;
+
+            let outerSpeed = -1;
+            // Scan from maxSpeed downward — first dangerous hit is the outermost boundary
+            for (let si = speedSteps; si >= 0; si--) {
+                const spd = (si / speedSteps) * maxSpeed;
+                const roll = interpolateRoll(rollMatrix, speeds, headings, spd, encounterAngle);
+                if (roll >= maxRollAngle) {
+                    // Refine: binary search between spd and spd + one step for exact outer crossing
+                    const stepSize = maxSpeed / speedSteps;
+                    const hiSpd = Math.min(spd + stepSize, maxSpeed);
+                    const rollHi = interpolateRoll(rollMatrix, speeds, headings, hiSpd, encounterAngle);
+                    if (rollHi >= maxRollAngle) {
+                        outerSpeed = hiSpd;
+                    } else {
+                        let lo2 = spd, hi2 = hiSpd;
+                        for (let iter = 0; iter < 18; iter++) {
+                            const mid = (lo2 + hi2) / 2;
+                            const midRoll = interpolateRoll(rollMatrix, speeds, headings, mid, encounterAngle);
+                            if (midRoll >= maxRollAngle) lo2 = mid; else hi2 = mid;
+                        }
+                        outerSpeed = lo2;
+                    }
+                    break;
+                }
             }
-            if (rollAtZero >= maxRollAngle) hi = 0; // entire direction is red — boundary at center
-            const critSpeed = (lo + hi) / 2;
-            const r = (critSpeed / maxSpeed) * maxRadius;
+            if (outerSpeed < 0) continue;
+            const r = (outerSpeed / maxSpeed) * maxRadius;
             const rad = (headingDeg - 90) * (Math.PI / 180);
-            contourPts.push({ x: centerX + r * Math.cos(rad), y: centerY + r * Math.sin(rad) });
+            contourPts.push({ x: centerX + r * Math.cos(rad), y: centerY + r * Math.sin(rad), ai });
         }
         if (contourPts.length > 2) {
             ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(contourPts[0].x, contourPts[0].y);
-            for (let ci = 1; ci < contourPts.length; ci++) {
-                ctx.lineTo(contourPts[ci].x, contourPts[ci].y);
-            }
-            ctx.closePath();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(180, 0, 0, 0.92)';
+            ctx.lineWidth = 2.5;
             ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            let lastAi = -99;
+            for (let ci = 0; ci < contourPts.length; ci++) {
+                const pt = contourPts[ci];
+                // Start a new segment when there's an angular gap (danger zone has a gap here)
+                if (pt.ai - lastAi > 4) {
+                    ctx.moveTo(pt.x, pt.y);
+                } else {
+                    ctx.lineTo(pt.x, pt.y);
+                }
+                lastAi = pt.ai;
+            }
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.restore();
@@ -712,6 +739,24 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillText(`${deg}`, legendBarX + legendBarWidth + 6, yPos);
             }
+
+            // "Max roll" dashed indicator line on legend (traffic light mode)
+            const maxRollYPos = legendBarBottom - (maxRollAngle / colorScaleMax) * legendBarHeight;
+            ctx.strokeStyle = '#AAAAAA';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 2]);
+            ctx.beginPath();
+            ctx.moveTo(legendBarX - 3, maxRollYPos);
+            ctx.lineTo(legendBarX + legendBarWidth + 3, maxRollYPos);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Max roll label - positioned LEFT of the color bar
+            ctx.fillStyle = '#CCCCCC';
+            ctx.font = `bold ${isSmall ? 9 : 11}px Arial, sans-serif`;
+            ctx.textAlign = 'right';
+            ctx.fillText('Max', legendBarX - 4, maxRollYPos - 7);
+            ctx.fillText('roll', legendBarX - 4, maxRollYPos + 5);
         }
 
     }, [rollMatrix, speeds, headings, vesselHeading, vesselSpeed, maxRollAngle, meanWaveDirection, width, height, mode, orientation]);
