@@ -877,14 +877,25 @@ const Project: React.FC = () => {
                                         <div className="color-mode-heading">
                                             <span className="color-mode-icon">
                                                 <svg width="20" height="20" viewBox="0 0 26 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <rect x="1" y="1" width="24" height="16" rx="2" ry="2"
+                                                    {/* Monitor body */}
+                                                    <rect x="2" y="3" width="22" height="16" rx="2" ry="2"
                                                         stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" fill="none" />
-                                                    <line x1="9" y1="17" x2="9" y2="21"
+                                                    {/* Monitor stand */}
+                                                    <line x1="9" y1="19" x2="9" y2="23"
                                                         stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
-                                                    <line x1="17" y1="17" x2="17" y2="21"
+                                                    <line x1="15" y1="19" x2="15" y2="23"
                                                         stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
-                                                    <line x1="6" y1="21" x2="20" y2="21"
+                                                    <line x1="6" y1="23" x2="18" y2="23"
                                                         stroke="rgba(255,255,255,0.85)" strokeWidth="1.8" />
+                                                    {/* Blue pencil overlaid bottom-right */}
+                                                    <g transform="translate(16, 16) rotate(-45)">
+                                                        <rect x="-2" y="-8" width="4" height="10"
+                                                            fill="#2196f3" rx="1" />
+                                                        <polygon points="-2,2 2,2 0,5"
+                                                            fill="#2196f3" />
+                                                        <rect x="-2" y="-10" width="4" height="3"
+                                                            fill="rgba(255,255,255,0.6)" rx="0.5" />
+                                                    </g>
                                                 </svg>
                                             </span>
                                             Color Mode
