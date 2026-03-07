@@ -333,7 +333,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         }
         if (contourPts.length > 2) {
             ctx.save();
-            ctx.strokeStyle = 'rgba(180, 0, 0, 0.92)';
+            ctx.strokeStyle = 'rgba(120, 120, 120, 0.92)';
             ctx.lineWidth = 2.5;
             ctx.setLineDash([6, 4]);
             ctx.beginPath();
@@ -571,8 +571,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Center dot - slightly darker gray
-        ctx.fillStyle = 'rgba(150, 150, 150, 0.92)';
+        // Center dot - black
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.92)';
         ctx.beginPath();
         ctx.arc(0, 0, 4, 0, 2 * Math.PI);
         ctx.fill();
