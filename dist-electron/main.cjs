@@ -20,10 +20,12 @@ function createWindow() {
         },
         icon: path.join(__dirname, '../public/icon.ico'),
     });
-    const startUrl = isDev
-        ? 'http://localhost:5173'
-        : `file://${path.join(__dirname, '../dist/index.html')}`;
-    mainWindow.loadURL(startUrl);
+    if (isDev) {
+        mainWindow.loadURL('http://localhost:5173');
+    }
+    else {
+        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    }
     if (isDev) {
         mainWindow.webContents.openDevTools();
     }

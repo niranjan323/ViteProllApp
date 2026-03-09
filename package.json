@@ -6,9 +6,11 @@
   "main": "dist-electron/main.cjs",
   "scripts": {
     "dev": "npm run build:electron && concurrently \"vite\" \"electron dist-electron/main.cjs\"",
+    "dev:web": "vite",
     "build:electron": "tsc --project tsconfig.electron.json && node rename-electron.cjs",
     "rename:electron": "node rename-electron.cjs",
     "build": "npm run build:electron && tsc -b && vite build && electron-builder",
+    "build:web": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "electron": "electron ."

@@ -1,4 +1,4 @@
-import { FileSystemService } from './fileSystem';
+import type { IFileSystemService } from './IFileSystemService';
 
 /**
  * DataLoader Service - Handles loading and parsing control and polar data files
@@ -64,9 +64,9 @@ export interface LoadPolarDataResult {
 }
 
 export class DataLoader {
-  private fs: FileSystemService;
+  private fs: IFileSystemService;
 
-  constructor(fileSystemService: FileSystemService) {
+  constructor(fileSystemService: IFileSystemService) {
     this.fs = fileSystemService;
   }
 

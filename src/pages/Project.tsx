@@ -438,7 +438,7 @@ const Project: React.FC = () => {
         } else if (selectedCaseForReport) {
             cases = [{ data: getReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl }];
         } else {
-            cases = [{ data: getReportData(), chartImageUrl: chartRef.current?.getImageDataURL() }];
+            cases = [{ data: getReportData(), chartImageUrl: chartRef.current?.getImageDataURL() ?? undefined }];
         }
 
         const doc = handleDownloadPDF(cases);

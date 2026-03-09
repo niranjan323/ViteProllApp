@@ -79,6 +79,20 @@ declare global {
   interface Window {
     electronAPI: ElectronAPI;
   }
+
+  // File System Access API — available in modern browsers but not always in TypeScript DOM lib
+  function showDirectoryPicker(options?: { mode?: 'read' | 'readwrite' }): Promise<FileSystemDirectoryHandle>;
+  function showOpenFilePicker(options?: {
+    types?: Array<{ description: string; accept: Record<string, string[]> }>;
+    multiple?: boolean;
+  }): Promise<FileSystemFileHandle[]>;
+
+  interface FileSystemDirectoryHandle {
+    keys(): AsyncIterableIterator<string>;
+    values(): AsyncIterableIterator<FileSystemHandle>;
+    entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+    [Symbol.asyncIterator](): AsyncIterableIterator<[string, FileSystemHandle]>;
+  }
 }
 
 export {};

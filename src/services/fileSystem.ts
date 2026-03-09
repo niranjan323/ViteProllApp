@@ -1,9 +1,11 @@
+import type { IFileSystemService } from './IFileSystemService';
+
 /**
  * FileSystemService - Abstraction layer for file operations
- * Uses Electron IPC to access files securely
+ * Uses Electron IPC to access files securely (Electron desktop mode)
  */
 
-export class FileSystemService {
+export class FileSystemService implements IFileSystemService {
   private basePath: string = '';
 
   constructor(basePath?: string) {

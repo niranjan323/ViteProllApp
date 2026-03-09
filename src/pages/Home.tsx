@@ -9,7 +9,7 @@ const Home: React.FC = () =>
 {
     const navigate = useNavigate();
     const { selectFolder, loadControlFile, selectedFolder: electronFolder } = useElectron();
-    const { setSelectedFolder, resetUserData } = useUserData();
+    const { setSelectedFolder } = useUserData();
     const [ loading, setLoading ] = useState(false);
     const [ error, setError ] = useState('');
     const [ success, setSuccess ] = useState('');
@@ -65,14 +65,6 @@ const Home: React.FC = () =>
         }
 
         navigate('/project', { state: { activeTab: 'project' } });
-    };
-
-    const handleClearInput = () =>
-    {
-        // Only clear user input data — do NOT reset the vessel data folder
-        resetUserData();
-        setError('');
-        setSuccess('');
     };
 
     return (
