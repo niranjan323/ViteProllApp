@@ -197,6 +197,12 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         const ctx = canvas.getContext('2d', { alpha: true });
         if (!ctx) return;
 
+        // Skip rendering if polar data is missing
+        if (!rollMatrix?.length || !speeds?.length || !headings?.length) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            return;
+        }
+
         canvas.width = width;
         canvas.height = height;
         canvas.style.width = `${width}px`;
@@ -217,23 +223,27 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         // Fixed speed range: 0-25 kn as per specification
         const maxSpeed = 25;
 
+        // Declared in outer scope so both color block and legend block can access them
+        let minRoll = 0;
+        let colorScaleMax = 0;
+
+        if (isFinite(maxRollAngle)) {
+
         // Compute MinRoll from data (per specification)
-        let minRoll = Infinity;
+        let _minRollScan = Infinity;
         for (let si = 0; si < rollMatrix.length; si++) {
             for (let hi = 0; hi < (rollMatrix[si]?.length || 0); hi++) {
                 const v = rollMatrix[si][hi];
                 if (isFinite(v) && v >= 0 && v <= 90) {
-                    minRoll = Math.min(minRoll, v);
+                    _minRollScan = Math.min(_minRollScan, v);
                 }
             }
         }
-        if (!isFinite(minRoll) || minRoll >= maxRollAngle) {
-            minRoll = 0;
-        }
+        minRoll = (!isFinite(_minRollScan) || _minRollScan >= maxRollAngle) ? 0 : _minRollScan;
 
         // Scale legend to include all bins
         const binInterval = maxRollAngle > minRoll ? (maxRollAngle - minRoll) / 9 : 1;
-        const colorScaleMax = mode === 'continuous'
+        colorScaleMax = mode === 'continuous'
             ? maxRollAngle + binInterval
             : maxRollAngle + 10;
 
@@ -352,6 +362,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
             ctx.setLineDash([]);
             ctx.restore();
         }
+
+        } // end if (isFinite(maxRollAngle)) — color + contour block
 
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.30)';
         ctx.lineWidth = 0.5;
@@ -579,6 +591,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         ctx.restore();
 
+        if (isFinite(maxRollAngle)) {
+
         // --- Color scale legend (left side) ---
         // Responsive: scale legend size based on canvas dimensions
         const isSmall = width < 700 || height < 500;
@@ -758,6 +772,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
             ctx.fillText('Max', legendBarX - 4, maxRollYPos - 7);
             ctx.fillText('roll', legendBarX - 4, maxRollYPos + 5);
         }
+
+        } // end if (isFinite(maxRollAngle)) — legend block
 
     }, [rollMatrix, speeds, headings, vesselHeading, vesselSpeed, maxRollAngle, meanWaveDirection, width, height, mode, orientation]);
 
