@@ -296,72 +296,153 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         ctx.putImageData(imageData, 0, 0);
 
-        // --- Dashed contour on the OUTER boundary of the red zone ---
-        // For each heading, scan from maxSpeed inward to find the outermost speed
-        // where roll >= maxRollAngle. This traces the outer edge of the danger zone.
-        const contourPts: Array<{ x: number; y: number; ai: number }> = [];
-        const angleSteps = 720;  // finer resolution for a smoother outer edge
-        const speedSteps = 60;   // coarse scan steps, refined with binary search
-        for (let ai = 0; ai < angleSteps; ai++) {
-            const headingDeg = (ai / angleSteps) * 360; // display angle → used for canvas position
+        // --- Marching-squares contour around ALL danger zone boundaries ---
+        // 1. Build boolean grid (each grid point = danger or safe)
+        // 2. Marching squares → diagonal + axis-aligned segments for smooth outline
+        // 3. Stitch adjacent segments into long chains → consistent dash flow
+        const cStep = 6; // grid step in pixels (must be even for integer edge midpoints)
+        const cW = Math.ceil(width / cStep) + 2;
+        const cH = Math.ceil(height / cStep) + 2;
+        const cGrid = new Uint8Array(cW * cH); // 0 = safe/outside, 1 = danger
 
-            // Match the exact same angle transformation the chart renderer uses
-            const compassHeading = orientation === 'heads-up'
-                ? normalizeAngle(headingDeg + vesselHeading)
-                : headingDeg;
-            let encounterAngle = normalizeAngle(meanWaveDirection - compassHeading);
-            if (encounterAngle > 180) encounterAngle = 360 - encounterAngle;
-
-            let outerSpeed = -1;
-            // Scan from maxSpeed downward — first dangerous hit is the outermost boundary
-            for (let si = speedSteps; si >= 0; si--) {
-                const spd = (si / speedSteps) * maxSpeed;
-                const roll = interpolateRoll(rollMatrix, speeds, headings, spd, encounterAngle);
-                if (roll >= maxRollAngle) {
-                    // Refine: binary search between spd and spd + one step for exact outer crossing
-                    const stepSize = maxSpeed / speedSteps;
-                    const hiSpd = Math.min(spd + stepSize, maxSpeed);
-                    const rollHi = interpolateRoll(rollMatrix, speeds, headings, hiSpd, encounterAngle);
-                    if (rollHi >= maxRollAngle) {
-                        outerSpeed = hiSpd;
-                    } else {
-                        let lo2 = spd, hi2 = hiSpd;
-                        for (let iter = 0; iter < 18; iter++) {
-                            const mid = (lo2 + hi2) / 2;
-                            const midRoll = interpolateRoll(rollMatrix, speeds, headings, mid, encounterAngle);
-                            if (midRoll >= maxRollAngle) lo2 = mid; else hi2 = mid;
-                        }
-                        outerSpeed = lo2;
-                    }
-                    break;
+        for (let cy = 0; cy < cH; cy++) {
+            for (let cx = 0; cx < cW; cx++) {
+                const px = cx * cStep;
+                const py = cy * cStep;
+                const dx = px - centerX;
+                const dy = py - centerY;
+                const r = Math.sqrt(dx * dx + dy * dy);
+                if (r > maxRadius || r < 1) continue;
+                const atan2Deg = Math.atan2(dy, dx) * (180 / Math.PI);
+                const displayAngle = normalizeAngle(atan2Deg + 90);
+                const compassH = orientation === 'heads-up'
+                    ? normalizeAngle(displayAngle + vesselHeading)
+                    : displayAngle;
+                let enc = normalizeAngle(meanWaveDirection - compassH);
+                if (enc > 180) enc = 360 - enc;
+                const spd = (r / maxRadius) * maxSpeed;
+                const roll = interpolateRoll(rollMatrix, speeds, headings, spd, enc);
+                if (isFinite(roll) && roll >= maxRollAngle) {
+                    cGrid[cy * cW + cx] = 1;
                 }
             }
-            if (outerSpeed < 0) continue;
-            const r = (outerSpeed / maxSpeed) * maxRadius;
-            const rad = (headingDeg - 90) * (Math.PI / 180);
-            contourPts.push({ x: centerX + r * Math.cos(rad), y: centerY + r * Math.sin(rad), ai });
         }
-        if (contourPts.length > 2) {
-            ctx.save();
-            ctx.strokeStyle = 'rgba(120, 120, 120, 0.92)';
-            ctx.lineWidth = 2.5;
-            ctx.setLineDash([6, 4]);
-            ctx.beginPath();
-            let lastAi = -99;
-            for (let ci = 0; ci < contourPts.length; ci++) {
-                const pt = contourPts[ci];
-                // Start a new segment when there's an angular gap (danger zone has a gap here)
-                if (pt.ai - lastAi > 4) {
-                    ctx.moveTo(pt.x, pt.y);
-                } else {
-                    ctx.lineTo(pt.x, pt.y);
+
+        // Marching squares lookup: for each 2×2 cell case (TL=8,TR=4,BR=2,BL=1)
+        // emit line segments connecting edge midpoints (T=0, R=1, B=2, L=3)
+        const MS_SEGS: number[][][] = [
+            [],            // 0
+            [[3, 2]],      // 1:  BL        → L-B
+            [[2, 1]],      // 2:  BR        → B-R
+            [[3, 1]],      // 3:  BL+BR     → L-R
+            [[0, 1]],      // 4:  TR        → T-R
+            [[0,1],[2,3]], // 5:  TR+BL     → T-R & B-L  (ambiguous)
+            [[0, 2]],      // 6:  TR+BR     → T-B
+            [[0, 3]],      // 7:  ~TL       → T-L
+            [[0, 3]],      // 8:  TL        → T-L
+            [[0, 2]],      // 9:  TL+BL     → T-B
+            [[0,3],[2,1]], // 10: TL+BR     → T-L & B-R  (ambiguous)
+            [[0, 1]],      // 11: ~TR       → T-R
+            [[3, 1]],      // 12: TL+TR     → L-R
+            [[2, 1]],      // 13: ~BR       → B-R
+            [[2, 3]],      // 14: ~BL       → B-L
+            [],            // 15
+        ];
+
+        // Collect raw segments from marching squares
+        const rawSegs: [number, number, number, number][] = [];
+        const half = cStep / 2;
+
+        for (let cy = 0; cy < cH - 1; cy++) {
+            for (let cx = 0; cx < cW - 1; cx++) {
+                const tl = cGrid[cy * cW + cx];
+                const tr = cGrid[cy * cW + (cx + 1)];
+                const br = cGrid[(cy + 1) * cW + (cx + 1)];
+                const bl = cGrid[(cy + 1) * cW + cx];
+                const c = (tl ? 8 : 0) | (tr ? 4 : 0) | (br ? 2 : 0) | (bl ? 1 : 0);
+                const segs = MS_SEGS[c];
+                if (segs.length === 0) continue;
+
+                const x0 = cx * cStep, y0 = cy * cStep;
+                // Edge midpoints: T, R, B, L
+                const ep: [number, number][] = [
+                    [x0 + half, y0],          // T (0)
+                    [x0 + cStep, y0 + half],  // R (1)
+                    [x0 + half, y0 + cStep],  // B (2)
+                    [x0, y0 + half],          // L (3)
+                ];
+                for (const [e1, e2] of segs) {
+                    rawSegs.push([ep[e1][0], ep[e1][1], ep[e2][0], ep[e2][1]]);
                 }
-                lastAi = pt.ai;
             }
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.restore();
         }
+
+        // Stitch segments into chains so dashes flow along the full boundary
+        const ptKey = (x: number, y: number) => `${x},${y}`;
+        const ptMap = new Map<string, number[]>();
+        for (let i = 0; i < rawSegs.length; i++) {
+            const [x1, y1, x2, y2] = rawSegs[i];
+            const k1 = ptKey(x1, y1), k2 = ptKey(x2, y2);
+            if (!ptMap.has(k1)) ptMap.set(k1, []);
+            if (!ptMap.has(k2)) ptMap.set(k2, []);
+            ptMap.get(k1)!.push(i);
+            ptMap.get(k2)!.push(i);
+        }
+
+        const used = new Uint8Array(rawSegs.length);
+        const chains: [number, number][][] = [];
+
+        for (let start = 0; start < rawSegs.length; start++) {
+            if (used[start]) continue;
+            used[start] = 1;
+            const [sx1, sy1, sx2, sy2] = rawSegs[start];
+            const chain: [number, number][] = [[sx1, sy1], [sx2, sy2]];
+
+            // Extend forward
+            let curX = sx2, curY = sy2;
+            for (;;) {
+                let found = false;
+                for (const idx of ptMap.get(ptKey(curX, curY)) || []) {
+                    if (used[idx]) continue;
+                    used[idx] = 1;
+                    const [ex1, ey1, ex2, ey2] = rawSegs[idx];
+                    if (ex1 === curX && ey1 === curY) { chain.push([ex2, ey2]); curX = ex2; curY = ey2; }
+                    else                               { chain.push([ex1, ey1]); curX = ex1; curY = ey1; }
+                    found = true; break;
+                }
+                if (!found) break;
+            }
+            // Extend backward
+            curX = sx1; curY = sy1;
+            for (;;) {
+                let found = false;
+                for (const idx of ptMap.get(ptKey(curX, curY)) || []) {
+                    if (used[idx]) continue;
+                    used[idx] = 1;
+                    const [ex1, ey1, ex2, ey2] = rawSegs[idx];
+                    if (ex1 === curX && ey1 === curY) { chain.unshift([ex2, ey2]); curX = ex2; curY = ey2; }
+                    else                               { chain.unshift([ex1, ey1]); curX = ex1; curY = ey1; }
+                    found = true; break;
+                }
+                if (!found) break;
+            }
+
+            if (chain.length >= 2) chains.push(chain);
+        }
+
+        // Draw stitched chains with dashed stroke
+        ctx.save();
+        ctx.strokeStyle = 'rgba(120, 120, 120, 0.92)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([8, 5]);
+        ctx.beginPath();
+        for (const chain of chains) {
+            ctx.moveTo(chain[0][0], chain[0][1]);
+            for (let i = 1; i < chain.length; i++) ctx.lineTo(chain[i][0], chain[i][1]);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
 
         } // end if (isFinite(maxRollAngle)) — color + contour block
 
