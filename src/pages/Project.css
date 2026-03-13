@@ -1428,72 +1428,64 @@
     }
 
     .project-sidebar {
-        width: 252px;
-        min-width: 252px;
+        width: 290px;
+        min-width: 290px;
     }
 
     .sidebar-content {
-        padding: 0.45rem;
+        padding: 0.6rem;
     }
 
     .section-title {
-        font-size: 0.75rem;
+        font-size: 0.78rem;
     }
 
     .input-label {
-        font-size: 0.72rem;
-    }
-
-    .input-field-standalone {
-        width: 60px;
-        padding: 0.22rem 0.3rem;
         font-size: 0.75rem;
     }
 
-    .input-range {
-        font-size: 0.55rem;
+    .input-field-standalone {
+        width: 65px;
+        padding: 0.3rem 0.4rem;
+        font-size: 0.78rem;
     }
 
-    /* Right panel wider so "Continuous"/"Traffic light" labels fit */
+    .input-range {
+        font-size: 0.58rem;
+    }
+
     .plot-canvas-right {
-        width: 224px;
-        min-width: 224px;
+        width: 210px;
+        min-width: 210px;
     }
 
     .chart-right-panel {
-        padding: 8px;
-        gap: 8px;
+        padding: 10px;
+        gap: 10px;
     }
 
     .color-mode-heading {
-        font-size: 11px;
+        font-size: 12px;
     }
 
     .color-mode-option {
         font-size: 10px;
-        padding: 5px 7px;
+        padding: 6px 8px;
     }
 
     .dm-header {
         font-size: 11px;
-        padding: 5px 6px;
+        padding: 6px 10px;
     }
 
     .dm-label {
-        font-size: 10px;
-        gap: 4px;
-    }
-
-    /* Smaller radio dots to save more text space at this size */
-    .dm-radio-dot {
-        width: 14px;
-        height: 14px;
-        flex-shrink: 0;
+        font-size: 11px;
+        gap: 6px;
     }
 
     .dm-body {
-        padding: 6px 6px;
-        gap: 6px;
+        padding: 8px 10px;
+        gap: 8px;
     }
 
     .chart-info-hint {
