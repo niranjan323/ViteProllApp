@@ -1428,64 +1428,64 @@
     }
 
     .project-sidebar {
-        width: 290px;
-        min-width: 290px;
+        width: 268px;
+        min-width: 268px;
     }
 
     .sidebar-content {
-        padding: 0.6rem;
+        padding: 0.5rem;
     }
 
     .section-title {
-        font-size: 0.78rem;
+        font-size: 0.76rem;
     }
 
     .input-label {
-        font-size: 0.75rem;
+        font-size: 0.73rem;
     }
 
     .input-field-standalone {
-        width: 65px;
-        padding: 0.3rem 0.4rem;
-        font-size: 0.78rem;
+        width: 62px;
+        padding: 0.25rem 0.35rem;
+        font-size: 0.76rem;
     }
 
     .input-range {
-        font-size: 0.58rem;
+        font-size: 0.56rem;
     }
 
     .plot-canvas-right {
-        width: 210px;
-        min-width: 210px;
+        width: 200px;
+        min-width: 200px;
     }
 
     .chart-right-panel {
-        padding: 10px;
-        gap: 10px;
+        padding: 8px;
+        gap: 8px;
     }
 
     .color-mode-heading {
-        font-size: 12px;
+        font-size: 11px;
     }
 
     .color-mode-option {
         font-size: 10px;
-        padding: 6px 8px;
+        padding: 5px 7px;
     }
 
     .dm-header {
         font-size: 11px;
-        padding: 6px 10px;
+        padding: 5px 8px;
     }
 
     .dm-label {
-        font-size: 11px;
-        gap: 6px;
+        font-size: 10px;
+        gap: 5px;
     }
 
     .dm-body {
-        padding: 8px 10px;
-        gap: 8px;
+        padding: 6px 8px;
+        gap: 6px;
     }
 
     .chart-info-hint {
