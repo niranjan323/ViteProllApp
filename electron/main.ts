@@ -9,10 +9,8 @@ let mainWindow: BrowserWindow | null = null;
 function createWindow() {
   mainWindow = new BrowserWindow({
     title: 'PRoll Diagram App',
-    width: 1300,
-    height: 800,
-    minWidth: 1024,
-    minHeight: 650,
+    width: 1600,
+    height: 900,
     frame: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -24,8 +22,6 @@ function createWindow() {
     icon: path.join(__dirname, '../public/icon.ico'),
   });
 
-  // Start maximized so the window fills the screen regardless of display DPI scaling
-  mainWindow.maximize();
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');

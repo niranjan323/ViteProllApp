@@ -40,20 +40,14 @@
 .app-footer {
     flex-shrink: 0;
     text-align: center;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1rem;
     font-size: 0.75rem;
     color: #012B4F;
     background: transparent;
     letter-spacing: 0.2px;
 }
 
-/* Short screens: compress footer so more space is available for content */
-@media (max-height: 750px) {
-    .app-footer {
-        padding: 0.25rem 1rem;
-        font-size: 0.7rem;
-    }
-}
+
 
 /* Responsive Design */
 @media (max-width: 768px) {
