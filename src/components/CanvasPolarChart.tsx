@@ -430,18 +430,16 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
             if (chain.length >= 2) chains.push(chain);
         }
 
-        // Draw stitched chains with dashed stroke
+        // Draw stitched chains with solid stroke
         ctx.save();
         ctx.strokeStyle = 'rgba(120, 120, 120, 0.92)';
         ctx.lineWidth = 2.5;
-        ctx.setLineDash([8, 5]);
         ctx.beginPath();
         for (const chain of chains) {
             ctx.moveTo(chain[0][0], chain[0][1]);
             for (let i = 1; i < chain.length; i++) ctx.lineTo(chain[i][0], chain[i][1]);
         }
         ctx.stroke();
-        ctx.setLineDash([]);
         ctx.restore();
 
         } // end if (isFinite(maxRollAngle)) — color + contour block
@@ -659,8 +657,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
         ctx.fill();
 
-        // Light gray outline so vessel shape is clearly visible
-        ctx.strokeStyle = 'rgba(190, 190, 190, 0.90)';
+        // White outline so vessel shape is clearly visible
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
         ctx.lineWidth = 2.5;
         ctx.stroke();
 

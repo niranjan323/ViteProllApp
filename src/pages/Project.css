@@ -1433,34 +1433,46 @@
     }
 
     .section {
-        padding: 0px 0.5rem; /* 8px each side, down from 1rem */
+        padding: 0px 0.5rem;
+        margin-bottom: 0.6rem;
     }
 
     .section-content {
-        padding: 0.5rem; /* 8px all sides, down from 1rem */
+        padding: 0.4rem; /* tighter at 150% DPI */
     }
 
     .input-row-wrapper {
-        padding: 0.15rem 0.25rem; /* 4px horizontal */
-        margin-bottom: 0.3rem;
+        padding: 0.12rem 0.2rem;
+        margin-bottom: 0.18rem;
     }
 
     .section-title {
-        font-size: 0.77rem;
+        font-size: 0.75rem;
+        margin-bottom: 3px;
     }
 
     .input-label {
-        font-size: 0.73rem;
+        font-size: 0.70rem;
     }
 
     .input-field-standalone {
-        width: 65px;
-        padding: 0.28rem 0.35rem;
-        font-size: 0.77rem;
+        width: 62px;
+        padding: 0.2rem 0.3rem;
+        font-size: 0.72rem;
+    }
+
+    .input-field-standalone::placeholder {
+        font-size: 0.68rem;
     }
 
     .input-range {
-        font-size: 0.57rem;
+        font-size: 0.54rem;
+        margin-top: 0.15rem;
+    }
+
+    .indicator-icon {
+        width: 15px;
+        height: 15px;
     }
 
     /* align-self: stretch bounds panel to plot-canvas height, preventing
