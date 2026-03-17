@@ -1422,42 +1422,46 @@
 
 /* Small laptops (1024-1280) */
 @media (max-width: 1280px) {
-    /* Sidebar: wider + reduced padding chain to give labels ~150px space */
+    /* Sidebar: 310px gives 465px physical — close to 120%'s 499px physical (416px CSS × 1.2) */
     .project-sidebar {
-        width: 290px;
-        min-width: 290px;
+        width: 310px;
+        min-width: 310px;
     }
 
+    /* No horizontal padding on sidebar-content — same as 120% default */
     .sidebar-content {
-        padding: 0.4rem 0.375rem; /* ~6px horizontal */
+        padding: 0.4rem 0;
     }
 
     .section {
         padding: 0px 0.5rem;
-        margin-bottom: 0.6rem;
+        margin-bottom: 0.8rem;
     }
 
+    /* 0.6rem = 14.4px physical, vs 19.2px at 120% — much closer to reference */
     .section-content {
-        padding: 0.4rem; /* tighter at 150% DPI */
+        padding: 0.6rem;
     }
 
+    /* More vertical breathing room between input rows */
     .input-row-wrapper {
-        padding: 0.12rem 0.2rem;
-        margin-bottom: 0.18rem;
+        padding: 0.22rem 0.2rem;
+        margin-bottom: 0.3rem;
     }
 
     .section-title {
         font-size: 0.75rem;
-        margin-bottom: 3px;
+        margin-bottom: 4px;
     }
 
     .input-label {
         font-size: 0.70rem;
     }
 
+    /* Taller input to match 120% physical height (~31px) */
     .input-field-standalone {
         width: 62px;
-        padding: 0.2rem 0.3rem;
+        padding: 0.3rem 0.3rem;
         font-size: 0.72rem;
     }
 
@@ -1467,7 +1471,7 @@
 
     .input-range {
         font-size: 0.54rem;
-        margin-top: 0.15rem;
+        margin-top: 0.18rem;
     }
 
     .indicator-icon {
@@ -1572,6 +1576,98 @@
 
     .saved-cases-section {
         padding: 0.4rem 0.75rem;
+    }
+
+    /* Sidebar tab buttons */
+    .project-tab {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    /* Case Files section — Save / Delete rows */
+    .case-row {
+        margin-bottom: 0.4rem;
+        gap: 0.3rem;
+    }
+
+    .case-label {
+        font-size: 0.74rem;
+    }
+
+    .case-input,
+    .case-select {
+        padding: 0.25rem 0.35rem;
+        font-size: 0.78rem;
+    }
+
+    .case-count {
+        font-size: 0.68rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Saved Cases bar */
+    .saved-cases-header {
+        gap: 0.25rem;
+        margin-bottom: 0.15rem;
+    }
+
+    .folder-icon-img {
+        width: 22px;
+        height: 22px;
+    }
+
+    .saved-cases-list {
+        height: 36px;
+    }
+
+    .nav-arrow {
+        padding: 0.25rem 0.4rem;
+    }
+
+    .nav-arrow-icon {
+        width: 10px;
+        height: 10px;
+    }
+
+    /* Vessel Data tab rows */
+    .project-file-row {
+        padding: 0.25rem 0;
+    }
+
+    .project-file-name {
+        font-size: 0.76rem;
+    }
+
+    .project-file-check {
+        width: 14px;
+        height: 14px;
+    }
+
+    /* Save / Delete icon buttons */
+    .btn-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Footer radio labels */
+    .radio-label {
+        font-size: 0.75rem;
+        gap: 0.3rem;
+    }
+
+    .radio-dot {
+        width: 13px;
+        height: 13px;
+    }
+
+    /* Vessel Data tab buttons */
+    .clear-input-btn {
+        padding: 0.35rem 0.9rem;
+        font-size: 0.76rem;
+    }
+
+    .change-vessel-btn-row {
+        padding: 0.15rem 0;
     }
 }
 
@@ -2763,7 +2859,19 @@
     padding: 0.25rem 0;
 }
 
+.change-vessel-btn {
+    width: 170px;
+    padding: 0.5rem 1.2rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
 .clear-input-btn {
+    width: 170px;
     padding: 0.5rem 1.2rem;
     background: white;
     border: 1.5px solid #e57373;

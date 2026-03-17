@@ -90,7 +90,7 @@ const Project: React.FC = () => {
         const updateChartSize = () => {
             const w = window.innerWidth;
             if (w <= 1024) setChartSize(380);
-            else if (w <= 1280) setChartSize(450);
+            else if (w <= 1280) setChartSize(500);
             else if (w <= 1440) setChartSize(520);
             else if (w <= 1680) setChartSize(600);
             else if (w <= 1920) setChartSize(680);
