@@ -432,7 +432,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         // Draw stitched chains with solid stroke
         ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.strokeStyle = 'rgba(120, 120, 120, 0.92)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         for (const chain of chains) {

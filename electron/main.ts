@@ -1,8 +1,53 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import { spawnSync } from 'child_process';
 
 const isDev = !app.isPackaged;
+
+// ─── ABS License Check ───────────────────────────────────────────────────────
+const PRODUCT_NAME = 'PLRAPP10UAT';
+const MAJOR_VER = 1;
+const MINOR_VER = 0;
+
+function checkLicense(): boolean {
+  // Skip license check in dev mode
+  if (isDev) return true;
+
+  const appDir = path.dirname(app.getPath('exe'));
+  const licExe  = path.join(appDir, 'LicChkSrcEXE.exe');
+  const licDll1 = path.join(appDir, 'ABS.Licensing.dll');
+  const licDll2 = path.join(appDir, 'abs.licensing.core.dll');
+
+  // Verify required files are present
+  for (const f of [licExe, licDll1, licDll2]) {
+    if (!fs.existsSync(f)) {
+      dialog.showErrorBox(
+        'License Error',
+        `Required licensing file not found:\n${f}\n\nPlease contact your system administrator.`
+      );
+      return false;
+    }
+  }
+
+  // Run license check: LicChkSrcEXE.exe <product> <major>.<minor> "<appPath>"
+  const result = spawnSync(
+    licExe,
+    [`${PRODUCT_NAME}`, `${MAJOR_VER}.${MINOR_VER}`, appDir],
+    { encoding: 'utf-8', timeout: 15000 }
+  );
+
+  if (result.status !== 0) {
+    dialog.showErrorBox(
+      'License Validation Failed',
+      'This software is not licensed for use on this machine.\n\nPlease contact your ABS representative to obtain a valid license.'
+    );
+    return false;
+  }
+
+  return true;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -38,7 +83,13 @@ function createWindow() {
   });
 }
 
-app.on('ready', createWindow);
+app.on('ready', () => {
+  if (!checkLicense()) {
+    app.quit();
+    return;
+  }
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

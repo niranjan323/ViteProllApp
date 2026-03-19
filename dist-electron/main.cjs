@@ -3,7 +3,36 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path = require("path");
 const fs = require("fs");
+const child_process_1 = require("child_process");
 const isDev = !electron_1.app.isPackaged;
+// ─── ABS License Check ───────────────────────────────────────────────────────
+const PRODUCT_NAME = 'PLRAPP10UAT';
+const MAJOR_VER = 1;
+const MINOR_VER = 0;
+function checkLicense() {
+    // Skip license check in dev mode
+    if (isDev)
+        return true;
+    const appDir = path.dirname(electron_1.app.getPath('exe'));
+    const licExe = path.join(appDir, 'LicChkSrcEXE.exe');
+    const licDll1 = path.join(appDir, 'ABS.Licensing.dll');
+    const licDll2 = path.join(appDir, 'abs.licensing.core.dll');
+    // Verify required files are present
+    for (const f of [licExe, licDll1, licDll2]) {
+        if (!fs.existsSync(f)) {
+            electron_1.dialog.showErrorBox('License Error', `Required licensing file not found:\n${f}\n\nPlease contact your system administrator.`);
+            return false;
+        }
+    }
+    // Run license check: LicChkSrcEXE.exe <product> <major>.<minor> "<appPath>"
+    const result = (0, child_process_1.spawnSync)(licExe, [`${PRODUCT_NAME}`, `${MAJOR_VER}.${MINOR_VER}`, appDir], { encoding: 'utf-8', timeout: 15000 });
+    if (result.status !== 0) {
+        electron_1.dialog.showErrorBox('License Validation Failed', 'This software is not licensed for use on this machine.\n\nPlease contact your ABS representative to obtain a valid license.');
+        return false;
+    }
+    return true;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 let mainWindow = null;
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
@@ -33,7 +62,13 @@ function createWindow() {
         mainWindow = null;
     });
 }
-electron_1.app.on('ready', createWindow);
+electron_1.app.on('ready', () => {
+    if (!checkLicense()) {
+        electron_1.app.quit();
+        return;
+    }
+    createWindow();
+});
 electron_1.app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         electron_1.app.quit();

@@ -61,6 +61,20 @@
     "directories": {
       "buildResources": "public"
     },
+    "extraFiles": [
+      {
+        "from": "licensing/LicChkSrcEXE.exe",
+        "to": "LicChkSrcEXE.exe"
+      },
+      {
+        "from": "licensing/ABS.Licensing.dll",
+        "to": "ABS.Licensing.dll"
+      },
+      {
+        "from": "licensing/abs.licensing.core.dll",
+        "to": "abs.licensing.core.dll"
+      }
+    ],
     "win": {
       "target": "nsis",
       "icon": "public/icon.ico"
