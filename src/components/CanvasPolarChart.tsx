@@ -300,7 +300,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         // 1. Build boolean grid (each grid point = danger or safe)
         // 2. Marching squares → diagonal + axis-aligned segments for smooth outline
         // 3. Stitch adjacent segments into long chains → consistent dash flow
-        const cStep = 6; // grid step in pixels (must be even for integer edge midpoints)
+        const cStep = 2; // grid step in pixels (must be even for integer edge midpoints)
         const cW = Math.ceil(width / cStep) + 2;
         const cH = Math.ceil(height / cStep) + 2;
         const cGrid = new Uint8Array(cW * cH); // 0 = safe/outside, 1 = danger
@@ -432,8 +432,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         // Draw stitched chains with solid stroke
         ctx.save();
-        ctx.strokeStyle = 'rgba(120, 120, 120, 0.92)';
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         for (const chain of chains) {
             ctx.moveTo(chain[0][0], chain[0][1]);

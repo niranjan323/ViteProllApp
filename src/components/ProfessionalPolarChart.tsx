@@ -141,6 +141,142 @@ export const ProfessionalPolarChart: React.FC<ProfessionalPolarChartProps> = ({
         return trace;
     }, [rollMatrix, speeds, headings, vesselHeading, maxRollAngle, mode, orientation]);
 
+    // Boundary isoline via Marching Squares — draws exact line segments, no gaps possible
+    const boundaryTrace = useMemo(() => {
+        const numA = 1080;  // angular cells (0.33° each)
+        const numR = 400;   // radial cells (0.0625kn each)
+        const maxSpeed = 25;
+        const threshold = maxRollAngle;
+        const maxSpeedVal = Math.max(...speeds);
+        const dA = 360 / numA;
+        const dR = maxSpeed / numR;
+
+        const getRoll = (radius: number, angle: number): number => {
+            const sf = (radius * (speeds.length - 1)) / maxSpeedVal;
+            const af = (angle * (headings.length - 1)) / 360;
+            const s0 = Math.min(Math.floor(sf), speeds.length - 1);
+            const s1 = Math.min(s0 + 1, speeds.length - 1);
+            const a0i = Math.floor(af);
+            const a1i = (a0i + 1) % headings.length;
+            const sw = sf - s0, aw = af - a0i;
+            const v00 = rollMatrix[s0]?.[a0i] ?? 0;
+            const v01 = rollMatrix[s0]?.[a1i] ?? 0;
+            const v10 = rollMatrix[s1]?.[a0i] ?? 0;
+            const v11 = rollMatrix[s1]?.[a1i] ?? 0;
+            return (v00 * (1 - sw) + v10 * sw) * (1 - aw) + (v01 * (1 - sw) + v11 * sw) * aw;
+        };
+
+        // Interpolate crossing position along an edge: fraction t where value = threshold
+        const frac = (v0: number, v1: number): number =>
+            Math.abs(v1 - v0) > 1e-10 ? (threshold - v0) / (v1 - v0) : 0.5;
+
+        const toDisplay = (angle: number): number => {
+            const a = ((angle % 360) + 360) % 360;
+            return orientation === 'heads-up' ? (a - vesselHeading + 360) % 360 : a;
+        };
+
+        const rSeg: (number)[] = [];
+        const tSeg: (number)[] = [];
+
+        const pushSeg = (rA: number, angA: number, rB: number, angB: number) => {
+            rSeg.push(rA, rB, NaN);
+            tSeg.push(toDisplay(angA), toDisplay(angB), NaN);
+        };
+
+        for (let ai = 0; ai < numA; ai++) {
+            const angL = ai * dA;
+            // Use 360 for last cell's right edge to avoid wrap-around angle issues
+            const angR = ai < numA - 1 ? (ai + 1) * dA : 360;
+
+            for (let ri = 0; ri < numR; ri++) {
+                const rBot = ri * dR;
+                const rTop = (ri + 1) * dR;
+
+                // Corner values: BL=bottom-left, BR=bottom-right, TR=top-right, TL=top-left
+                const vBL = getRoll(rBot, angL);
+                const vBR = getRoll(rBot, angR);
+                const vTR = getRoll(rTop, angR);
+                const vTL = getRoll(rTop, angL);
+
+                // Marching squares case index (bit per corner)
+                const idx = (vBL >= threshold ? 1 : 0)
+                    | (vBR >= threshold ? 2 : 0)
+                    | (vTR >= threshold ? 4 : 0)
+                    | (vTL >= threshold ? 8 : 0);
+
+                if (idx === 0 || idx === 15) continue; // all same side — no boundary here
+
+                // Edge crossing point calculators
+                const eBot = (): [number, number] => [rBot,  angL + frac(vBL, vBR) * dA];
+                const eRgt = (): [number, number] => [rBot + frac(vBR, vTR) * dR, angR];
+                const eTop = (): [number, number] => [rTop,  angR - frac(vTR, vTL) * dA];
+                const eLft = (): [number, number] => [rTop - frac(vTL, vBL) * dR, angL];
+
+                switch (idx) {
+                    case  1: case 14: { const [r1,a1]=eBot(); const [r2,a2]=eLft(); pushSeg(r1,a1,r2,a2); break; }
+                    case  2: case 13: { const [r1,a1]=eBot(); const [r2,a2]=eRgt(); pushSeg(r1,a1,r2,a2); break; }
+                    case  3: case 12: { const [r1,a1]=eLft(); const [r2,a2]=eRgt(); pushSeg(r1,a1,r2,a2); break; }
+                    case  4: case 11: { const [r1,a1]=eTop(); const [r2,a2]=eRgt(); pushSeg(r1,a1,r2,a2); break; }
+                    case  6: case  9: { const [r1,a1]=eBot(); const [r2,a2]=eTop(); pushSeg(r1,a1,r2,a2); break; }
+                    case  7: case  8: { const [r1,a1]=eTop(); const [r2,a2]=eLft(); pushSeg(r1,a1,r2,a2); break; }
+                    // Saddle cases — disambiguate using cell center value
+                    case 5: {
+                        const cV = (vBL + vBR + vTR + vTL) / 4;
+                        if (cV >= threshold) {
+                            { const [r1,a1]=eBot(); const [r2,a2]=eRgt(); pushSeg(r1,a1,r2,a2); }
+                            { const [r1,a1]=eTop(); const [r2,a2]=eLft(); pushSeg(r1,a1,r2,a2); }
+                        } else {
+                            { const [r1,a1]=eBot(); const [r2,a2]=eLft(); pushSeg(r1,a1,r2,a2); }
+                            { const [r1,a1]=eTop(); const [r2,a2]=eRgt(); pushSeg(r1,a1,r2,a2); }
+                        }
+                        break;
+                    }
+                    case 10: {
+                        const cV = (vBL + vBR + vTR + vTL) / 4;
+                        if (cV >= threshold) {
+                            { const [r1,a1]=eBot(); const [r2,a2]=eLft(); pushSeg(r1,a1,r2,a2); }
+                            { const [r1,a1]=eTop(); const [r2,a2]=eRgt(); pushSeg(r1,a1,r2,a2); }
+                        } else {
+                            { const [r1,a1]=eBot(); const [r2,a2]=eRgt(); pushSeg(r1,a1,r2,a2); }
+                            { const [r1,a1]=eTop(); const [r2,a2]=eLft(); pushSeg(r1,a1,r2,a2); }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Outer boundary cap: where the danger zone reaches maxSpeed (outer data edge),
+        // the contour is open. Draw arc segments along the 25kn ring to close it visually.
+        const rOuter = maxSpeed;
+        const rInner = maxSpeed - dR;
+        for (let ai = 0; ai < numA; ai++) {
+            const angL = ai * dA;
+            const angR = ai < numA - 1 ? (ai + 1) * dA : 360;
+            const vTL = getRoll(rOuter, angL);
+            const vTR = getRoll(rOuter, angR);
+            const vBL = getRoll(rInner, angL);
+            const vBR = getRoll(rInner, angR);
+            // Only cap where ALL four corners are above threshold (danger zone fills entire outer cell)
+            // — these are the cells marching squares skips (idx=15) at the outer ring
+            if (vTL >= threshold && vTR >= threshold && vBL >= threshold && vBR >= threshold) {
+                pushSeg(rOuter, angL, rOuter, angR);
+            }
+        }
+
+        return {
+            type: 'scatterpolar' as const,
+            mode: 'lines+markers' as const,
+            r: rSeg,
+            theta: tSeg,
+            line: { color: 'white', width: 5 },
+            marker: { size: 5, color: 'white', symbol: 'circle' },
+            connectgaps: false,
+            showlegend: false,
+            hoverinfo: 'skip' as const,
+        } as Data;
+    }, [rollMatrix, speeds, headings, vesselHeading, maxRollAngle, orientation]);
+
     // Calculate display angles for wave and vessel
     const displayWaveAngle = orientation === 'heads-up'
         ? (meanWaveDirection - vesselHeading + 360) % 360
@@ -278,7 +414,7 @@ export const ProfessionalPolarChart: React.FC<ProfessionalPolarChartProps> = ({
 
     return (
         <Plot
-            data={[contourTrace, waveArrowTrace, vesselIndicatorTrace]}
+            data={[contourTrace, boundaryTrace, waveArrowTrace, vesselIndicatorTrace]}
             layout={layout}
             config={config}
             style={{ width: '100%', height: '100%' }}
