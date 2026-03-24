@@ -41,6 +41,26 @@ const WAVE_PERIOD_CONVERSIONS = {
     'tm-jonswap': { factor: 0.93, label: 'Mean Wave Period – JONSWAP Spectrum (mean), Tm (s)' }
 };
 
+function extractSavedCaseReportData(item: SavedCase) {
+    const c = item.parameters as AnalysisCase;
+    return {
+        caseId: item.id,
+        draftAft: c.vesselData.draftAft,
+        draftFore: c.vesselData.draftFore,
+        gm: c.vesselData.gm,
+        heading: c.vesselData.heading,
+        speed: c.vesselData.speed,
+        maxRoll: c.vesselData.maxRoll,
+        waveDirection: c.seaState.waveDirection,
+        hs: c.seaState.hs,
+        wavePeriodLabel: 'Mean Wave Period, Tz',
+        wavePeriodValue: parseFloat(c.seaState.tz.toFixed(1)),
+        fittedParams: item.fittedParams ?? null,
+        chartMode: (item.chartMode ?? 'continuous') as 'continuous' | 'traffic-light',
+        chartOrientation: (item.chartOrientation ?? 'north-up') as 'north-up' | 'heads-up',
+    };
+}
+
 const Project: React.FC = () => {
     const location = useLocation();
     const initialTab = (location.state as { activeTab?: string })?.activeTab || 'project';
@@ -444,11 +464,12 @@ const Project: React.FC = () => {
     }, [getReportData]);
 
     const handleDownloadReport = useCallback(() => {
-        let cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string }[];
+        let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string }[];
         if (reportType === 'all' && savedCases.length > 0) {
-            cases = savedCases.map(c => ({ data: getReportData(c), chartImageUrl: c.chartImageUrl }));
+            // Use the pure module-level function so no component-state closure can bleed in
+            cases = savedCases.map(c => ({ data: extractSavedCaseReportData(c), chartImageUrl: c.chartImageUrl }));
         } else if (selectedCaseForReport) {
-            cases = [{ data: getReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl }];
+            cases = [{ data: extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl }];
         } else {
             cases = [{ data: getReportData(), chartImageUrl: chartRef.current?.getImageDataURL() ?? undefined }];
         }
@@ -1146,9 +1167,9 @@ const Project: React.FC = () => {
             {/* Report Modal */}
             {showReportModal && (() => {
                 const casesToShow = reportType === 'all' && savedCases.length > 0
-                    ? savedCases.map(c => getReportData(c))
+                    ? savedCases.map(c => extractSavedCaseReportData(c))
                     : selectedCaseForReport
-                        ? [getReportData(selectedCaseForReport)]
+                        ? [extractSavedCaseReportData(selectedCaseForReport)]
                         : [getReportData()];
 
                 return (
