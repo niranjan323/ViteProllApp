@@ -223,15 +223,23 @@ const Project: React.FC = () => {
             dataFilePath: '',
         };
 
-        caseManager.addCase(caseIdToSave, newCase);
+        // Deep-copy newCase so each saved entry is completely independent
+        const savedParameters: AnalysisCase = {
+            ...newCase,
+            vesselData: { ...newCase.vesselData },
+            seaState: { ...newCase.seaState },
+        };
+        caseManager.addCase(caseIdToSave, savedParameters);
         // Compute color only for the new case using current polar data.
         // Existing cases keep their previously computed colors.
-        const newColor = getVesselSafetyColor(newCase);
+        const newColor = getVesselSafetyColor(savedParameters);
         // Capture the chart image at save time so PDF can use it per-case
         const savedChartImage = chartRef.current?.getImageDataURL();
+        // Snapshot fittedParams so later polar data loads don't affect this case
+        const savedFittedParams = fittedParams ? { ...fittedParams } : undefined;
         setSavedCases(prev => [
             ...prev,
-            { id: caseIdToSave, color: newColor, parameters: newCase, chartImageUrl: savedChartImage ?? undefined, fittedParams, chartMode, chartOrientation: chartDirection },
+            { id: caseIdToSave, color: newColor, parameters: savedParameters, chartImageUrl: savedChartImage ?? undefined, fittedParams: savedFittedParams, chartMode, chartOrientation: chartDirection },
         ]);
         setCaseId('');
         showMessage(`Case "${caseIdToSave}" saved`, 'success');
@@ -240,12 +248,7 @@ const Project: React.FC = () => {
     const handleDeleteCase = (id: string) => {
         const deleted = caseManager.deleteCase(id);
         if (deleted) {
-            const allCases = caseManager.getAllCases();
-            setSavedCases(allCases.map((c) => ({
-                id: c.id,
-                color: getVesselSafetyColor(c),
-                parameters: c,
-            })));
+            setSavedCases(prev => prev.filter(c => c.id !== id));
             showMessage(`Case "${id}" deleted`, 'success');
         }
     };
