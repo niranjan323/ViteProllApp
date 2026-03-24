@@ -394,6 +394,15 @@ const Project: React.FC = () => {
 
             // Polar diagram parameters closest to user request
             if (data.fittedParams) {
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const bottomMargin = 15;
+                // section needs: title(8) + 4 rows(32) + gap(5) + footer(10) = 55mm
+                const neededSpace = 8 + 4 * 8 + 5 + 10;
+                if (y + neededSpace > pageHeight - bottomMargin) {
+                    doc.addPage();
+                    y = 20;
+                }
+
                 doc.setFontSize(12);
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(40, 40, 40);
@@ -714,7 +723,10 @@ const Project: React.FC = () => {
                                                         ? wavePeriodDropdownRef.current.getBoundingClientRect().bottom + 4
                                                         : 0,
                                                     left: wavePeriodDropdownRef.current
-                                                        ? wavePeriodDropdownRef.current.getBoundingClientRect().left
+                                                        ? Math.min(
+                                                            wavePeriodDropdownRef.current.getBoundingClientRect().left,
+                                                            window.innerWidth - 280
+                                                          )
                                                         : 0,
                                                 }}
                                             >
