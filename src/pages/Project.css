@@ -833,46 +833,48 @@
     position: absolute;
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.7rem;
+    transform: translate(-50%, -50%);
 }
 
+/* Positions computed as: left = 50% + 54%·sin(θ), top = 50% − 54%·cos(θ)  (r > 50% → outside the circle) */
 .degree-label.deg-30 {
-    top: 15%;
-    right: 15%;
+    left: 77%;
+    top: 3%;
 }
 
 .degree-label.deg-60 {
-    top: 35%;
-    right: -5%;
+    left: 97%;
+    top: 23%;
 }
 
 .degree-label.deg-120 {
-    bottom: 35%;
-    right: -5%;
+    left: 97%;
+    top: 77%;
 }
 
 .degree-label.deg-150 {
-    bottom: 15%;
-    right: 15%;
+    left: 77%;
+    top: 97%;
 }
 
 .degree-label.deg-210 {
-    bottom: 15%;
-    left: 15%;
+    left: 23%;
+    top: 97%;
 }
 
 .degree-label.deg-240 {
-    bottom: 35%;
-    left: -5%;
+    left: 3%;
+    top: 77%;
 }
 
 .degree-label.deg-300 {
-    top: 35%;
-    left: -5%;
+    left: 3%;
+    top: 23%;
 }
 
 .degree-label.deg-330 {
-    top: 15%;
-    left: 15%;
+    left: 23%;
+    top: 3%;
 }
 
 /* Speed Labels */
