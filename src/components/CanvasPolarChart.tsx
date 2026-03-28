@@ -12,6 +12,8 @@ interface CanvasPolarChartProps {
     height?: number;
     mode?: 'continuous' | 'traffic-light';
     orientation?: 'north-up' | 'heads-up';
+    captureKey?: number;
+    onDrawn?: (dataUrl: string) => void;
 }
 
 export function normalizeAngle(angle: number): number {
@@ -130,6 +132,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
     height = 750,
     mode = 'continuous',
     orientation = 'north-up',
+    captureKey: _captureKey,
+    onDrawn,
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -854,7 +858,12 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         } // end if (isFinite(maxRollAngle)) — legend block
 
-    }, [rollMatrix, speeds, headings, vesselHeading, vesselSpeed, maxRollAngle, meanWaveDirection, width, height, mode, orientation]);
+        // Notify parent with the freshly-drawn image immediately after drawing completes
+        if (onDrawn && canvas.width > 0 && canvas.height > 0) {
+            onDrawn(canvas.toDataURL('image/png'));
+        }
+
+    }, [rollMatrix, speeds, headings, vesselHeading, vesselSpeed, maxRollAngle, meanWaveDirection, width, height, mode, orientation, _captureKey, onDrawn]);
 
     return <canvas ref={canvasRef} style={{ width: `${width}px`, height: `${height}px` }} />;
 });

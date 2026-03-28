@@ -99,6 +99,8 @@ const Project: React.FC = () => {
     const [selectedCaseForReport, setSelectedCaseForReport] = useState<SavedCase | null>(null);
     const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
     const chartRef = useRef<CanvasPolarChartHandle>(null);
+    const pendingChartCaptureRef = useRef<string | null>(null);
+    const [captureKey, setCaptureKey] = useState(0);
     const [wavePeriodDropdownOpen, setWavePeriodDropdownOpen] = useState(false);
     const wavePeriodDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -253,14 +255,15 @@ const Project: React.FC = () => {
         // Compute color only for the new case using current polar data.
         // Existing cases keep their previously computed colors.
         const newColor = getVesselSafetyColor(savedParameters);
-        // Capture the chart image at save time so PDF can use it per-case
-        const savedChartImage = chartRef.current?.getImageDataURL();
         // Snapshot fittedParams so later polar data loads don't affect this case
         const savedFittedParams = fittedParams ? { ...fittedParams } : undefined;
         setSavedCases(prev => [
             ...prev,
-            { id: caseIdToSave, color: newColor, parameters: savedParameters, chartImageUrl: savedChartImage ?? undefined, fittedParams: savedFittedParams, chartMode, chartOrientation: chartDirection },
+            { id: caseIdToSave, color: newColor, parameters: savedParameters, fittedParams: savedFittedParams, chartMode, chartOrientation: chartDirection },
         ]);
+        // Trigger a forced redraw so onDrawn fires with a fresh capture for this case
+        pendingChartCaptureRef.current = caseIdToSave;
+        setCaptureKey(k => k + 1);
         setCaseId('');
         showMessage(`Case "${caseIdToSave}" saved`, 'success');
     };
@@ -347,7 +350,18 @@ const Project: React.FC = () => {
         setShowReportModal(true);
     };
 
-    const handleDownloadPDF = useCallback((cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string }[]) => {
+    const handleChartDrawn = useCallback((dataUrl: string) => {
+        if (!pendingChartCaptureRef.current) return;
+        const capturedId = pendingChartCaptureRef.current;
+        pendingChartCaptureRef.current = null;
+        setSavedCases(prev => prev.map(c =>
+            c.id === capturedId && !c.chartImageUrl
+                ? { ...c, chartImageUrl: dataUrl }
+                : c
+        ));
+    }, []);
+
+    const handleDownloadPDF = useCallback((cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string | null }[]) => {
         const doc = new jsPDF('p', 'mm', 'a4');
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 20;
@@ -406,8 +420,10 @@ const Project: React.FC = () => {
 
             y += 5;
 
-            // Use the chart image captured at save time (per case), fall back to current chart
-            const chartImage = chartImageUrl ?? chartRef.current?.getImageDataURL();
+            // string = captured at save time; null = capture failed (don't bleed current chart); undefined = current unsaved case
+            const chartImage = chartImageUrl === undefined
+                ? chartRef.current?.getImageDataURL()
+                : chartImageUrl;
             if (chartImage) {
                 const imgSize = Math.min(contentWidth, 140);
                 const imgX = margin + (contentWidth - imgSize) / 2;
@@ -464,14 +480,14 @@ const Project: React.FC = () => {
     }, [getReportData]);
 
     const handleDownloadReport = useCallback(() => {
-        let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string }[];
+        let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];
         if (reportType === 'all' && savedCases.length > 0) {
             // Use the pure module-level function so no component-state closure can bleed in
-            cases = savedCases.map(c => ({ data: extractSavedCaseReportData(c), chartImageUrl: c.chartImageUrl }));
+            cases = savedCases.map(c => ({ data: extractSavedCaseReportData(c), chartImageUrl: c.chartImageUrl ?? null }));
         } else if (selectedCaseForReport) {
-            cases = [{ data: extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl }];
+            cases = [{ data: extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl ?? null }];
         } else {
-            cases = [{ data: getReportData(), chartImageUrl: chartRef.current?.getImageDataURL() ?? undefined }];
+            cases = [{ data: getReportData(), chartImageUrl: undefined }];
         }
 
         const doc = handleDownloadPDF(cases);
@@ -903,6 +919,8 @@ const Project: React.FC = () => {
                                         height={chartSize}
                                         mode={chartMode}
                                         orientation={chartDirection}
+                                        captureKey={captureKey}
+                                        onDrawn={handleChartDrawn}
                                     />
                                 </div>
 
@@ -1167,10 +1185,10 @@ const Project: React.FC = () => {
             {/* Report Modal */}
             {showReportModal && (() => {
                 const casesToShow = reportType === 'all' && savedCases.length > 0
-                    ? savedCases.map(c => extractSavedCaseReportData(c))
+                    ? savedCases.map(c => ({ ...extractSavedCaseReportData(c), chartImageUrl: c.chartImageUrl as string | undefined }))
                     : selectedCaseForReport
-                        ? [extractSavedCaseReportData(selectedCaseForReport)]
-                        : [getReportData()];
+                        ? [{ ...extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl as string | undefined }]
+                        : [{ ...getReportData(), chartImageUrl: undefined as string | undefined }];
 
                 return (
                     <div className="report-modal-overlay" onClick={() => setShowReportModal(false)}>
@@ -1240,20 +1258,24 @@ const Project: React.FC = () => {
                                         </div>
 
                                         <div className="report-chart-section">
-                                            {polarData.rollMatrix && polarData.speeds && polarData.headings && (
-                                                <CanvasPolarChart
-                                                    rollMatrix={polarData.rollMatrix}
-                                                    speeds={polarData.speeds}
-                                                    headings={polarData.headings}
-                                                    vesselHeading={data.heading}
-                                                    vesselSpeed={data.speed}
-                                                    maxRollAngle={data.maxRoll}
-                                                    meanWaveDirection={data.waveDirection}
-                                                    width={400}
-                                                    height={400}
-                                                    mode={data.chartMode ?? chartMode}
-                                                    orientation={data.chartOrientation ?? chartDirection}
-                                                />
+                                            {data.chartImageUrl ? (
+                                                <img src={data.chartImageUrl} style={{ width: 400, height: 400 }} />
+                                            ) : (
+                                                polarData.rollMatrix && polarData.speeds && polarData.headings && (
+                                                    <CanvasPolarChart
+                                                        rollMatrix={polarData.rollMatrix}
+                                                        speeds={polarData.speeds}
+                                                        headings={polarData.headings}
+                                                        vesselHeading={data.heading}
+                                                        vesselSpeed={data.speed}
+                                                        maxRollAngle={data.maxRoll}
+                                                        meanWaveDirection={data.waveDirection}
+                                                        width={400}
+                                                        height={400}
+                                                        mode={data.chartMode ?? chartMode}
+                                                        orientation={data.chartOrientation ?? chartDirection}
+                                                    />
+                                                )
                                             )}
                                         </div>
                                         {/* <p className="report-chart-caption">Polar diagram closest to the user request</p> */}
