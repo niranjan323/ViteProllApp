@@ -20,6 +20,8 @@ const electronAPI = {
     closeWindow: () => electron_1.ipcRenderer.send('window-close'),
     // Open URL or file
     openURL: (url) => electron_1.ipcRenderer.invoke('open-url', url),
+    // Open PDF in a new window
+    openPdfWindow: (pdfPath) => electron_1.ipcRenderer.invoke('open-pdf-window', pdfPath),
 };
 // Expose the electron API to the renderer process
 electron_1.contextBridge.exposeInMainWorld('electronAPI', electronAPI);

@@ -298,4 +298,52 @@ ipcMain.handle('open-url', async (_, url: string) => {
   }
 });
 
+/**
+ * Open a PDF in a new independent Electron window
+ */
+ipcMain.handle('open-pdf-window', async (_, pdfPath: string) => {
+  try {
+    // Resolve the PDF path
+    let filePath = pdfPath;
+    if (pdfPath.startsWith('/')) {
+      if (isDev) {
+        filePath = path.join(__dirname, '../public', pdfPath.slice(1));
+      } else {
+        filePath = path.join(__dirname, '../dist', pdfPath.slice(1));
+      }
+    }
+
+    // Create a new independent BrowserWindow for the PDF
+    const pdfWindow = new BrowserWindow({
+      title: 'PRoll Diagram User Guide',
+      width: 1000,
+      height: 800,
+      minWidth: 600,
+      minHeight: 400,
+      webPreferences: {
+        preload: undefined, // No preload for PDF window
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true,
+      },
+    });
+
+    // Load the PDF file using file:// protocol
+    const fileUrl = `file://${filePath}`;
+    await pdfWindow.loadURL(fileUrl);
+
+    // Window is independent, so we don't track it
+    pdfWindow.on('closed', () => {
+      // Window cleanup happens automatically
+    });
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to open PDF window: ${(error as Error).message}`,
+    };
+  }
+});
+
 export default app;

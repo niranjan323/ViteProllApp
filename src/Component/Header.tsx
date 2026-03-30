@@ -1,9 +1,7 @@
 // Header.tsx
 import './Header.css';
-import { useState } from 'react';
 import logo from '../assets/ABS_Logo.png';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
@@ -12,22 +10,12 @@ const handleMaximize = () => window.electronAPI?.maximizeWindow?.();
 const handleClose = () => window.electronAPI?.closeWindow?.();
 
 const Header = () => {
-    const [openModal, setOpenModal] = useState(false);
-
     const handleInfoClick = () => {
-        setOpenModal(true);
-    };
-
-    const handleCloseModal = () => {
-        setOpenModal(false);
-    };
-
-    const handleOpenPDF = () => {
         const documentUrl = '/ABS - Software Review Request Form - Eagle PRoll Diagram.pdf';
         
         if (isElectron) {
-            // Use Electron API to open the PDF
-            window.electronAPI?.openURL?.(documentUrl);
+            // Open PDF in a new independent Electron window
+            window.electronAPI?.openPdfWindow?.(documentUrl);
         } else {
             // For web/browser, use window.open
             window.open(documentUrl, '_blank');
@@ -77,39 +65,6 @@ const Header = () => {
                     </div>
                 )}
             </div>
-
-            {/* Info Modal Dialog */}
-            <Dialog 
-                open={openModal} 
-                onClose={handleCloseModal}
-                maxWidth="sm"
-                fullWidth
-            >
-                <DialogTitle>PRoll Diagram App User Guide</DialogTitle>
-                <DialogContent>
-                    <p style={{ marginTop: '16px', lineHeight: '1.6' }}>
-                        Welcome to the ABS PRoll Diagram Application. This application helps you analyze and visualize roll data for marine vessels.
-                    </p>
-                    <p>
-                        <strong>Features:</strong>
-                    </p>
-                    <ul>
-                        <li>Load and analyze vessel data</li>
-                        <li>View polar diagrams with real-time calculations</li>
-                        <li>Interactive case management system</li>
-                        <li>Export and save analysis results</li>
-                    </ul>
-                    <p>
-                        Click the "View Full Guide" button below to access the complete PDF documentation.
-                    </p>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleCloseModal}>Close</Button>
-                    <Button onClick={handleOpenPDF} variant="contained" color="primary">
-                        View Full Guide
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </header>
     );
 };

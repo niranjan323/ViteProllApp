@@ -54,6 +54,11 @@ interface FileBinaryResult {
   error?: string;
 }
 
+interface OpenWindowResult {
+  success: boolean;
+  error?: string;
+}
+
 const electronAPI = {
   // File dialog APIs
   selectFolder: (): Promise<FolderSelectResult> =>
@@ -91,6 +96,10 @@ const electronAPI = {
   // Open URL or file
   openURL: (url: string): Promise<void> =>
     ipcRenderer.invoke('open-url', url),
+
+  // Open PDF in a new window
+  openPdfWindow: (pdfPath: string): Promise<OpenWindowResult> =>
+    ipcRenderer.invoke('open-pdf-window', pdfPath),
 };
 
 // Expose the electron API to the renderer process
