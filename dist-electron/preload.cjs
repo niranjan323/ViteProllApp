@@ -18,6 +18,8 @@ const electronAPI = {
     minimizeWindow: () => electron_1.ipcRenderer.send('window-minimize'),
     maximizeWindow: () => electron_1.ipcRenderer.send('window-maximize'),
     closeWindow: () => electron_1.ipcRenderer.send('window-close'),
+    // Open URL or file
+    openURL: (url) => electron_1.ipcRenderer.invoke('open-url', url),
 };
 // Expose the electron API to the renderer process
 electron_1.contextBridge.exposeInMainWorld('electronAPI', electronAPI);

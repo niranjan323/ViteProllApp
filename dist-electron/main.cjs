@@ -243,4 +243,26 @@ electron_1.ipcMain.handle('get-file-stats', async (_, filePath) => {
         };
     }
 });
+
+electron_1.ipcMain.handle('open-url', async (_, url) => {
+    try {
+        let targetPath = url;
+        if (url.startsWith('/')) {
+            if (isDev) {
+                targetPath = path.join(__dirname, '../public', url.slice(1));
+            }
+            else {
+                targetPath = path.join(__dirname, '../dist', url.slice(1));
+            }
+        }
+        await electron_1.shell.openPath(targetPath);
+        return { success: true };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to open URL: ${error.message}`,
+        };
+    }
+});
 exports.default = electron_1.app;

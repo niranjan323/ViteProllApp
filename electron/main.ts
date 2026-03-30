@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { spawnSync } from 'child_process';
@@ -269,6 +269,31 @@ ipcMain.handle('get-file-stats', async (_, filePath: string) => {
     return {
       success: false,
       error: `Failed to get stats: ${(error as Error).message}`,
+    };
+  }
+});
+
+/**
+ * Open a URL or file with the default application
+ */
+ipcMain.handle('open-url', async (_, url: string) => {
+  try {
+    // If it's a relative path, resolve it to the app's public folder
+    let targetPath = url;
+    if (url.startsWith('/')) {
+      if (isDev) {
+        targetPath = path.join(__dirname, '../public', url.slice(1));
+      } else {
+        targetPath = path.join(__dirname, '../dist', url.slice(1));
+      }
+    }
+    
+    await shell.openPath(targetPath);
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to open URL: ${(error as Error).message}`,
     };
   }
 });
