@@ -52,6 +52,11 @@ interface FileBinaryResult {
   error?: string;
 }
 
+interface OpenWindowResult {
+  success: boolean;
+  error?: string;
+}
+
 interface ElectronAPI {
   // File dialog APIs
   selectFolder(): Promise<FolderSelectResult>;
@@ -73,6 +78,12 @@ interface ElectronAPI {
   minimizeWindow(): void;
   maximizeWindow(): void;
   closeWindow(): void;
+
+  // Open URL or file
+  openURL(url: string): Promise<void>;
+
+  // Open PDF in a new window
+  openPdfWindow(pdfPath: string): Promise<OpenWindowResult>;
 }
 
 declare global {
