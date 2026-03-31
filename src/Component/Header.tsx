@@ -11,7 +11,7 @@ const handleClose = () => window.electronAPI?.closeWindow?.();
 
 const Header = () => {
     const handleInfoClick = () => {
-        const documentUrl = '/ABS - Software Review Request Form - Eagle PRoll Diagram.pdf';
+        const documentUrl = '/ABS_Eagle_PRoll_Diagram_user_Guide_v1.0 1.pdf';
         
         if (isElectron) {
             // Open PDF in a new independent Electron window

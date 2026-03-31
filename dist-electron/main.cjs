@@ -243,9 +243,12 @@ electron_1.ipcMain.handle('get-file-stats', async (_, filePath) => {
         };
     }
 });
-
+/**
+ * Open a URL or file with the default application
+ */
 electron_1.ipcMain.handle('open-url', async (_, url) => {
     try {
+        // If it's a relative path, resolve it to the app's public folder
         let targetPath = url;
         if (url.startsWith('/')) {
             if (isDev) {
@@ -265,7 +268,9 @@ electron_1.ipcMain.handle('open-url', async (_, url) => {
         };
     }
 });
-
+/**
+ * Open a PDF in a new independent Electron window
+ */
 electron_1.ipcMain.handle('open-pdf-window', async (_, pdfPath) => {
     try {
         // Resolve the PDF path
