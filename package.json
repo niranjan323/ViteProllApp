@@ -52,7 +52,7 @@
   },
   "build": {
     "appId": "com.abs.proll",
-    "productName": "Polar Response Visualization",
+    "productName": "PRoll Diagram",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",

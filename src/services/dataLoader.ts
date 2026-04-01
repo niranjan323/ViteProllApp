@@ -263,15 +263,16 @@ export class DataLoader {
         };
       }
 
-      // Extract the numeric draft value directly from the folder name (e.g. "Draft=11m" → 11)
-      const draftNumMatch = draftFolder.match(/[\d.]+/);
+      // Extract the numeric draft value directly from the folder name 
+      // Format: "Draft=15.90m" → 15.90 (supports decimal places)
+      const draftNumMatch = draftFolder.match(/Draft=(\d+(?:\.\d+)?)m/i);
       if (!draftNumMatch) {
         return {
           success: false,
-          error: `Draft folder "${draftFolder}" does not contain a numeric draft value. Expected format: "Draft=11m"`,
+          error: `Draft folder "${draftFolder}" does not contain a numeric draft value. Expected format: "Draft=15.90m"`,
         };
       }
-      const fittedDraft = parseFloat(draftNumMatch[0]);
+      const fittedDraft = parseFloat(draftNumMatch[1]);
 
       const draftPath = draftFolder;
 
@@ -317,17 +318,30 @@ export class DataLoader {
 
   /**
    * Find the closest matching folder by numeric value
+   * Supports folder naming patterns like "Draft=15.90m", "GM=1.5m"
    */
   private findClosestMatch(folders: string[], targetValue: number, _prefix: string): string | null {
     let closest: string | null = null;
     let minDiff = Infinity;
 
     for (const folder of folders) {
-      // Extract numeric value from folder name (e.g., "GM=1.5m" -> 1.5)
-      const match = folder.match(/[\d.]+/);
-      if (!match) continue;
+      // Extract numeric value from folder name, supporting decimal places
+      // Matches patterns like "Draft=15.90m" -> 15.90, "GM=1.5m" -> 1.5
+      const match = folder.match(/=(\d+(?:\.\d+)?)(?:m)?$/i);
+      if (!match) {
+        // Fallback to generic digit/decimal pattern for compatibility
+        const fallback = folder.match(/[\d.]+/);
+        if (!fallback) continue;
+        const value = parseFloat(fallback[0]);
+        const diff = Math.abs(value - targetValue);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = folder;
+        }
+        continue;
+      }
 
-      const value = parseFloat(match[0]);
+      const value = parseFloat(match[1]);
       const diff = Math.abs(value - targetValue);
 
       if (diff < minDiff) {

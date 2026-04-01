@@ -54,7 +54,7 @@ function extractSavedCaseReportData(item: SavedCase) {
         waveDirection: c.seaState.waveDirection,
         hs: c.seaState.hs,
         wavePeriodLabel: 'Mean Wave Period, Tz',
-        wavePeriodValue: parseFloat(c.seaState.tz.toFixed(1)),
+        wavePeriodValue: parseFloat(c.seaState.tz.toFixed(2)),
         fittedParams: item.fittedParams ?? null,
         chartMode: (item.chartMode ?? 'continuous') as 'continuous' | 'traffic-light',
         chartOrientation: (item.chartOrientation ?? 'north-up') as 'north-up' | 'heads-up',
@@ -170,7 +170,7 @@ const Project: React.FC = () => {
     const displayedWavePeriod = useMemo(() => {
         const factor = WAVE_PERIOD_CONVERSIONS[wavePeriodType].factor;
         const raw = userInputData.seaState.wavePeriod / factor;
-        return isNaN(raw) ? raw : parseFloat(raw.toFixed(1));
+        return isNaN(raw) ? raw : parseFloat(raw.toFixed(2));
     }, [userInputData.seaState.wavePeriod, wavePeriodType]);
 
     // Calculate displayed range based on selected type
@@ -312,7 +312,7 @@ const Project: React.FC = () => {
                 hs: c.seaState.hs,
                 // Saved cases always store internal Tz
                 wavePeriodLabel: 'Mean Wave Period, Tz',
-                wavePeriodValue: parseFloat(c.seaState.tz.toFixed(1)),
+                wavePeriodValue: parseFloat(c.seaState.tz.toFixed(2)),
                 fittedParams: caseItem.fittedParams ?? null,
                 chartMode: caseItem.chartMode ?? 'continuous',
                 chartOrientation: caseItem.chartOrientation ?? 'north-up',
@@ -574,7 +574,7 @@ const Project: React.FC = () => {
             label: 'Draft Aft Peak',
             value: userInputData.vesselOperation.draftAftPeak,
             unit: '[m]',
-            range: parameterBounds ? `value range [${parameterBounds.draftLower.toFixed(1)}-${parameterBounds.draftUpper.toFixed(1)} m]` : '',
+            range: parameterBounds ? `value range [${parameterBounds.draftLower.toFixed(2)}-${parameterBounds.draftUpper.toFixed(2)} m]` : '',
             onChange: (val: number) => updateVesselOperation({ draftAftPeak: val }),
             isInvalid: validation?.draftAft.outOfRange || false
         },
@@ -582,7 +582,7 @@ const Project: React.FC = () => {
             label: 'Draft Fore Peak',
             value: userInputData.vesselOperation.draftForePeak,
             unit: '[m]',
-            range: parameterBounds ? `value range [${parameterBounds.draftLower.toFixed(1)}-${parameterBounds.draftUpper.toFixed(1)} m]` : '',
+            range: parameterBounds ? `value range [${parameterBounds.draftLower.toFixed(2)}-${parameterBounds.draftUpper.toFixed(2)} m]` : '',
             onChange: (val: number) => updateVesselOperation({ draftForePeak: val }),
             isInvalid: validation?.draftFore.outOfRange || false
         },
@@ -590,7 +590,7 @@ const Project: React.FC = () => {
             label: 'Metacentric Height (GM)',
             value: userInputData.vesselOperation.gm,
             unit: '[m]',
-            range: parameterBounds ? `value range [${parameterBounds.gmLower.toFixed(1)}-${parameterBounds.gmUpper.toFixed(1)} m]` : '',
+            range: parameterBounds ? `value range [${parameterBounds.gmLower.toFixed(2)}-${parameterBounds.gmUpper.toFixed(2)} m]` : '',
             onChange: (val: number) => updateVesselOperation({ gm: val }),
             isInvalid: validation?.gm.outOfRange || false
         },
@@ -606,7 +606,7 @@ const Project: React.FC = () => {
             label: 'Speed',
             value: userInputData.vesselOperation.speed,
             unit: '[kn]',
-            range: parameterBounds ? `value range [${parameterBounds.speedLower.toFixed(1)}-${parameterBounds.speedUpper.toFixed(1)} kn]` : '',
+            range: parameterBounds ? `value range [${parameterBounds.speedLower.toFixed(2)}-${parameterBounds.speedUpper.toFixed(2)} kn]` : '',
             onChange: (val: number) => updateVesselOperation({ speed: val }),
             isInvalid: validation?.speed.outOfRange || false
         },
@@ -614,7 +614,7 @@ const Project: React.FC = () => {
             label: 'Max Allowed Roll',
             value: userInputData.vesselOperation.maxAllowedRoll,
             unit: '[degree]',
-            range: parameterBounds ? `value range [${parameterBounds.rollLower.toFixed(1)}-${parameterBounds.rollUpper.toFixed(1)} degree]` : '',
+            range: parameterBounds ? `value range [${parameterBounds.rollLower.toFixed(2)}-${parameterBounds.rollUpper.toFixed(2)} degree]` : '',
             onChange: (val: number) => updateVesselOperation({ maxAllowedRoll: val }),
             isInvalid: validation?.maxRoll.outOfRange || false
         }
@@ -633,7 +633,7 @@ const Project: React.FC = () => {
             label: 'Significant Wave Height',
             value: userInputData.seaState.significantWaveHeight,
             unit: '[m]',
-            range: parameterBounds ? `value range [${parameterBounds.hsLower.toFixed(1)}-${parameterBounds.hsUpper.toFixed(1)} m]` : '',
+            range: parameterBounds ? `value range [${parameterBounds.hsLower.toFixed(2)}-${parameterBounds.hsUpper.toFixed(2)} m]` : '',
             onChange: (val: number) => updateSeaState({ significantWaveHeight: val }),
             isInvalid: validation?.hs.outOfRange || false
         }
@@ -743,7 +743,7 @@ const Project: React.FC = () => {
                                                     />
                                                     {displayedWavePeriodRange && (
                                                         <span className="input-tooltip">
-                                                            {`value range [${displayedWavePeriodRange.lower.toFixed(1)}-${displayedWavePeriodRange.upper.toFixed(1)} s]`}
+                                                            {`value range [${displayedWavePeriodRange.lower.toFixed(2)}-${displayedWavePeriodRange.upper.toFixed(2)} s]`}
                                                         </span>
                                                     )}
                                                 </div>
@@ -751,7 +751,7 @@ const Project: React.FC = () => {
                                         </div>
                                         <div className="input-range">
                                             {displayedWavePeriodRange ?
-                                                `value range [${displayedWavePeriodRange.lower.toFixed(1)}-${displayedWavePeriodRange.upper.toFixed(1)} s]`
+                                                `value range [${displayedWavePeriodRange.lower.toFixed(2)}-${displayedWavePeriodRange.upper.toFixed(2)} s]`
                                                 : ''}
                                         </div>
                                         {wavePeriodDropdownOpen && (
