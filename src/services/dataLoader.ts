@@ -247,7 +247,7 @@ export class DataLoader {
       // Expected naming convention: "Draft=11m", "Draft=15m", "Draft=16m"
       // Filter out files (entries with extensions like .ctl)
       const rootEntries = await this.fs.listDirectory('');
-      const draftCandidates = rootEntries.filter(e => !e.includes('.'));
+      const draftCandidates = rootEntries.filter(e => /^Draft=/i.test(e));
       console.log('Draft folder candidates:', draftCandidates);
 
       // Only numeric-named folders are supported (e.g. Draft=11m)
