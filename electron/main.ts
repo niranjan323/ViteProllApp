@@ -6,7 +6,7 @@ import { spawnSync } from 'child_process';
 const isDev = !app.isPackaged;
 
 // ─── ABS License Check ───────────────────────────────────────────────────────
-const PRODUCT_NAME = 'PRollDig261.EAT';
+const PRODUCT_NAME = 'PRollDig261EAT';
 const MAJOR_VER = 1;
 const MINOR_VER = 0;
 
@@ -34,7 +34,7 @@ function checkLicense(): boolean {
   const result = spawnSync(
     licExe,
     [`${PRODUCT_NAME}`, `${MAJOR_VER}.${MINOR_VER}`, appDir],
-    { encoding: 'utf-8', timeout: 15000 }
+    { encoding: 'utf-8' }
   );
 
   if (result.status !== 0) {
