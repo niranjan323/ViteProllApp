@@ -313,4 +313,269 @@ electron_1.ipcMain.handle('open-pdf-window', async (_, pdfPath) => {
         };
     }
 });
+// ─── LICENSING SYSTEM ───────────────────────────────────────────────────────
+// Import licensing services
+const licenseManager_1 = require("./services/licenseManager.cjs");
+const emailService_1 = require("./services/emailService.cjs");
+const machineIdentifier_1 = require("./services/machineIdentifier.cjs");
+// Shared secret for license signing (in production, use environment variables)
+const LICENSE_SECRET_KEY = process.env.LICENSE_SECRET || 'default-secret-key-change-in-production';
+/**
+ * IPC: Generate a new license request
+ */
+electron_1.ipcMain.handle('license:generate-request', async (_, contactEmail, organizationName) => {
+    try {
+        const { xmlContent, filePath } = (0, licenseManager_1.generateLicenseRequest)(contactEmail, organizationName);
+        return {
+            success: true,
+            xmlContent,
+            filePath,
+            machineId: (0, machineIdentifier_1.generateMachineId)(),
+        };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to generate license request: ${error.message}`,
+        };
+    }
+});
+/**
+ * IPC: Get machine information (for user reference)
+ */
+electron_1.ipcMain.handle('license:get-machine-info', async () => {
+    try {
+        const info = (0, machineIdentifier_1.getMachineInfo)();
+        return {
+            success: true,
+            machineId: info.machineId,
+            hostname: info.hostname,
+            platform: info.platform,
+        };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to get machine info: ${error.message}`,
+        };
+    }
+});
+/**
+ * IPC: Get license status
+ */
+electron_1.ipcMain.handle('license:get-status', async () => {
+    try {
+        const info = (0, licenseManager_1.getLicenseInfo)();
+        return {
+            success: true,
+            installed: info.installed,
+            expiresIn: info.expiresIn,
+            machineId: info.machineId,
+        };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to get license status: ${error.message}`,
+        };
+    }
+});
+/**
+ * IPC: Validate current license
+ */
+electron_1.ipcMain.handle('license:validate', async () => {
+    try {
+        const result = (0, licenseManager_1.validateLicense)(LICENSE_SECRET_KEY);
+        return {
+            success: result.valid,
+            valid: result.valid,
+            reason: result.reason,
+            expiresIn: result.expiresIn,
+        };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to validate license: ${error.message}`,
+        };
+    }
+});
+/**
+ * IPC: Install a license file
+ * Expects base64-encoded license file content
+ */
+electron_1.ipcMain.handle('license:install', async (_, licenseContent) => {
+    try {
+        // Parse the license data (expecting JSON)
+        const licenseData = JSON.parse(Buffer.from(licenseContent, 'base64').toString('utf-8'));
+        // Validate the license before saving
+        if (!licenseData.licenseKey || !licenseData.machineId) {
+            return {
+                success: false,
+                error: 'Invalid license file format',
+            };
+        }
+        // Save to disk
+        const saved = (0, licenseManager_1.saveLicense)(licenseData);
+        if (!saved) {
+            return {
+                success: false,
+                error: 'Failed to save license file',
+            };
+        }
+        // Validate the newly installed license
+        const validation = (0, licenseManager_1.validateLicense)(LICENSE_SECRET_KEY, licenseData);
+        if (!validation.valid) {
+            (0, licenseManager_1.removeLicense)();
+            return {
+                success: false,
+                error: `License validation failed: ${validation.reason}`,
+            };
+        }
+        return {
+            success: true,
+            message: 'License installed successfully',
+            expiresIn: validation.expiresIn,
+        };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to install license: ${error.message}`,
+        };
+    }
+});
+/**
+ * IPC: Remove the current license
+ */
+electron_1.ipcMain.handle('license:remove', async () => {
+    try {
+        const removed = (0, licenseManager_1.removeLicense)();
+        return {
+            success: removed,
+            message: removed ? 'License removed' : 'No license to remove',
+        };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to remove license: ${error.message}`,
+        };
+    }
+});
+/**
+ * IPC: Open license request in email client
+ */
+electron_1.ipcMain.handle('license:open-email', async (_, recipient) => {
+    try {
+        const requestPath = (0, licenseManager_1.getLicenseRequestPath)();
+        if (!requestPath) {
+            return {
+                success: false,
+                error: 'No license request found. Please generate one first.',
+            };
+        }
+        const emailOpened = await (0, emailService_1.openEmailClientWithLicense)(requestPath, recipient);
+        if (!emailOpened) {
+            return {
+                success: false,
+                error: 'Failed to open email client',
+            };
+        }
+        return {
+            success: true,
+            message: 'Email client opened. Please attach the license request file.',
+            requestPath,
+            // Also return the template text for manual entry
+            emailTemplate: (0, emailService_1.getEmailTemplate)(requestPath),
+        };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to open email: ${error.message}`,
+        };
+    }
+});
+/**
+ * IPC: Open license request folder in Windows Explorer
+ */
+electron_1.ipcMain.handle('license:open-folder', async (_, folderPath) => {
+    try {
+        const path_module = require('path');
+        const { app } = require('electron');
+        const requestDir = folderPath || path_module.join(app.getPath('userData'), 'license-requests');
+        const folderOpened = await (0, emailService_1.openLicenseRequestFolder)(requestDir);
+        if (!folderOpened) {
+            return {
+                success: false,
+                error: 'Failed to open folder',
+            };
+        }
+        return {
+            success: true,
+            message: 'License request folder opened',
+            folderPath: requestDir,
+        };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to open folder: ${error.message}`,
+        };
+    }
+});
+/**
+ * IPC: Get license history (for debugging)
+ */
+electron_1.ipcMain.handle('license:get-history', async () => {
+    try {
+        const history = (0, licenseManager_1.getLicenseHistory)();
+        return {
+            success: true,
+            ...history,
+        };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to get history: ${error.message}`,
+        };
+    }
+});
+/**
+ * IPC: Select and upload a license file
+ */
+electron_1.ipcMain.handle('license:select-file', async () => {
+    if (!mainWindow)
+        return { success: false, error: 'Window not ready' };
+    try {
+        const result = await electron_1.dialog.showOpenDialog(mainWindow, {
+            properties: ['openFile'],
+            title: 'Select License File',
+            filters: [
+                { name: 'License Files', extensions: ['json', 'lic', 'xml'] },
+                { name: 'All Files', extensions: ['*'] },
+            ],
+        });
+        if (result.canceled) {
+            return { success: false, canceled: true };
+        }
+        const filePath = result.filePaths[0];
+        const licenseContent = fs.readFileSync(filePath, 'utf-8');
+        const base64Content = Buffer.from(licenseContent).toString('base64');
+        return {
+            success: true,
+            base64Content,
+            fileName: path.basename(filePath),
+        };
+    }
+    catch (error) {
+        return {
+            success: false,
+            error: `Failed to read license file: ${error.message}`,
+        };
+    }
+});
+// ─────────────────────────────────────────────────────────────────────────────
 exports.default = electron_1.app;

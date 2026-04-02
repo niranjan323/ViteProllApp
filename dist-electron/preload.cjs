@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
+// ─────────────────────────────────────────────────────────────────────────────
 const electronAPI = {
     // File dialog APIs
     selectFolder: () => electron_1.ipcRenderer.invoke('select-folder'),
@@ -22,6 +23,50 @@ const electronAPI = {
     openURL: (url) => electron_1.ipcRenderer.invoke('open-url', url),
     // Open PDF in a new window
     openPdfWindow: (pdfPath) => electron_1.ipcRenderer.invoke('open-pdf-window', pdfPath),
+    // ─── LICENSING SYSTEM APIS ───────────────────────────────────────────────
+    license: {
+        /**
+         * Generate a new license request XML file
+         */
+        generateRequest: (contactEmail, organizationName) => electron_1.ipcRenderer.invoke('license:generate-request', contactEmail, organizationName),
+        /**
+         * Get current machine information
+         */
+        getMachineInfo: () => electron_1.ipcRenderer.invoke('license:get-machine-info'),
+        /**
+         * Get license installation status
+         */
+        getStatus: () => electron_1.ipcRenderer.invoke('license:get-status'),
+        /**
+         * Validate the current license
+         */
+        validate: () => electron_1.ipcRenderer.invoke('license:validate'),
+        /**
+         * Install a license file (base64 encoded content)
+         */
+        install: (licenseContent) => electron_1.ipcRenderer.invoke('license:install', licenseContent),
+        /**
+         * Remove the current license
+         */
+        remove: () => electron_1.ipcRenderer.invoke('license:remove'),
+        /**
+         * Open the default email client for sending license request
+         */
+        openEmail: (recipient) => electron_1.ipcRenderer.invoke('license:open-email', recipient),
+        /**
+         * Open license request folder in Windows Explorer
+         */
+        openFolder: (folderPath) => electron_1.ipcRenderer.invoke('license:open-folder', folderPath),
+        /**
+         * Get license history (for debugging)
+         */
+        getHistory: () => electron_1.ipcRenderer.invoke('license:get-history'),
+        /**
+         * Select and load a license file
+         */
+        selectFile: () => electron_1.ipcRenderer.invoke('license:select-file'),
+    },
+    // ─────────────────────────────────────────────────────────────────────────
 };
 // Expose the electron API to the renderer process
 electron_1.contextBridge.exposeInMainWorld('electronAPI', electronAPI);
