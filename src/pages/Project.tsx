@@ -11,6 +11,20 @@ import { CanvasPolarChart, interpolateRoll } from '../components/CanvasPolarChar
 import type { CanvasPolarChartHandle } from '../components/CanvasPolarChart';
 import { jsPDF } from 'jspdf';
 
+function buildWatermarkTimestamp(): string {
+    const now = new Date();
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    const d = String(now.getDate()).padStart(2, '0');
+    const m = months[now.getMonth()];
+    const y = now.getFullYear();
+    const h = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    const tzAbbr = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() ?? '';
+    return `${m} ${d}, ${y} ${h}:${min}:${s} ${tzAbbr}`;
+}
+
 // SVG icon imports
 import saveCaseGreenIcon from '../assets/save case_green.svg';
 import _saveCaseGrayIcon from '../assets/save case_gray.svg'; // used for disabled state
@@ -103,6 +117,12 @@ const Project: React.FC = () => {
     const [captureKey, setCaptureKey] = useState(0);
     const [wavePeriodDropdownOpen, setWavePeriodDropdownOpen] = useState(false);
     const wavePeriodDropdownRef = useRef<HTMLDivElement>(null);
+
+    // System info for PDF watermarks (Electron only)
+    const [systemInfo, setSystemInfo] = useState<{ username: string; hostname: string } | null>(null);
+    useEffect(() => {
+        window.electronAPI?.getSystemInfo?.().then(info => setSystemInfo(info)).catch(() => {});
+    }, []);
 
     const handleChangeVesselData = () => { navigate('/'); };
 
@@ -363,6 +383,9 @@ const Project: React.FC = () => {
 
     const handleDownloadPDF = useCallback((cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string | null }[]) => {
         const doc = new jsPDF('p', 'mm', 'a4');
+        const watermarkText = systemInfo
+            ? `Authorized to ABS PRoll Diagram App software licensed user ${systemInfo.username} (${systemInfo.hostname}) only, ${buildWatermarkTimestamp()}, copyright ${new Date().getFullYear()} by ABS. All rights reserved.`
+            : `Authorized to ABS PRoll Diagram App, copyright ${new Date().getFullYear()} by ABS. All rights reserved.`;
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 20;
         const contentWidth = pageWidth - margin * 2;
@@ -476,8 +499,21 @@ const Project: React.FC = () => {
             doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
         });
 
+        // Apply vertical watermark to every page (right margin, reads bottom-to-top)
+        const totalPages = doc.getNumberOfPages();
+        for (let p = 1; p <= totalPages; p++) {
+            doc.setPage(p);
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(97, 97, 97);
+            // angle: -90 = clockwise rotation → text reads top-to-bottom along the right margin
+            doc.text(watermarkText, pageWidth - 5, pageHeight / 2, { angle: -90, align: 'center' });
+        }
+
         return doc;
-    }, [getReportData]);
+    }, [getReportData, systemInfo]);
 
     const handleDownloadReport = useCallback(() => {
         let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];

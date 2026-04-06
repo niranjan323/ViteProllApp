@@ -22,6 +22,8 @@ const electronAPI = {
     openURL: (url) => electron_1.ipcRenderer.invoke('open-url', url),
     // Open PDF in a new window
     openPdfWindow: (pdfPath) => electron_1.ipcRenderer.invoke('open-pdf-window', pdfPath),
+    // Get OS username and hostname for watermark text
+    getSystemInfo: () => electron_1.ipcRenderer.invoke('get-system-info'),
 };
 // Expose the electron API to the renderer process
 electron_1.contextBridge.exposeInMainWorld('electronAPI', electronAPI);

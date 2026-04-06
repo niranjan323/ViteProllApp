@@ -3,10 +3,53 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const child_process_1 = require("child_process");
+const pdf_lib_1 = require("pdf-lib");
 const isDev = !electron_1.app.isPackaged;
+// ─── Watermark Helpers ────────────────────────────────────────────────────────
+function buildWatermarkTimestamp() {
+    const now = new Date();
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    const d = String(now.getDate()).padStart(2, '0');
+    const m = months[now.getMonth()];
+    const y = now.getFullYear();
+    const h = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    const tzAbbr = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() ?? '';
+    return `${m} ${d}, ${y} ${h}:${min}:${s} ${tzAbbr}`;
+}
+function buildWatermarkText(username, hostname) {
+    const year = new Date().getFullYear();
+    return `Authorized to ABS PRoll Diagram App software licensed user ${username} (${hostname}) only, ${buildWatermarkTimestamp()}, copyright ${year} by ABS. All rights reserved.`;
+}
+async function applyWatermarkToPdf(pdfBytes, username, hostname) {
+    const pdfDoc = await pdf_lib_1.PDFDocument.load(pdfBytes);
+    const font = await pdfDoc.embedFont(pdf_lib_1.StandardFonts.Helvetica);
+    const watermarkText = buildWatermarkText(username, hostname);
+    const fontSize = 8;
+    for (const page of pdfDoc.getPages()) {
+        const { width, height } = page.getSize();
+        const textWidth = font.widthOfTextAtSize(watermarkText, fontSize);
+        // degrees(-90) = clockwise rotation: text reads top-to-bottom along the right margin
+        const yStart = (height + textWidth) / 2;
+        page.drawText(watermarkText, {
+            x: width - 10,
+            y: yStart,
+            size: fontSize,
+            font,
+            color: (0, pdf_lib_1.rgb)(0.38, 0.38, 0.38),
+            rotate: (0, pdf_lib_1.degrees)(-90),
+            opacity: 0.75,
+        });
+    }
+    return pdfDoc.save();
+}
+// ─────────────────────────────────────────────────────────────────────────────
 // ─── ABS License Check ───────────────────────────────────────────────────────
-const PRODUCT_NAME = 'PLRAPP10UAT';
+const PRODUCT_NAME = 'PRollDig261EAT';
 const MAJOR_VER = 1;
 const MINOR_VER = 0;
 function checkLicense() {
@@ -25,7 +68,7 @@ function checkLicense() {
         }
     }
     // Run license check: LicChkSrcEXE.exe <product> <major>.<minor> "<appPath>"
-    const result = (0, child_process_1.spawnSync)(licExe, [`${PRODUCT_NAME}`, `${MAJOR_VER}.${MINOR_VER}`, appDir], { encoding: 'utf-8', timeout: 15000 });
+    const result = (0, child_process_1.spawnSync)(licExe, [`${PRODUCT_NAME}`, `${MAJOR_VER}.${MINOR_VER}`, appDir], { encoding: 'utf-8' });
     if (result.status !== 0) {
         electron_1.dialog.showErrorBox('License Validation Failed', 'This software is not licensed for use on this machine.\n\nPlease contact your ABS representative to obtain a valid license.');
         return false;
@@ -269,7 +312,16 @@ electron_1.ipcMain.handle('open-url', async (_, url) => {
     }
 });
 /**
- * Open a PDF in a new independent Electron window
+ * Return username and hostname for watermark generation in the renderer
+ */
+electron_1.ipcMain.handle('get-system-info', () => {
+    return {
+        username: os.userInfo().username,
+        hostname: os.hostname(),
+    };
+});
+/**
+ * Open a PDF in a new independent Electron window, with a watermark applied
  */
 electron_1.ipcMain.handle('open-pdf-window', async (_, pdfPath) => {
     try {
@@ -283,6 +335,15 @@ electron_1.ipcMain.handle('open-pdf-window', async (_, pdfPath) => {
                 filePath = path.join(__dirname, '../dist', pdfPath.slice(1));
             }
         }
+        // Apply watermark to the PDF before opening
+        const pdfBytes = fs.readFileSync(filePath);
+        const username = os.userInfo().username;
+        const hostname = os.hostname();
+        const watermarkedBytes = await applyWatermarkToPdf(pdfBytes, username, hostname);
+        // Write watermarked PDF to a temp file
+        const tempDir = electron_1.app.getPath('temp');
+        const tempFile = path.join(tempDir, `proll_guide_${Date.now()}.pdf`);
+        fs.writeFileSync(tempFile, watermarkedBytes);
         // Create a new independent BrowserWindow for the PDF
         const pdfWindow = new electron_1.BrowserWindow({
             title: 'PRoll Diagram User Guide',
@@ -291,18 +352,20 @@ electron_1.ipcMain.handle('open-pdf-window', async (_, pdfPath) => {
             minWidth: 600,
             minHeight: 400,
             webPreferences: {
-                preload: undefined, // No preload for PDF window
+                preload: undefined,
                 nodeIntegration: false,
                 contextIsolation: true,
                 sandbox: true,
             },
         });
-        // Load the PDF file using file:// protocol
-        const fileUrl = `file://${filePath}`;
+        const fileUrl = `file://${tempFile}`;
         await pdfWindow.loadURL(fileUrl);
-        // Window is independent, so we don't track it
+        // Clean up temp file after window is closed
         pdfWindow.on('closed', () => {
-            // Window cleanup happens automatically
+            try {
+                fs.unlinkSync(tempFile);
+            }
+            catch { /* ignore */ }
         });
         return { success: true };
     }

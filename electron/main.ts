@@ -1,9 +1,57 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import { spawnSync } from 'child_process';
+import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 
 const isDev = !app.isPackaged;
+
+// ─── Watermark Helpers ────────────────────────────────────────────────────────
+function buildWatermarkTimestamp(): string {
+  const now = new Date();
+  const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'];
+  const d = String(now.getDate()).padStart(2, '0');
+  const m = months[now.getMonth()];
+  const y = now.getFullYear();
+  const h = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+  const tzAbbr = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() ?? '';
+  return `${m} ${d}, ${y} ${h}:${min}:${s} ${tzAbbr}`;
+}
+
+function buildWatermarkText(username: string, hostname: string): string {
+  const year = new Date().getFullYear();
+  return `Authorized to ABS PRoll Diagram App software licensed user ${username} (${hostname}) only, ${buildWatermarkTimestamp()}, copyright ${year} by ABS. All rights reserved.`;
+}
+
+async function applyWatermarkToPdf(pdfBytes: Buffer, username: string, hostname: string): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.load(pdfBytes);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const watermarkText = buildWatermarkText(username, hostname);
+  const fontSize = 8;
+
+  for (const page of pdfDoc.getPages()) {
+    const { width, height } = page.getSize();
+    const textWidth = font.widthOfTextAtSize(watermarkText, fontSize);
+    // degrees(-90) = clockwise rotation: text reads top-to-bottom along the right margin
+    const yStart = (height + textWidth) / 2;
+    page.drawText(watermarkText, {
+      x: width - 10,
+      y: yStart,
+      size: fontSize,
+      font,
+      color: rgb(0.38, 0.38, 0.38),
+      rotate: degrees(-90),
+      opacity: 0.75,
+    });
+  }
+
+  return pdfDoc.save();
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─── ABS License Check ───────────────────────────────────────────────────────
 const PRODUCT_NAME = 'PRollDig261EAT';
@@ -299,7 +347,17 @@ ipcMain.handle('open-url', async (_, url: string) => {
 });
 
 /**
- * Open a PDF in a new independent Electron window
+ * Return username and hostname for watermark generation in the renderer
+ */
+ipcMain.handle('get-system-info', () => {
+  return {
+    username: os.userInfo().username,
+    hostname: os.hostname(),
+  };
+});
+
+/**
+ * Open a PDF in a new independent Electron window, with a watermark applied
  */
 ipcMain.handle('open-pdf-window', async (_, pdfPath: string) => {
   try {
@@ -313,6 +371,17 @@ ipcMain.handle('open-pdf-window', async (_, pdfPath: string) => {
       }
     }
 
+    // Apply watermark to the PDF before opening
+    const pdfBytes = fs.readFileSync(filePath);
+    const username = os.userInfo().username;
+    const hostname = os.hostname();
+    const watermarkedBytes = await applyWatermarkToPdf(pdfBytes, username, hostname);
+
+    // Write watermarked PDF to a temp file
+    const tempDir = app.getPath('temp');
+    const tempFile = path.join(tempDir, `proll_guide_${Date.now()}.pdf`);
+    fs.writeFileSync(tempFile, watermarkedBytes);
+
     // Create a new independent BrowserWindow for the PDF
     const pdfWindow = new BrowserWindow({
       title: 'PRoll Diagram User Guide',
@@ -321,20 +390,19 @@ ipcMain.handle('open-pdf-window', async (_, pdfPath: string) => {
       minWidth: 600,
       minHeight: 400,
       webPreferences: {
-        preload: undefined, // No preload for PDF window
+        preload: undefined,
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true,
       },
     });
 
-    // Load the PDF file using file:// protocol
-    const fileUrl = `file://${filePath}`;
+    const fileUrl = `file://${tempFile}`;
     await pdfWindow.loadURL(fileUrl);
 
-    // Window is independent, so we don't track it
+    // Clean up temp file after window is closed
     pdfWindow.on('closed', () => {
-      // Window cleanup happens automatically
+      try { fs.unlinkSync(tempFile); } catch { /* ignore */ }
     });
 
     return { success: true };

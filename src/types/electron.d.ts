@@ -57,6 +57,11 @@ interface OpenWindowResult {
   error?: string;
 }
 
+interface SystemInfoResult {
+  username: string;
+  hostname: string;
+}
+
 interface ElectronAPI {
   // File dialog APIs
   selectFolder(): Promise<FolderSelectResult>;
@@ -84,6 +89,9 @@ interface ElectronAPI {
 
   // Open PDF in a new window
   openPdfWindow(pdfPath: string): Promise<OpenWindowResult>;
+
+  // Get OS username and hostname for watermark text
+  getSystemInfo(): Promise<SystemInfoResult>;
 }
 
 declare global {

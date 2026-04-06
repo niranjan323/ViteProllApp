@@ -59,6 +59,11 @@ interface OpenWindowResult {
   error?: string;
 }
 
+interface SystemInfoResult {
+  username: string;
+  hostname: string;
+}
+
 const electronAPI = {
   // File dialog APIs
   selectFolder: (): Promise<FolderSelectResult> =>
@@ -100,6 +105,10 @@ const electronAPI = {
   // Open PDF in a new window
   openPdfWindow: (pdfPath: string): Promise<OpenWindowResult> =>
     ipcRenderer.invoke('open-pdf-window', pdfPath),
+
+  // Get OS username and hostname for watermark text
+  getSystemInfo: (): Promise<SystemInfoResult> =>
+    ipcRenderer.invoke('get-system-info'),
 };
 
 // Expose the electron API to the renderer process
