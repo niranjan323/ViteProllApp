@@ -33,23 +33,19 @@ async function applyWatermarkToPdf(pdfBytes: Buffer, username: string, hostname:
   const watermarkText = buildWatermarkText(username, hostname);
   const fontSize = 8;
 
-  pdfDoc.getPages().forEach((page, index) => {
+  for (const page of pdfDoc.getPages()) {
     const { width, height } = page.getSize();
     const textWidth = font.widthOfTextAtSize(watermarkText, fontSize);
-    const isRightSide = index % 2 === 0; // page 1 (index 0) = right, page 2 (index 1) = left, …
-
     page.drawText(watermarkText, {
-      // Right: baseline near right edge, CW (-90°) → reads top-to-bottom
-      // Left:  baseline near left edge, CCW (90°) → mirror of right
-      x: isRightSide ? width - 10 : 10,
-      y: isRightSide ? (height + textWidth) / 2 : (height - textWidth) / 2,
+      x: width - 10,
+      y: (height + textWidth) / 2,
       size: fontSize,
       font,
       color: rgb(0.38, 0.38, 0.38),
-      rotate: degrees(isRightSide ? -90 : 90),
+      rotate: degrees(-90),
       opacity: 0.75,
     });
-  });
+  }
 
   return pdfDoc.save();
 }

@@ -499,7 +499,7 @@ const Project: React.FC = () => {
             doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
         });
 
-        // Apply vertical watermark alternating right/left per page
+        // Apply vertical watermark to every page (right margin, reads top-to-bottom)
         const totalPages = doc.getNumberOfPages();
         for (let p = 1; p <= totalPages; p++) {
             doc.setPage(p);
@@ -508,12 +508,7 @@ const Project: React.FC = () => {
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(97, 97, 97);
-            const isRightSide = p % 2 === 1; // odd pages → right, even pages → left
-            // Right: CW (-90°) reads top-to-bottom; Left: CCW (90°) mirror
-            doc.text(watermarkText, isRightSide ? pageWidth - 5 : 5, pageHeight / 2, {
-                angle: isRightSide ? -90 : 90,
-                align: 'center',
-            });
+            doc.text(watermarkText, pageWidth - 5, pageHeight / 2, { angle: -90, align: 'center' });
         }
 
         return doc;
