@@ -109,6 +109,10 @@ const electronAPI = {
   // Get OS username and hostname for watermark text
   getSystemInfo: (): Promise<SystemInfoResult> =>
     ipcRenderer.invoke('get-system-info'),
+
+  // Save PDF via native Save dialog (needed in packaged Electron)
+  savePdf: (data: string, defaultName: string): Promise<{ success: boolean; canceled?: boolean; error?: string }> =>
+    ipcRenderer.invoke('save-pdf', { data, defaultName }),
 };
 
 // Expose the electron API to the renderer process

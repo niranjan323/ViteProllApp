@@ -92,6 +92,9 @@ interface ElectronAPI {
 
   // Get OS username and hostname for watermark text
   getSystemInfo(): Promise<SystemInfoResult>;
+
+  // Save PDF via native Save dialog (needed in packaged Electron)
+  savePdf(data: string, defaultName: string): Promise<{ success: boolean; canceled?: boolean; error?: string }>;
 }
 
 declare global {

@@ -30,7 +30,9 @@ async function applyWatermarkToPdf(pdfBytes, username, hostname) {
     const font = await pdfDoc.embedFont(pdf_lib_1.StandardFonts.Helvetica);
     const watermarkText = buildWatermarkText(username, hostname);
     const fontSize = 8;
-    for (const page of pdfDoc.getPages()) {
+    pdfDoc.getPages().forEach((page, index) => {
+        if (index === 0)
+            return; // no watermark on page 1
         const { width, height } = page.getSize();
         const textWidth = font.widthOfTextAtSize(watermarkText, fontSize);
         page.drawText(watermarkText, {
@@ -42,7 +44,7 @@ async function applyWatermarkToPdf(pdfBytes, username, hostname) {
             rotate: (0, pdf_lib_1.degrees)(-90),
             opacity: 0.75,
         });
-    }
+    });
     return pdfDoc.save();
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -307,6 +309,29 @@ electron_1.ipcMain.handle('open-url', async (_, url) => {
             success: false,
             error: `Failed to open URL: ${error.message}`,
         };
+    }
+});
+/**
+ * Save a PDF file via native Save dialog.
+ * Accepts base64-encoded PDF data from the renderer.
+ * This is needed in packaged Electron where jsPDF's anchor-click download is blocked.
+ */
+electron_1.ipcMain.handle('save-pdf', async (_, { data, defaultName }) => {
+    if (!mainWindow)
+        return { success: false, error: 'Window not ready' };
+    const result = await electron_1.dialog.showSaveDialog(mainWindow, {
+        title: 'Save PDF Report',
+        defaultPath: defaultName,
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+    });
+    if (result.canceled || !result.filePath)
+        return { success: false, canceled: true };
+    try {
+        fs.writeFileSync(result.filePath, Buffer.from(data, 'base64'));
+        return { success: true };
+    }
+    catch (error) {
+        return { success: false, error: error.message };
     }
 });
 /**

@@ -24,6 +24,8 @@ const electronAPI = {
     openPdfWindow: (pdfPath) => electron_1.ipcRenderer.invoke('open-pdf-window', pdfPath),
     // Get OS username and hostname for watermark text
     getSystemInfo: () => electron_1.ipcRenderer.invoke('get-system-info'),
+    // Save PDF via native Save dialog (needed in packaged Electron)
+    savePdf: (data, defaultName) => electron_1.ipcRenderer.invoke('save-pdf', { data, defaultName }),
 };
 // Expose the electron API to the renderer process
 electron_1.contextBridge.exposeInMainWorld('electronAPI', electronAPI);

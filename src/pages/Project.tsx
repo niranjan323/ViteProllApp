@@ -499,9 +499,9 @@ const Project: React.FC = () => {
             doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
         });
 
-        // Apply vertical watermark to every page (right margin, reads top-to-bottom)
+        // Apply vertical watermark to every page except page 1 (right margin, reads top-to-bottom)
         const totalPages = doc.getNumberOfPages();
-        for (let p = 1; p <= totalPages; p++) {
+        for (let p = 2; p <= totalPages; p++) {
             doc.setPage(p);
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
@@ -514,7 +514,7 @@ const Project: React.FC = () => {
         return doc;
     }, [getReportData, systemInfo]);
 
-    const handleDownloadReport = useCallback(() => {
+    const handleDownloadReport = useCallback(async () => {
         let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];
         if (reportType === 'all' && savedCases.length > 0) {
             // Use the pure module-level function so no component-state closure can bleed in
@@ -527,7 +527,16 @@ const Project: React.FC = () => {
 
         const doc = handleDownloadPDF(cases);
         const caseLabel = reportType === 'all' ? 'all_cases' : (cases[0]?.data.caseId || 'report');
-        doc.save(`polar_report_${caseLabel}.pdf`);
+        const fileName = `polar_report_${caseLabel}.pdf`;
+
+        if (window.electronAPI?.savePdf) {
+            // Packaged Electron: jsPDF anchor-click download is blocked, use native Save dialog
+            const base64 = doc.output('datauristring').split(',')[1];
+            await window.electronAPI.savePdf(base64, fileName);
+        } else {
+            // Web / dev browser: standard download
+            doc.save(fileName);
+        }
     }, [reportType, savedCases, selectedCaseForReport, getReportData, handleDownloadPDF]);
 
     // Validate all parameters
