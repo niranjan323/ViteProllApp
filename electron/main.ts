@@ -24,7 +24,7 @@ function buildWatermarkTimestamp(): string {
 
 function buildWatermarkText(username: string, hostname: string): string {
   const year = new Date().getFullYear();
-  return `Authorized to ABS PRoll Diagram App software licensed user ${username} (${hostname}) only, ${buildWatermarkTimestamp()}, copyright ${year} by ABS. All rights reserved.`;
+  return `Authorized to ABS CRoll software licensed user ${username} (${hostname}) only, ${buildWatermarkTimestamp()}, copyright ${year} by ABS. All rights reserved.`;
 }
 
 async function applyWatermarkToPdf(pdfBytes: Buffer, username: string, hostname: string): Promise<Uint8Array> {
@@ -53,7 +53,7 @@ async function applyWatermarkToPdf(pdfBytes: Buffer, username: string, hostname:
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── ABS License Check ───────────────────────────────────────────────────────
-const PRODUCT_NAME = 'PRollDig261EAT';
+const PRODUCT_NAME = 'PROLLDIG261UAT';
 const MAJOR_VER = 1;
 const MINOR_VER = 0;
 
@@ -100,7 +100,7 @@ let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    title: 'PRoll Diagram App',
+    title: 'CRoll',
     width: 1600,
     height: 900,
     frame: false,
@@ -404,7 +404,7 @@ ipcMain.handle('open-pdf-window', async (_, pdfPath: string) => {
 
     // Create a new independent BrowserWindow for the PDF
     const pdfWindow = new BrowserWindow({
-      title: 'PRoll Diagram User Guide',
+      title: 'CRoll User Guide',
       width: 1000,
       height: 800,
       minWidth: 600,

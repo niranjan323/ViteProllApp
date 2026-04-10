@@ -42,9 +42,9 @@ const Header = () => {
                     className="app-header__logo"
                 />
 
-                {/* | PRoll Diagram App */}
+                {/* | CRoll */}
                 <span className="app-header__divider">|</span>
-                <span className="app-header__title">PRoll Diagram App</span>
+                <span className="app-header__title">CRoll</span>
             </div>
 
             {/* RIGHT SIDE */}

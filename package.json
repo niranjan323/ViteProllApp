@@ -1,5 +1,5 @@
 {
-  "name": "proll_app",
+  "name": "croll_app",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -52,8 +52,8 @@
     "vite": "^7.2.4"
   },
   "build": {
-    "appId": "com.abs.proll",
-    "productName": "PRoll Diagram",
+    "appId": "com.abs.croll",
+    "productName": "CRoll",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",

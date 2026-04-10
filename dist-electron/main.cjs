@@ -23,7 +23,7 @@ function buildWatermarkTimestamp() {
 }
 function buildWatermarkText(username, hostname) {
     const year = new Date().getFullYear();
-    return `Authorized to ABS PRoll Diagram App software licensed user ${username} (${hostname}) only, ${buildWatermarkTimestamp()}, copyright ${year} by ABS. All rights reserved.`;
+    return `Authorized to ABS CRoll software licensed user ${username} (${hostname}) only, ${buildWatermarkTimestamp()}, copyright ${year} by ABS. All rights reserved.`;
 }
 async function applyWatermarkToPdf(pdfBytes, username, hostname) {
     const pdfDoc = await pdf_lib_1.PDFDocument.load(pdfBytes);
@@ -49,7 +49,7 @@ async function applyWatermarkToPdf(pdfBytes, username, hostname) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 // ─── ABS License Check ───────────────────────────────────────────────────────
-const PRODUCT_NAME = 'PRollDig261EAT';
+const PRODUCT_NAME = 'PROLLDIG261UAT';
 const MAJOR_VER = 1;
 const MINOR_VER = 0;
 function checkLicense() {
@@ -79,7 +79,7 @@ function checkLicense() {
 let mainWindow = null;
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
-        title: 'PRoll Diagram App',
+        title: 'CRoll',
         width: 1600,
         height: 900,
         frame: false,
@@ -369,7 +369,7 @@ electron_1.ipcMain.handle('open-pdf-window', async (_, pdfPath) => {
         fs.writeFileSync(tempFile, watermarkedBytes);
         // Create a new independent BrowserWindow for the PDF
         const pdfWindow = new electron_1.BrowserWindow({
-            title: 'PRoll Diagram User Guide',
+            title: 'CRoll User Guide',
             width: 1000,
             height: 800,
             minWidth: 600,

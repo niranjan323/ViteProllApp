@@ -384,8 +384,8 @@ const Project: React.FC = () => {
     const handleDownloadPDF = useCallback((cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string | null }[]) => {
         const doc = new jsPDF('p', 'mm', 'a4');
         const watermarkText = systemInfo
-            ? `Authorized to ABS PRoll Diagram App software licensed user ${systemInfo.username} (${systemInfo.hostname}) only, ${buildWatermarkTimestamp()}, copyright ${new Date().getFullYear()} by ABS. All rights reserved.`
-            : `Authorized to ABS PRoll Diagram App, copyright ${new Date().getFullYear()} by ABS. All rights reserved.`;
+            ? `Authorized to ABS CRoll software licensed user ${systemInfo.username} (${systemInfo.hostname}) only, ${buildWatermarkTimestamp()}, copyright ${new Date().getFullYear()} by ABS. All rights reserved.`
+            : `Authorized to ABS CRoll, copyright ${new Date().getFullYear()} by ABS. All rights reserved.`;
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 20;
         const contentWidth = pageWidth - margin * 2;
