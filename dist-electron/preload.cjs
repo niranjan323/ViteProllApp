@@ -26,6 +26,11 @@ const electronAPI = {
     getSystemInfo: () => electron_1.ipcRenderer.invoke('get-system-info'),
     // Save PDF via native Save dialog (needed in packaged Electron)
     savePdf: (data, defaultName) => electron_1.ipcRenderer.invoke('save-pdf', { data, defaultName }),
+    // SQLite case persistence
+    dbSaveCase: (caseData) => electron_1.ipcRenderer.invoke('db-save-case', caseData),
+    dbLoadCases: () => electron_1.ipcRenderer.invoke('db-load-cases'),
+    dbUpdateChartImage: (id, chartImage) => electron_1.ipcRenderer.invoke('db-update-chart-image', id, chartImage),
+    dbDeleteCase: (id) => electron_1.ipcRenderer.invoke('db-delete-case', id),
 };
 // Expose the electron API to the renderer process
 electron_1.contextBridge.exposeInMainWorld('electronAPI', electronAPI);

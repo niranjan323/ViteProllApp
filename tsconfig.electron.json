@@ -5,7 +5,8 @@
     "module": "commonjs",
     "target": "es2020",
     "moduleResolution": "node",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "esModuleInterop": true
   },
   "include": ["electron/**/*"]
 }

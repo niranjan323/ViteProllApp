@@ -64,6 +64,43 @@ interface SystemInfoResult {
   hostname: string;
 }
 
+interface DbCaseRow {
+  id: string;
+  created_at: number;
+  os_username: string;
+  machine_name: string;
+  color: string;
+  draft_aft: number;
+  draft_fore: number;
+  gm: number;
+  heading: number;
+  speed: number;
+  max_roll: number;
+  hs: number;
+  tz: number;
+  wave_direction: number;
+  data_file_path: string;
+  fitted_draft: number | null;
+  fitted_gm: number | null;
+  fitted_hs: number | null;
+  fitted_tz: number | null;
+  chart_mode: string;
+  chart_orientation: string;
+  chart_image: string | null;
+  synced: number;
+}
+
+interface DbResult {
+  success: boolean;
+  error?: string;
+}
+
+interface DbLoadResult {
+  success: boolean;
+  cases?: DbCaseRow[];
+  error?: string;
+}
+
 const electronAPI = {
   // File dialog APIs
   selectFolder: (): Promise<FolderSelectResult> =>
@@ -113,6 +150,19 @@ const electronAPI = {
   // Save PDF via native Save dialog (needed in packaged Electron)
   savePdf: (data: string, defaultName: string): Promise<{ success: boolean; canceled?: boolean; error?: string }> =>
     ipcRenderer.invoke('save-pdf', { data, defaultName }),
+
+  // SQLite case persistence
+  dbSaveCase: (caseData: Omit<DbCaseRow, 'os_username' | 'machine_name' | 'synced'>): Promise<DbResult> =>
+    ipcRenderer.invoke('db-save-case', caseData),
+
+  dbLoadCases: (): Promise<DbLoadResult> =>
+    ipcRenderer.invoke('db-load-cases'),
+
+  dbUpdateChartImage: (id: string, chartImage: string): Promise<DbResult> =>
+    ipcRenderer.invoke('db-update-chart-image', id, chartImage),
+
+  dbDeleteCase: (id: string): Promise<DbResult> =>
+    ipcRenderer.invoke('db-delete-case', id),
 };
 
 // Expose the electron API to the renderer process

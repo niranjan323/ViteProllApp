@@ -124,6 +124,53 @@ const Project: React.FC = () => {
         window.electronAPI?.getSystemInfo?.().then(info => setSystemInfo(info)).catch(() => {});
     }, []);
 
+    // Load persisted cases from SQLite on mount (Electron only)
+    useEffect(() => {
+        if (!window.electronAPI?.dbLoadCases) return;
+        window.electronAPI.dbLoadCases().then(result => {
+            if (!result.success || !result.cases) return;
+            const loaded: SavedCase[] = result.cases.map(row => ({
+                id: row.id,
+                color: row.color as 'green' | 'pink',
+                chartImageUrl: row.chart_image ?? undefined,
+                chartMode: (row.chart_mode ?? 'continuous') as 'continuous' | 'traffic-light',
+                chartOrientation: (row.chart_orientation ?? 'north-up') as 'north-up' | 'heads-up',
+                fittedParams: {
+                    draft: row.fitted_draft,
+                    gm: row.fitted_gm,
+                    hs: row.fitted_hs,
+                    tz: row.fitted_tz,
+                },
+                parameters: {
+                    id: row.id,
+                    timestamp: row.created_at,
+                    vesselData: {
+                        draftAft: row.draft_aft,
+                        draftFore: row.draft_fore,
+                        gm: row.gm,
+                        heading: row.heading,
+                        speed: row.speed,
+                        maxRoll: row.max_roll,
+                    },
+                    seaState: {
+                        hs: row.hs,
+                        tz: row.tz,
+                        waveDirection: row.wave_direction,
+                    },
+                    dataFilePath: row.data_file_path ?? '',
+                },
+            }));
+            setSavedCases(loaded);
+            // Also restore into in-memory CaseManager so duplicate-ID check still works
+            loaded.forEach(c => {
+                if (!caseManager.caseExists(c.id)) {
+                    caseManager.addCase(c.id, c.parameters);
+                }
+            });
+        }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const handleChangeVesselData = () => { navigate('/'); };
 
     // Responsive chart size based on window width
@@ -277,6 +324,31 @@ const Project: React.FC = () => {
         const newColor = getVesselSafetyColor(savedParameters);
         // Snapshot fittedParams so later polar data loads don't affect this case
         const savedFittedParams = fittedParams ? { ...fittedParams } : undefined;
+
+        // Persist to SQLite (Electron only)
+        window.electronAPI?.dbSaveCase?.({
+            id: caseIdToSave,
+            created_at: savedParameters.timestamp,
+            color: newColor,
+            draft_aft: savedParameters.vesselData.draftAft,
+            draft_fore: savedParameters.vesselData.draftFore,
+            gm: savedParameters.vesselData.gm,
+            heading: savedParameters.vesselData.heading,
+            speed: savedParameters.vesselData.speed,
+            max_roll: savedParameters.vesselData.maxRoll,
+            hs: savedParameters.seaState.hs,
+            tz: savedParameters.seaState.tz,
+            wave_direction: savedParameters.seaState.waveDirection,
+            data_file_path: savedParameters.dataFilePath,
+            fitted_draft: savedFittedParams?.draft ?? null,
+            fitted_gm: savedFittedParams?.gm ?? null,
+            fitted_hs: savedFittedParams?.hs ?? null,
+            fitted_tz: savedFittedParams?.tz ?? null,
+            chart_mode: chartMode,
+            chart_orientation: chartDirection,
+            chart_image: null,
+        });
+
         setSavedCases(prev => [
             ...prev,
             { id: caseIdToSave, color: newColor, parameters: savedParameters, fittedParams: savedFittedParams, chartMode, chartOrientation: chartDirection },
@@ -292,6 +364,8 @@ const Project: React.FC = () => {
         const deleted = caseManager.deleteCase(id);
         if (deleted) {
             setSavedCases(prev => prev.filter(c => c.id !== id));
+            // Remove from SQLite (Electron only)
+            window.electronAPI?.dbDeleteCase?.(id);
             showMessage(`Case "${id}" deleted`, 'success');
         }
     };
@@ -379,6 +453,8 @@ const Project: React.FC = () => {
                 ? { ...c, chartImageUrl: dataUrl }
                 : c
         ));
+        // Persist chart image to SQLite (Electron only)
+        window.electronAPI?.dbUpdateChartImage?.(capturedId, dataUrl);
     }, []);
 
     const handleDownloadPDF = useCallback((cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string | null }[]) => {

@@ -1,12 +1,88 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
-const path = require("path");
-const fs = require("fs");
-const os = require("os");
+const path = __importStar(require("path"));
+const fs = __importStar(require("fs"));
+const os = __importStar(require("os"));
 const child_process_1 = require("child_process");
 const pdf_lib_1 = require("pdf-lib");
+const better_sqlite3_1 = __importDefault(require("better-sqlite3"));
 const isDev = !electron_1.app.isPackaged;
+// ─── SQLite Database ──────────────────────────────────────────────────────────
+let db;
+function initDatabase() {
+    // Store DB in the app's own folder — dev: project root, production: next to the exe
+    const dbDir = isDev
+        ? path.join(__dirname, '..') // project root (next to package.json)
+        : path.dirname(electron_1.app.getPath('exe')); // same folder as the installed exe
+    const dbPath = path.join(dbDir, 'croll_cases.db');
+    db = new better_sqlite3_1.default(dbPath);
+    db.pragma('journal_mode = WAL'); // better performance for concurrent reads
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS cases (
+      id            TEXT PRIMARY KEY,
+      created_at    INTEGER NOT NULL,
+      os_username   TEXT NOT NULL,
+      machine_name  TEXT NOT NULL,
+      color         TEXT NOT NULL,
+      draft_aft     REAL,
+      draft_fore    REAL,
+      gm            REAL,
+      heading       REAL,
+      speed         REAL,
+      max_roll      REAL,
+      hs            REAL,
+      tz            REAL,
+      wave_direction REAL,
+      data_file_path TEXT,
+      fitted_draft  REAL,
+      fitted_gm     REAL,
+      fitted_hs     REAL,
+      fitted_tz     REAL,
+      chart_mode    TEXT,
+      chart_orientation TEXT,
+      chart_image   TEXT,
+      synced        INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+}
+// ─────────────────────────────────────────────────────────────────────────────
 // ─── Watermark Helpers ────────────────────────────────────────────────────────
 function buildWatermarkTimestamp() {
     const now = new Date();
@@ -110,6 +186,7 @@ electron_1.app.on('ready', () => {
         electron_1.app.quit();
         return;
     }
+    initDatabase();
     createWindow();
 });
 electron_1.app.on('window-all-closed', () => {
@@ -399,4 +476,73 @@ electron_1.ipcMain.handle('open-pdf-window', async (_, pdfPath) => {
         };
     }
 });
+// ─── Cases SQLite IPC Handlers ───────────────────────────────────────────────
+/**
+ * Save a case to SQLite
+ */
+electron_1.ipcMain.handle('db-save-case', (_event, caseData) => {
+    try {
+        const username = os.userInfo().username;
+        const hostname = os.hostname();
+        const stmt = db.prepare(`
+      INSERT OR REPLACE INTO cases (
+        id, created_at, os_username, machine_name, color,
+        draft_aft, draft_fore, gm, heading, speed, max_roll,
+        hs, tz, wave_direction, data_file_path,
+        fitted_draft, fitted_gm, fitted_hs, fitted_tz,
+        chart_mode, chart_orientation, chart_image, synced
+      ) VALUES (
+        @id, @created_at, @os_username, @machine_name, @color,
+        @draft_aft, @draft_fore, @gm, @heading, @speed, @max_roll,
+        @hs, @tz, @wave_direction, @data_file_path,
+        @fitted_draft, @fitted_gm, @fitted_hs, @fitted_tz,
+        @chart_mode, @chart_orientation, @chart_image, 0
+      )
+    `);
+        stmt.run({ ...caseData, os_username: username, machine_name: hostname });
+        return { success: true };
+    }
+    catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+/**
+ * Load all cases from SQLite (for the current machine)
+ */
+electron_1.ipcMain.handle('db-load-cases', () => {
+    try {
+        const rows = db.prepare(`
+      SELECT * FROM cases ORDER BY created_at ASC
+    `).all();
+        return { success: true, cases: rows };
+    }
+    catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+/**
+ * Update chart image for an existing case
+ */
+electron_1.ipcMain.handle('db-update-chart-image', (_event, id, chartImage) => {
+    try {
+        db.prepare(`UPDATE cases SET chart_image = ? WHERE id = ?`).run(chartImage, id);
+        return { success: true };
+    }
+    catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+/**
+ * Delete a case from SQLite
+ */
+electron_1.ipcMain.handle('db-delete-case', (_event, id) => {
+    try {
+        db.prepare(`DELETE FROM cases WHERE id = ?`).run(id);
+        return { success: true };
+    }
+    catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+// ─────────────────────────────────────────────────────────────────────────────
 exports.default = electron_1.app;

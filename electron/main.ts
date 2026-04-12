@@ -4,8 +4,52 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { spawnSync } from 'child_process';
 import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
+import Database from 'better-sqlite3';
 
 const isDev = !app.isPackaged;
+
+// ─── SQLite Database ──────────────────────────────────────────────────────────
+let db: Database.Database;
+
+function initDatabase(): void {
+  // Store DB in the app's own folder — dev: project root, production: next to the exe
+  const dbDir = isDev
+    ? path.join(__dirname, '..')          // project root (next to package.json)
+    : path.dirname(app.getPath('exe'));   // same folder as the installed exe
+  const dbPath = path.join(dbDir, 'croll_cases.db');
+
+  db = new Database(dbPath);
+  db.pragma('journal_mode = WAL'); // better performance for concurrent reads
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cases (
+      id            TEXT PRIMARY KEY,
+      created_at    INTEGER NOT NULL,
+      os_username   TEXT NOT NULL,
+      machine_name  TEXT NOT NULL,
+      color         TEXT NOT NULL,
+      draft_aft     REAL,
+      draft_fore    REAL,
+      gm            REAL,
+      heading       REAL,
+      speed         REAL,
+      max_roll      REAL,
+      hs            REAL,
+      tz            REAL,
+      wave_direction REAL,
+      data_file_path TEXT,
+      fitted_draft  REAL,
+      fitted_gm     REAL,
+      fitted_hs     REAL,
+      fitted_tz     REAL,
+      chart_mode    TEXT,
+      chart_orientation TEXT,
+      chart_image   TEXT,
+      synced        INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Watermark Helpers ────────────────────────────────────────────────────────
 function buildWatermarkTimestamp(): string {
@@ -135,6 +179,7 @@ app.on('ready', () => {
     app.quit();
     return;
   }
+  initDatabase();
   createWindow();
 });
 
@@ -433,5 +478,96 @@ ipcMain.handle('open-pdf-window', async (_, pdfPath: string) => {
     };
   }
 });
+
+// ─── Cases SQLite IPC Handlers ───────────────────────────────────────────────
+
+/**
+ * Save a case to SQLite
+ */
+ipcMain.handle('db-save-case', (_event, caseData: {
+  id: string;
+  created_at: number;
+  color: string;
+  draft_aft: number;
+  draft_fore: number;
+  gm: number;
+  heading: number;
+  speed: number;
+  max_roll: number;
+  hs: number;
+  tz: number;
+  wave_direction: number;
+  data_file_path: string;
+  fitted_draft: number | null;
+  fitted_gm: number | null;
+  fitted_hs: number | null;
+  fitted_tz: number | null;
+  chart_mode: string;
+  chart_orientation: string;
+  chart_image: string | null;
+}) => {
+  try {
+    const username = os.userInfo().username;
+    const hostname = os.hostname();
+    const stmt = db.prepare(`
+      INSERT OR REPLACE INTO cases (
+        id, created_at, os_username, machine_name, color,
+        draft_aft, draft_fore, gm, heading, speed, max_roll,
+        hs, tz, wave_direction, data_file_path,
+        fitted_draft, fitted_gm, fitted_hs, fitted_tz,
+        chart_mode, chart_orientation, chart_image, synced
+      ) VALUES (
+        @id, @created_at, @os_username, @machine_name, @color,
+        @draft_aft, @draft_fore, @gm, @heading, @speed, @max_roll,
+        @hs, @tz, @wave_direction, @data_file_path,
+        @fitted_draft, @fitted_gm, @fitted_hs, @fitted_tz,
+        @chart_mode, @chart_orientation, @chart_image, 0
+      )
+    `);
+    stmt.run({ ...caseData, os_username: username, machine_name: hostname });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+/**
+ * Load all cases from SQLite (for the current machine)
+ */
+ipcMain.handle('db-load-cases', () => {
+  try {
+    const rows = db.prepare(`
+      SELECT * FROM cases ORDER BY created_at ASC
+    `).all();
+    return { success: true, cases: rows };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+/**
+ * Update chart image for an existing case
+ */
+ipcMain.handle('db-update-chart-image', (_event, id: string, chartImage: string) => {
+  try {
+    db.prepare(`UPDATE cases SET chart_image = ? WHERE id = ?`).run(chartImage, id);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+/**
+ * Delete a case from SQLite
+ */
+ipcMain.handle('db-delete-case', (_event, id: string) => {
+  try {
+    db.prepare(`DELETE FROM cases WHERE id = ?`).run(id);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default app;
