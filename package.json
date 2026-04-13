@@ -83,7 +83,7 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "public/icon.ico"
+      "icon": "public/CRoll App icon.ico"
     }
   }
 }

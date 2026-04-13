@@ -155,7 +155,7 @@ function createWindow() {
       contextIsolation: true,
       sandbox: true,
     },
-    icon: path.join(__dirname, '../public/icon.ico'),
+    icon: path.join(__dirname, '../public/CRoll App icon.ico'),
   });
 
 
