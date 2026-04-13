@@ -42,13 +42,14 @@ const Header = () => {
                     className="app-header__logo"
                 />
 
-                {/* | CRoll */}
+                {/* | Eagle CRoll: Container Roll Diagram */}
                 <span className="app-header__divider">|</span>
-                <span className="app-header__title">CRoll</span>
+                <span className="app-header__title">Eagle CRoll</span>
             </div>
 
             {/* RIGHT SIDE */}
             <div className="app-header__right">
+                <span className="app-header__version">Version: 2026.1</span>
                 <InfoOutlinedIcon 
                     className="app-header__icon" 
                     titleAccess="User Guide" 
