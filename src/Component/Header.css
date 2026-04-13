@@ -61,6 +61,7 @@
     font-size: 16px;
     opacity: 0.95;
     margin-top: 3%;
+    font-weight: 500;
 }
 
 /* RIGHT SIDE */
@@ -71,14 +72,15 @@
     -webkit-app-region: no-drag;
 }
 
-/* Version label */
+/* Version label — same font as title, pill background */
 .app-header__version {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 500;
+    opacity: 0.95;
     white-space: nowrap;
-    background: #024A88
-;
-    padding: 4px 12px;
+    margin-top: 3%;
+    background: #1a6fa8;
+    padding: 2px 12px;
     border-radius: 20px;
 }
 

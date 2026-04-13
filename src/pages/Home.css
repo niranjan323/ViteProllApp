@@ -46,6 +46,9 @@
     height: 35px;
     width: auto;
     display: inline-block;
+    vertical-align: middle;
+    position: relative;  
+    top: -2px;
 }
 
 /* Project Card */

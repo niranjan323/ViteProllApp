@@ -52,15 +52,17 @@ const Home: React.FC = () =>
         setError('');
         setSuccess('');
 
-        // Auto-load proll.ctl from the selected folder
-        const ctlPath = `${electronFolder}/proll.ctl`;
-        const ctlResult = await loadControlFile(ctlPath);
+        // Auto-load CRoll.ctl (or croll.ctl) from the selected folder
+        let ctlResult = await loadControlFile(`${electronFolder}/CRoll.ctl`);
+        if (!ctlResult.success) {
+            ctlResult = await loadControlFile(`${electronFolder}/croll.ctl`);
+        }
 
         setLoading(false);
 
         if (!ctlResult.success)
         {
-            setError(ctlResult.error || 'proll.ctl not found in the selected folder. Please select the correct project folder.');
+            setError('CRoll.ctl not found in the selected folder. Please select the correct project folder.');
             return;
         }
 
@@ -73,7 +75,7 @@ const Home: React.FC = () =>
                 {/* Main Title */}
                 <div className="title-section">
                     <h1 className="main-title">
-                        Welcome to <img src={absLogo} alt="ABS Logo" className="abs-logo-img" /> | CRoll
+                        Welcome to <img src={absLogo} alt="ABS Logo" className="abs-logo-img" /> <span>| Eagle CRoll</span>
                     </h1>
                 </div>
 
