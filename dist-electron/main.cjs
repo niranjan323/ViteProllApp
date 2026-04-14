@@ -442,7 +442,7 @@ electron_1.ipcMain.handle('open-pdf-window', async (_, pdfPath) => {
         const watermarkedBytes = await applyWatermarkToPdf(pdfBytes, username, hostname);
         // Write watermarked PDF to a temp file
         const tempDir = electron_1.app.getPath('temp');
-        const tempFile = path.join(tempDir, `ABS_Eagle_PRoll_Diagram_user_Guide_v1.0 1.pdf`);
+        const tempFile = path.join(tempDir, `ABS_Eagle_CRoll_User_Guide_v2026.1.pdf`);
         fs.writeFileSync(tempFile, watermarkedBytes);
         // Create a new independent BrowserWindow for the PDF
         const pdfWindow = new electron_1.BrowserWindow({
