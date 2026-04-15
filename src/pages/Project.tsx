@@ -11,20 +11,6 @@ import { CanvasPolarChart, interpolateRoll } from '../components/CanvasPolarChar
 import type { CanvasPolarChartHandle } from '../components/CanvasPolarChart';
 import { jsPDF } from 'jspdf';
 
-function buildWatermarkTimestamp(): string {
-    const now = new Date();
-    const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'];
-    const d = String(now.getDate()).padStart(2, '0');
-    const m = months[now.getMonth()];
-    const y = now.getFullYear();
-    const h = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
-    const s = String(now.getSeconds()).padStart(2, '0');
-    const tzAbbr = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() ?? '';
-    return `${m} ${d}, ${y} ${h}:${min}:${s} ${tzAbbr}`;
-}
-
 // SVG icon imports
 import saveCaseGreenIcon from '../assets/save case_green.svg';
 import _saveCaseGrayIcon from '../assets/save case_gray.svg'; // used for disabled state
@@ -459,9 +445,6 @@ const Project: React.FC = () => {
 
     const handleDownloadPDF = useCallback((cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string | null }[]) => {
         const doc = new jsPDF('p', 'mm', 'a4');
-        const watermarkText = systemInfo
-            ? `Authorized to ABS CRoll software licensed user ${systemInfo.username} (${systemInfo.hostname}) only, ${buildWatermarkTimestamp()}, copyright ${new Date().getFullYear()} by ABS. All rights reserved.`
-            : `Authorized to ABS CRoll, copyright ${new Date().getFullYear()} by ABS. All rights reserved.`;
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 20;
         const contentWidth = pageWidth - margin * 2;
@@ -470,15 +453,17 @@ const Project: React.FC = () => {
             if (caseIndex > 0) doc.addPage();
 
             let y = 20;
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const bottomMargin = 20;
 
-            // Title
-            doc.setFontSize(16);
+            // "User Input" heading — same font/size as "Polar Diagram Parameters Closest to User Request"
+            doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(40, 40, 40);
-            doc.text('Vessel Operation Conditions', margin, y);
-            y += 12;
+            doc.text('User Input', margin, y);
+            y += 10;
 
-            // Case ID
+            // "Vessel Operation Conditions" sub-heading
             doc.setFontSize(11);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(100, 100, 100);
@@ -486,7 +471,14 @@ const Project: React.FC = () => {
             doc.setTextColor(20, 115, 230);
             doc.setFont('helvetica', 'bold');
             doc.text(String(data.caseId), margin + 70, y);
-            y += 10;
+            y += 8;
+
+            // Vessel Operation Conditions title
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(40, 40, 40);
+            doc.text('Vessel Operation Conditions', margin, y);
+            y += 8;
 
             // Table of parameters
             const rows = [
@@ -506,11 +498,9 @@ const Project: React.FC = () => {
                 doc.setTextColor(60, 60, 60);
                 doc.setFontSize(10);
                 doc.text(row[0], margin, y);
-
                 doc.setTextColor(20, 115, 230);
                 doc.setFont('helvetica', 'bold');
                 doc.text(row[1], margin + 70, y);
-
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(100, 100, 100);
                 doc.text(row[2], margin + 90, y);
@@ -519,23 +509,10 @@ const Project: React.FC = () => {
 
             y += 5;
 
-            // string = captured at save time; null = capture failed (don't bleed current chart); undefined = current unsaved case
-            const chartImage = chartImageUrl === undefined
-                ? chartRef.current?.getImageDataURL()
-                : chartImageUrl;
-            if (chartImage) {
-                const imgSize = Math.min(contentWidth, 140);
-                const imgX = margin + (contentWidth - imgSize) / 2;
-                doc.addImage(chartImage, 'PNG', imgX, y, imgSize, imgSize);
-                y += imgSize + 10;
-            }
-
-            // Polar diagram parameters closest to user request
+            // Polar diagram parameters — placed right below user input
             if (data.fittedParams) {
-                const pageHeight = doc.internal.pageSize.getHeight();
-                const bottomMargin = 15;
-                // section needs: title(8) + 4 rows(32) + gap(5) + footer(10) = 55mm
-                const neededSpace = 8 + 4 * 8 + 5 + 10;
+                // section needs: title(8) + 4 rows(32) + gap(5) + footer(16) = 61mm
+                const neededSpace = 8 + 4 * 8 + 5 + 16;
                 if (y + neededSpace > pageHeight - bottomMargin) {
                     doc.addPage();
                     y = 20;
@@ -569,26 +546,35 @@ const Project: React.FC = () => {
                 y += 5;
             }
 
+            // Chart — add new page if not enough space
+            const chartImage = chartImageUrl === undefined
+                ? chartRef.current?.getImageDataURL()
+                : chartImageUrl;
+            if (chartImage) {
+                const imgSize = Math.min(contentWidth, 140);
+                if (y + imgSize > pageHeight - bottomMargin) {
+                    doc.addPage();
+                    y = 20;
+                }
+                const imgX = margin + (contentWidth - imgSize) / 2;
+                doc.addImage(chartImage, 'PNG', imgX, y, imgSize, imgSize);
+                y += imgSize + 10;
+            }
+
             // Footer
+            if (y + 16 > pageHeight - bottomMargin) {
+                doc.addPage();
+                y = 20;
+            }
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
             doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
+            y += 5;
+            doc.text('ABS Eagle CRoll, Version 2026.1.1', margin, y);
         });
 
-        // Apply vertical watermark to every page except page 1 (right margin, reads top-to-bottom)
-        const totalPages = doc.getNumberOfPages();
-        for (let p = 2; p <= totalPages; p++) {
-            doc.setPage(p);
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(97, 97, 97);
-            doc.text(watermarkText, pageWidth - 5, pageHeight / 2, { angle: -90, align: 'center' });
-        }
-
         return doc;
-    }, [getReportData, systemInfo]);
+    }, [getReportData]);
 
     const handleDownloadReport = useCallback(async () => {
         let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];

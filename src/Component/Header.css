@@ -140,3 +140,100 @@
     background: #e81123;
     opacity: 1;
 }
+
+/* About popup */
+.about-anchor {
+    position: relative;
+}
+
+.about-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+}
+
+.about-modal {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background: #fff;
+    border-radius: 8px;
+    padding: 28px 32px 24px;
+    width: 360px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+    z-index: 1000;
+}
+
+.about-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #555;
+    line-height: 1;
+}
+
+.about-close:hover {
+    color: #000;
+}
+
+.about-heading {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 16px 0;
+}
+
+.about-section {
+    margin-bottom: 18px;
+}
+
+.about-app-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 4px 0;
+}
+
+.about-support-heading {
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    margin: 0 0 4px 0;
+}
+
+.about-detail {
+    font-size: 13px;
+    color: #444;
+    margin: 2px 0;
+}
+
+.about-link {
+    color: #1565c0;
+    text-decoration: none;
+}
+
+.about-link:hover {
+    text-decoration: underline;
+}
+
+.about-guide-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background: #1565c0;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.about-guide-btn:hover {
+    background: #1976d2;
+}
