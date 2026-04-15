@@ -3,6 +3,7 @@ import { useState } from 'react';
 import './Header.css';
 import logo from '../assets/ABS_Logo.png';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { useElectron } from '../context/ElectronContext';
 
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
@@ -12,6 +13,7 @@ const handleClose = () => window.electronAPI?.closeWindow?.();
 
 const Header = () => {
     const [showAbout, setShowAbout] = useState(false);
+    const { vesselInfo } = useElectron();
 
     const handleOpenUserGuide = () => {
         const documentUrl = '/ABS_Eagle_CRoll_User_Guide_v2026.1.pdf';
@@ -73,6 +75,9 @@ const Header = () => {
                                 <p className="about-detail">Version: 2026.1.1</p>
                                 <p className="about-detail">Build number: 20260415</p>
                                 <p className="about-detail">Release date: May 2026</p>
+                                {vesselInfo?.imo && (
+                                    <p className="about-detail">Vessel Number: <strong>{vesselInfo.imo}</strong></p>
+                                )}
                             </div>
 
                             <div className="about-section">

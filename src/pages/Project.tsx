@@ -456,28 +456,40 @@ const Project: React.FC = () => {
             const pageHeight = doc.internal.pageSize.getHeight();
             const bottomMargin = 20;
 
-            // "User Input" heading — same font/size as "Polar Diagram Parameters Closest to User Request"
-            doc.setFontSize(12);
+            // Main heading: "Vessel Operation Conditions"
+            doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(40, 40, 40);
-            doc.text('User Input', margin, y);
-            y += 10;
+            doc.text('Vessel Operation Conditions', margin, y);
+            y += 12;
 
-            // "Vessel Operation Conditions" sub-heading
-            doc.setFontSize(11);
+            // Vessel Number
+            if (vesselInfo?.imo) {
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(60, 60, 60);
+                doc.text('Vessel Number', margin, y);
+                doc.setTextColor(20, 115, 230);
+                doc.setFont('helvetica', 'bold');
+                doc.text(String(vesselInfo.imo), margin + 70, y);
+                y += 8;
+            }
+
+            // Case ID
+            doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.setTextColor(100, 100, 100);
+            doc.setTextColor(60, 60, 60);
             doc.text('Case ID', margin, y);
             doc.setTextColor(20, 115, 230);
             doc.setFont('helvetica', 'bold');
             doc.text(String(data.caseId), margin + 70, y);
-            y += 8;
+            y += 12;
 
-            // Vessel Operation Conditions title
-            doc.setFontSize(11);
+            // Sub-heading: "User Input"
+            doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(40, 40, 40);
-            doc.text('Vessel Operation Conditions', margin, y);
+            doc.text('User Input', margin, y);
             y += 8;
 
             // Table of parameters
@@ -574,7 +586,7 @@ const Project: React.FC = () => {
         });
 
         return doc;
-    }, [getReportData]);
+    }, [getReportData, vesselInfo]);
 
     const handleDownloadReport = useCallback(async () => {
         let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];
@@ -1313,10 +1325,19 @@ const Project: React.FC = () => {
                                 {casesToShow.map((data, idx) => (
                                     <div key={idx} className="report-case-section">
                                         <h3 className="report-section-title">Vessel Operation Conditions</h3>
+                                        {vesselInfo?.imo && (
+                                            <div className="report-row">
+                                                <span className="report-label">Vessel Number</span>
+                                                <span className="report-value highlight">{vesselInfo.imo}</span>
+                                                <span className="report-unit" />
+                                            </div>
+                                        )}
                                         <div className="report-row">
                                             <span className="report-label">Case ID</span>
                                             <span className="report-value highlight">{data.caseId}</span>
+                                            <span className="report-unit" />
                                         </div>
+                                        <h3 className="report-section-title" style={{ marginTop: '12px' }}>User Input</h3>
                                         <div className="report-row">
                                             <span className="report-label">Draft Aft Peak</span>
                                             <span className="report-value highlight">{data.draftAft}</span>
@@ -1363,6 +1384,24 @@ const Project: React.FC = () => {
                                             <span className="report-unit">[s]</span>
                                         </div>
 
+                                        {data.fittedParams && (
+                                            <>
+                                                <h3 className="report-section-title" style={{ marginTop: '16px' }}>Polar Diagram Parameters Closest to User Request</h3>
+                                                {[
+                                                    { label: 'Draft', value: data.fittedParams.draft, unit: '[m]' },
+                                                    { label: 'GM', value: data.fittedParams.gm, unit: '[m]' },
+                                                    { label: 'Significant Wave Height, Hs', value: data.fittedParams.hs, unit: '[m]' },
+                                                    { label: 'Mean Wave Period, Tz', value: data.fittedParams.tz, unit: '[s]' },
+                                                ].map((row) => (
+                                                    <div key={row.label} className="report-row">
+                                                        <span className="report-label">{row.label}</span>
+                                                        <span className="report-value highlight">{row.value ?? 'N/A'}</span>
+                                                        <span className="report-unit">{row.unit}</span>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
+
                                         <div className="report-chart-section">
                                             {data.chartImageUrl ? (
                                                 <img src={data.chartImageUrl} style={{ width: 400, height: 400 }} />
@@ -1384,25 +1423,6 @@ const Project: React.FC = () => {
                                                 )
                                             )}
                                         </div>
-                                        {/* <p className="report-chart-caption">Polar diagram closest to the user request</p> */}
-
-                                        {data.fittedParams && (
-                                            <>
-                                                <h3 className="report-section-title" style={{ marginTop: '16px' }}>Polar Diagram Parameters Closest to User Request</h3>
-                                                {[
-                                                    { label: 'Draft', value: data.fittedParams.draft, unit: '[m]' },
-                                                    { label: 'GM', value: data.fittedParams.gm, unit: '[m]' },
-                                                    { label: 'Significant Wave Height, Hs', value: data.fittedParams.hs, unit: '[m]' },
-                                                    { label: 'Mean Wave Period, Tz', value: data.fittedParams.tz, unit: '[s]' },
-                                                ].map((row) => (
-                                                    <div key={row.label} className="report-row">
-                                                        <span className="report-label">{row.label}</span>
-                                                        <span className="report-value highlight">{row.value ?? 'N/A'}</span>
-                                                        <span className="report-unit">{row.unit}</span>
-                                                    </div>
-                                                ))}
-                                            </>
-                                        )}
 
                                         {idx < casesToShow.length - 1 && <hr className="report-divider" />}
                                     </div>
