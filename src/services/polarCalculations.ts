@@ -41,7 +41,7 @@ export class PolarCalculations {
    * Convert vessel coordinates to North-up display coordinates
    */
   static toNorthUp(vesselAngle: number, vesselHeading: number): number {
-    let displayAngle = 180 + (vesselHeading - vesselAngle);
+    const displayAngle = 180 + (vesselHeading - vesselAngle);
     return this.normalizeAngle(displayAngle);
   }
 
@@ -49,7 +49,7 @@ export class PolarCalculations {
    * Convert vessel coordinates to Heads-up display coordinates
    */
   static toHeadsUp(vesselAngle: number): number {
-    let displayAngle = 180 - vesselAngle;
+    const displayAngle = 180 - vesselAngle;
     return this.normalizeAngle(displayAngle);
   }
 
