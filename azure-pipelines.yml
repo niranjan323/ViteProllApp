@@ -1,0 +1,51 @@
+# Azure DevOps Pipeline - CRoll App
+# Trigger: Manual only (no auto-trigger)
+trigger: none
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  NODE_VERSION: '20.x'
+
+steps:
+
+  # Step 1: Install Node.js
+  - task: NodeTool@0
+    inputs:
+      versionSpec: $(NODE_VERSION)
+    displayName: 'Install Node.js 20'
+
+  # Step 2: Install dependencies
+  # postinstall script runs electron-rebuild automatically for better-sqlite3
+  - script: npm ci
+    displayName: 'npm ci (installs deps + rebuilds native modules)'
+    env:
+      npm_config_msvs_version: '2022'
+
+  # Step 3: Lint check
+  - script: npm run lint
+    displayName: 'ESLint - code quality check'
+    continueOnError: false
+
+  # Step 4: Full build
+  # Runs: build:electron → tsc -b → vite build → electron-builder
+  # Output: dist/CRoll Setup x.x.x.exe
+  - script: npm run build
+    displayName: 'Build Electron app (generates .exe installer)'
+    env:
+      NODE_ENV: production
+
+  # Step 5: List dist folder contents (helps verify .exe was created)
+  - script: dir dist\ /b
+    displayName: 'List dist folder contents'
+
+  # Step 6: Publish .exe as pipeline artifact
+  # After run completes → go to run page → click "Artifacts" → download .exe
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: 'dist'
+      artifact: 'CRoll-Windows-Installer'
+      publishLocation: 'pipeline'
+    displayName: 'Publish .exe to Artifacts'
+    condition: succeeded()
