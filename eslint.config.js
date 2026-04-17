@@ -19,5 +19,15 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Ignore variables/args prefixed with _ (intentionally unused)
+      '@typescript-eslint/no-unused-vars': ['error', {
+        varsIgnorePattern: '^_',
+        argsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+      // Downgrade fast-refresh to warning (utils/hooks exported alongside components is fine)
+      'react-refresh/only-export-components': 'warn',
+    },
   },
 ])

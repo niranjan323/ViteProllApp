@@ -25,7 +25,7 @@ import redXIcon from '../assets/value_red x.svg';
 interface SavedCase {
     id: string;
     color: 'green' | 'pink';
-    parameters: any;
+    parameters: Record<string, unknown>;
     chartImageUrl?: string;
     fittedParams?: { draft: number | null; gm: number | null; hs: number | null; tz: number | null };
     chartMode?: 'continuous' | 'traffic-light';
@@ -105,7 +105,7 @@ const Project: React.FC = () => {
     const wavePeriodDropdownRef = useRef<HTMLDivElement>(null);
 
     // System info for PDF watermarks (Electron only)
-    const [systemInfo, setSystemInfo] = useState<{ username: string; hostname: string } | null>(null);
+    const [_systemInfo, setSystemInfo] = useState<{ username: string; hostname: string } | null>(null);
     useEffect(() => {
         window.electronAPI?.getSystemInfo?.().then(info => setSystemInfo(info)).catch(() => {});
     }, []);
