@@ -25,7 +25,7 @@ import redXIcon from '../assets/value_red x.svg';
 interface SavedCase {
     id: string;
     color: 'green' | 'pink';
-    parameters: Record<string, unknown>;
+    parameters: AnalysisCase;
     chartImageUrl?: string;
     fittedParams?: { draft: number | null; gm: number | null; hs: number | null; tz: number | null };
     chartMode?: 'continuous' | 'traffic-light';
