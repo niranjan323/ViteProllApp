@@ -35,6 +35,7 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+          ELECTRON_BUILDER_PUBLISH: never
 
       # Step 6: Upload .exe as artifact (download from Actions tab)
       - name: Upload installer artifact
