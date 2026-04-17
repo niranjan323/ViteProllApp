@@ -1,0 +1,45 @@
+# GitHub Actions - CRoll App Build
+# Trigger: Manual only (you click "Run workflow" in GitHub)
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # Step 1: Checkout repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js 20
+      - name: Install Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      # postinstall auto-runs electron-rebuild for better-sqlite3
+      - name: Install dependencies
+        run: npm ci
+        env:
+          npm_config_msvs_version: '2022'
+
+      # Step 4: Lint check
+      - name: Lint
+        run: npm run lint
+
+      # Step 5: Full build → generates .exe in dist/
+      - name: Build Electron app
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      # Step 6: Upload .exe as artifact (download from Actions tab)
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CRoll-Windows-Installer
+          path: dist/*.exe
+          retention-days: 30
