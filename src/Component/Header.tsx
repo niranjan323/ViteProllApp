@@ -4,6 +4,12 @@ import './Header.css';
 import logo from '../assets/ABS_Logo.png';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useElectron } from '../context/ElectronContext';
+import appIcon from '../assets/CRoll App icon.svg';
+import versionIcon from '../assets/version.svg';
+import buildIcon from '../assets/build.svg';
+import dateIcon from '../assets/date.svg';
+import emailIcon from '../assets/email.svg';
+import websiteIcon from '../assets/website.svg';
 
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
@@ -68,26 +74,46 @@ const Header = () => {
                         <div className="about-modal">
                             <button className="about-close" onClick={() => setShowAbout(false)}>&#10005;</button>
 
-                            <h2 className="about-heading">About</h2>
+                            {/* App icon + name header */}
+                            <div className="about-app-header">
+                                <img src={appIcon} alt="CRoll" className="about-app-icon" />
+                                <span className="about-app-name">ABS Eagle CRoll</span>
+                            </div>
 
                             <div className="about-section">
-                                <p className="about-app-name">ABS Eagle CRoll</p>
-                                <p className="about-detail">Version: 2026.1.1</p>
-                                <p className="about-detail">Build number: 20260415</p>
-                                <p className="about-detail">Release date: May 2026</p>
+                                <div className="about-row">
+                                    <img src={versionIcon} alt="" className="about-row-icon" />
+                                    <span className="about-detail">Version: 2026.1.1</span>
+                                </div>
+                                <div className="about-row">
+                                    <img src={buildIcon} alt="" className="about-row-icon" />
+                                    <span className="about-detail">Build number: 20260415</span>
+                                </div>
+                                <div className="about-row">
+                                    <img src={dateIcon} alt="" className="about-row-icon" />
+                                    <span className="about-detail">Release date: May 2026</span>
+                                </div>
                                 {vesselInfo?.imo && (
-                                    <p className="about-detail">Vessel Number: <strong>{vesselInfo.imo}</strong></p>
+                                    <div className="about-row">
+                                        <span className="about-detail">Vessel Number: <strong>{vesselInfo.imo}</strong></span>
+                                    </div>
                                 )}
                             </div>
 
                             <div className="about-section">
                                 <p className="about-support-heading">Support</p>
-                                <p className="about-detail">Email: <a href="mailto:engineeringappplications@eagle.org" className="about-link">engineeringappplications@eagle.org</a></p>
-                                <p className="about-detail">Website: <a href="https://www.eagle.org" target="_blank" rel="noreferrer" className="about-link">www.eagle.org</a></p>
+                                <div className="about-row">
+                                    <img src={emailIcon} alt="" className="about-row-icon" />
+                                    <p className="about-detail">Email: <a href="mailto:engineeringappplications@eagle.org" className="about-link">engineeringappplications@eagle.org</a> </p>
+                                </div>
+                                <div className="about-row">
+                                    <img src={websiteIcon} alt="" className="about-row-icon" />
+                                    <p className="about-detail">Website:  <a href="https://www.eagle.org" target="_blank" rel="noreferrer" className="about-link">www.eagle.org</a></p>
+                                </div>
                             </div>
 
                             <button className="about-guide-btn" onClick={handleOpenUserGuide}>
-                                Download user guide
+                                User Guide
                             </button>
                         </div>
                         </>

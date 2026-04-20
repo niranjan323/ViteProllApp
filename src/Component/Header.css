@@ -157,9 +157,9 @@
     top: calc(100% + 10px);
     right: 0;
     background: #fff;
-    border-radius: 8px;
-    padding: 28px 32px 24px;
-    width: 360px;
+    border-radius: 10px;
+    padding: 20px 20px 18px;
+    width: 340px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.22);
     z-index: 1000;
 }
@@ -170,9 +170,9 @@
     right: 14px;
     background: none;
     border: none;
-    font-size: 16px;
+    font-size: 15px;
     cursor: pointer;
-    color: #555;
+    color: #888;
     line-height: 1;
 }
 
@@ -180,38 +180,59 @@
     color: #000;
 }
 
-.about-heading {
-    font-size: 18px;
-    font-weight: 700;
-    color: #1a1a1a;
-    margin: 0 0 16px 0;
+/* App icon + name row at top */
+.about-app-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 
-.about-section {
-    margin-bottom: 18px;
+.about-app-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
 }
 
 .about-app-name {
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
     color: #1a1a1a;
-    margin: 0 0 4px 0;
+}
+
+.about-section {
+    margin-bottom: 14px;
+}
+
+/* Each info row with icon */
+.about-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+}
+
+.about-row-icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.6;
+    flex-shrink: 0;
 }
 
 .about-support-heading {
-    font-size: 14px;
-    font-weight: 600;
-    color: #555;
-    margin: 0 0 4px 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #222;
+    margin: 0 0 6px 0;
 }
 
 .about-detail {
     font-size: 13px;
     color: #444;
-    margin: 2px 0;
 }
 
 .about-link {
+    font-size: 13px;
     color: #1565c0;
     text-decoration: none;
 }
@@ -227,9 +248,9 @@
     background: #1565c0;
     color: #fff;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     margin-top: 4px;
 }

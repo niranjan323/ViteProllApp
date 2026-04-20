@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 12 12">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+      }
+
+      .cls-2 {
+        clip-path: url(#clippath);
+      }
+
+      .cls-3 {
+        fill: #707070;
+      }
+    </style>
+    <clipPath id="clippath">
+      <rect class="cls-1" width="12" height="12"/>
+    </clipPath>
+  </defs>
+  <g id="Icons">
+    <g id="clock">
+      <g class="cls-2">
+        <g id="Group_3873" data-name="Group 3873">
+          <path id="Path_7937" data-name="Path 7937" class="cls-3" d="M12,6c0,3.31-2.69,6-6,6S0,9.31,0,6,2.69,0,6,0s6,2.69,6,6M11.19,6c0-2.87-2.32-5.19-5.19-5.19-2.87,0-5.19,2.32-5.19,5.19,0,2.87,2.32,5.19,5.19,5.19s5.19-2.32,5.19-5.19h0"/>
+          <path id="Path_7938" data-name="Path 7938" class="cls-3" d="M8.27,7.29c.17.15.18.41.04.57-.11.13-.29.17-.45.11l-2.12-1.66c-.09-.09-.14-.2-.14-.33-.1-1.02.07-2.18,0-3.22.03-.23.23-.38.46-.36.18.02.32.15.35.33l.02,3.07,1.85,1.48Z"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
