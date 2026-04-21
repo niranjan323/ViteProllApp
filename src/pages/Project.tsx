@@ -103,6 +103,7 @@ const Project: React.FC = () => {
     const [captureKey, setCaptureKey] = useState(0);
     const [wavePeriodDropdownOpen, setWavePeriodDropdownOpen] = useState(false);
     const wavePeriodDropdownRef = useRef<HTMLDivElement>(null);
+    const savedCasesListRef = useRef<HTMLDivElement>(null);
 
     // System info for PDF watermarks (Electron only)
     const [_systemInfo, setSystemInfo] = useState<{ username: string; hostname: string } | null>(null);
@@ -1267,8 +1268,8 @@ const Project: React.FC = () => {
                         <h3 className="saved-cases-title">Saved Cases</h3>
                     </div>
                     <div className="saved-cases-content">
-                        <button className="nav-arrow"><img src={arrowLeftIcon} alt="‹" className="nav-arrow-icon" /></button>
-                        <div className="saved-cases-list">
+                        <button className="nav-arrow" onClick={() => savedCasesListRef.current?.scrollBy({ left: -120, behavior: 'smooth' })}><img src={arrowLeftIcon} alt="‹" className="nav-arrow-icon" /></button>
+                        <div className="saved-cases-list" ref={savedCasesListRef}>
                             {savedCases.map((item) => (
                                 <div key={item.id} className={`case-tile-box ${activeCaseId === item.id ? 'active' : ''}`} onClick={() => handleLoadCase(item)}>
                                     <div className={`case-tile-icon ${item.color}`}></div>
@@ -1276,7 +1277,7 @@ const Project: React.FC = () => {
                                 </div>
                             ))}
                         </div>
-                        <button className="nav-arrow"><img src={arrowRightIcon} alt="›" className="nav-arrow-icon" /></button>
+                        <button className="nav-arrow" onClick={() => savedCasesListRef.current?.scrollBy({ left: 120, behavior: 'smooth' })}><img src={arrowRightIcon} alt="›" className="nav-arrow-icon" /></button>
                     </div>
                 </div>
 
