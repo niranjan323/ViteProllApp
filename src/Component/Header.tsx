@@ -2,8 +2,7 @@
 import { useState } from 'react';
 import './Header.css';
 import logo from '../assets/ABS_Logo.png';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { useElectron } from '../context/ElectronContext';
+import aboutIcon from '../assets/about.svg';
 import appIcon from '../assets/CRoll App icon.svg';
 import versionIcon from '../assets/version.svg';
 import buildIcon from '../assets/build.svg';
@@ -19,13 +18,14 @@ const handleClose = () => window.electronAPI?.closeWindow?.();
 
 const Header = () => {
     const [showAbout, setShowAbout] = useState(false);
-    const { vesselInfo } = useElectron();
-
     const handleOpenUserGuide = () => {
-        const documentUrl = '/ABS_Eagle_CRoll_User_Guide_v2026.1.pdf';
+        const documentUrl = '/ABS Eagle CRoll User Guide v2026.1.1.pdf';
+        
         if (isElectron) {
+            // Open PDF in a new independent Electron window
             window.electronAPI?.openPdfWindow?.(documentUrl);
         } else {
+            // For web/browser, use window.open
             window.open(documentUrl, '_blank');
         }
     };
@@ -51,23 +51,26 @@ const Header = () => {
                     className="app-header__logo"
                 />
 
-                {/* | Eagle CRoll   Version: 2026.1.1 */}
+                {/* | CRoll */}
                 <span className="app-header__divider">|</span>
-                <span className="app-header__title">Eagle CRoll</span>
+                <span className="app-header__title">Eagle CRoll:</span>
+                <span className="app-header__subtitle">Container Carrier Roll Motion in Operation</span>
                 <span className="app-header__version">Version: 2026.1.1</span>
             </div>
 
             {/* RIGHT SIDE */}
             <div className="app-header__right">
                 <div className="about-anchor">
-                    <InfoOutlinedIcon
-                        className="app-header__icon"
-                        titleAccess="About"
-                        onClick={() => setShowAbout(v => !v)}
-                        style={{ cursor: 'pointer' }}
-                    />
-
-                    {/* About dropdown — anchored below info icon */}
+                <img 
+                    src={aboutIcon}
+                    alt="About" 
+                    className="app-header__icon" 
+                    title="About"
+                    onClick={() => setShowAbout(v => !v)}
+                    style={{ cursor: 'pointer' }}
+                />
+                
+                {/* About dropdown — anchored below info icon */}
                     {showAbout && (
                         <>
                         <div className="about-backdrop" onClick={() => setShowAbout(false)} />
@@ -91,13 +94,8 @@ const Header = () => {
                                 </div>
                                 <div className="about-row">
                                     <img src={dateIcon} alt="" className="about-row-icon" />
-                                    <span className="about-detail">Release date: May 2026</span>
+                                    <span className="about-detail">Release date: July 2026</span>
                                 </div>
-                                {vesselInfo?.imo && (
-                                    <div className="about-row">
-                                        <span className="about-detail">Vessel Number: <strong>{vesselInfo.imo}</strong></span>
-                                    </div>
-                                )}
                             </div>
 
                             <div className="about-section">

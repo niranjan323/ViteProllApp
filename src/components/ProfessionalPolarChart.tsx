@@ -141,7 +141,7 @@ export const ProfessionalPolarChart: React.FC<ProfessionalPolarChartProps> = ({
         return trace;
     }, [rollMatrix, speeds, headings, vesselHeading, maxRollAngle, mode, orientation]);
 
-    // Boundary isoline via Marching Squares — draws exact line segments, no gaps possible
+   // Boundary isoline via Marching Squares — draws exact line segments, no gaps possible
     const boundaryTrace = useMemo(() => {
         const numA = 1080;  // angular cells (0.33° each)
         const numR = 400;   // radial cells (0.0625kn each)
@@ -414,7 +414,7 @@ export const ProfessionalPolarChart: React.FC<ProfessionalPolarChartProps> = ({
 
     return (
         <Plot
-            data={[contourTrace, boundaryTrace, waveArrowTrace, vesselIndicatorTrace]}
+            data={[contourTrace,boundaryTrace ,waveArrowTrace, vesselIndicatorTrace]}
             layout={layout}
             config={config}
             style={{ width: '100%', height: '100%' }}

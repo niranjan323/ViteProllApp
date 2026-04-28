@@ -86,20 +86,20 @@ function readLicenseInfo(): LicenseInfo {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Watermark Helpers ────────────────────────────────────────────────────────
-function buildWatermarkTimestamp(): { text: string; year: number } {
+function buildWatermarkTimestamp(): string {
   const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(now.getUTCDate()).padStart(2, '0');
+  const y = String(now.getUTCFullYear());
+  const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(now.getUTCDate()).padStart(2, '0');
   const h = String(now.getUTCHours()).padStart(2, '0');
   const min = String(now.getUTCMinutes()).padStart(2, '0');
   const s = String(now.getUTCSeconds()).padStart(2, '0');
-  return { text: `${year}-${month}-${day} ${h}:${min}:${s} UTC`, year };
+  return `${y}-${m}-${d} ${h}:${min}:${s} UTC`;
 }
 
 function buildWatermarkText(username: string, machineId: string): string {
-  const { text: timestamp, year } = buildWatermarkTimestamp();
-  return `Authorized to ABS Eagle CRoll software licensed user ${username} (machine id: ${machineId}) only, ${timestamp}, copyright ${year} by ABS. All rights reserved.`;
+  const year = new Date().getFullYear();
+  return `Authorized to ABS Eagle CRoll software licensed user ${username} (${machineId}) only, ${buildWatermarkTimestamp()}, copyright ${year} by ABS. All rights reserved.`;
 }
 
 async function applyWatermarkToPdf(pdfBytes: Buffer, username: string, hostname: string): Promise<Uint8Array> {
@@ -474,7 +474,7 @@ ipcMain.handle('open-pdf-window', async (_, pdfPath: string) => {
 
     // Write watermarked PDF to a temp file
     const tempDir = app.getPath('temp');
-    const tempFile = path.join(tempDir, `ABS Eagle CRoll User Guide v2026.1.pdf`);
+    const tempFile = path.join(tempDir, `ABS Eagle CRoll User Guide v2026.1.1.pdf`);
     fs.writeFileSync(tempFile, watermarkedBytes);
 
     // Create a new independent BrowserWindow for the PDF

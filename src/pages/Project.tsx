@@ -102,6 +102,7 @@ const Project: React.FC = () => {
     const pendingChartCaptureRef = useRef<string | null>(null);
     const [captureKey, setCaptureKey] = useState(0);
     const [wavePeriodDropdownOpen, setWavePeriodDropdownOpen] = useState(false);
+    const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
     const wavePeriodDropdownRef = useRef<HTMLDivElement>(null);
     const savedCasesListRef = useRef<HTMLDivElement>(null);
 
@@ -416,7 +417,7 @@ const Project: React.FC = () => {
             chartMode,
             chartOrientation: chartDirection,
         };
-    }, [caseId, userInputData, wavePeriodType, displayedWavePeriod, fittedParams]);
+    }, [caseId, userInputData, wavePeriodType, displayedWavePeriod, fittedParams, chartMode, chartDirection]);
 
     const handleGenerateReport = () => {
         if (reportType === 'current') {
@@ -522,7 +523,7 @@ const Project: React.FC = () => {
 
             y += 5;
 
-            // Polar diagram parameters — placed right below user input
+            // Polar diagram parameters closest to user request
             if (data.fittedParams) {
                 // section needs: title(8) + 4 rows(32) + gap(5) + footer(16) = 61mm
                 const neededSpace = 8 + 4 * 8 + 5 + 16;
@@ -581,13 +582,13 @@ const Project: React.FC = () => {
             }
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
-            doc.text(`Generated: ${new Date().toLocaleString()}`, margin, y);
+            doc.text(`Generated: ${new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')}`, margin, y);
             y += 5;
             doc.text('ABS Eagle CRoll, Version 2026.1.1', margin, y);
         });
 
         return doc;
-    }, [getReportData, vesselInfo]);
+    }, [vesselInfo]);
 
     const handleDownloadReport = useCallback(async () => {
         let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];
@@ -842,7 +843,16 @@ const Project: React.FC = () => {
                                             <div className="input-label wave-period-label" ref={wavePeriodDropdownRef}>
                                                 <div
                                                     className={`wave-period-trigger ${wavePeriodSelected ? 'wave-period-selected' : ''}`}
-                                                    onClick={() => setWavePeriodDropdownOpen(!wavePeriodDropdownOpen)}
+                                                    onClick={() => {
+                                                        if (!wavePeriodDropdownOpen && wavePeriodDropdownRef.current) {
+                                                            const rect = wavePeriodDropdownRef.current.getBoundingClientRect();
+                                                            setDropdownPos({
+                                                                top: rect.bottom + 4,
+                                                                left: Math.min(rect.left, window.innerWidth - 280),
+                                                            });
+                                                        }
+                                                        setWavePeriodDropdownOpen(!wavePeriodDropdownOpen);
+                                                    }}
                                                 >
                                                     <span>{wavePeriodSelected ? WAVE_PERIOD_CONVERSIONS[wavePeriodType].label : 'Wave Period'}</span>
                                                     <span className={`wave-period-arrow ${wavePeriodDropdownOpen ? 'open' : ''}`}>&#9662;</span>
@@ -878,15 +888,8 @@ const Project: React.FC = () => {
                                                 className="wave-period-dropdown"
                                                 style={{
                                                     position: 'fixed',
-                                                    top: wavePeriodDropdownRef.current
-                                                        ? wavePeriodDropdownRef.current.getBoundingClientRect().bottom + 4
-                                                        : 0,
-                                                    left: wavePeriodDropdownRef.current
-                                                        ? Math.min(
-                                                            wavePeriodDropdownRef.current.getBoundingClientRect().left,
-                                                            window.innerWidth - 280
-                                                          )
-                                                        : 0,
+                                                    top: dropdownPos.top,
+                                                    left: dropdownPos.left,
                                                 }}
                                             >
                                                 {Object.entries(WAVE_PERIOD_CONVERSIONS).map(([key, config]) => (

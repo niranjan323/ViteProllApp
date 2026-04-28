@@ -82,24 +82,45 @@ function initDatabase() {
     )
   `);
 }
+function readLicenseInfo() {
+    const fallback = { fullName: os.userInfo().username, machineId: os.hostname() };
+    try {
+        // Search in app directory for Req_*.xml (license request file)
+        const appDir = isDev
+            ? path.join(__dirname, '..', 'dist', 'win-unpacked')
+            : path.dirname(electron_1.app.getPath('exe'));
+        if (!fs.existsSync(appDir))
+            return fallback;
+        const xmlFile = fs.readdirSync(appDir).find(f => f.startsWith('Req_') && f.endsWith('.xml'));
+        if (!xmlFile)
+            return fallback;
+        const xml = fs.readFileSync(path.join(appDir, xmlFile), 'utf-8');
+        const contactMatch = xml.match(/<Contact>([^<]+)<\/Contact>/i);
+        const macidMatch = xml.match(/<MACID>([^<]+)<\/MACID>/i);
+        return {
+            fullName: contactMatch?.[1]?.trim() || fallback.fullName,
+            machineId: macidMatch?.[1]?.trim() || fallback.machineId,
+        };
+    }
+    catch {
+        return fallback;
+    }
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // ─── Watermark Helpers ────────────────────────────────────────────────────────
 function buildWatermarkTimestamp() {
     const now = new Date();
-    const months = ['January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'];
-    const d = String(now.getDate()).padStart(2, '0');
-    const m = months[now.getMonth()];
-    const y = now.getFullYear();
-    const h = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
-    const s = String(now.getSeconds()).padStart(2, '0');
-    const tzAbbr = now.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop() ?? '';
-    return `${m} ${d}, ${y} ${h}:${min}:${s} ${tzAbbr}`;
+    const y = String(now.getUTCFullYear());
+    const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(now.getUTCDate()).padStart(2, '0');
+    const h = String(now.getUTCHours()).padStart(2, '0');
+    const min = String(now.getUTCMinutes()).padStart(2, '0');
+    const s = String(now.getUTCSeconds()).padStart(2, '0');
+    return `${y}-${m}-${d} ${h}:${min}:${s} UTC`;
 }
-function buildWatermarkText(username, hostname) {
+function buildWatermarkText(username, machineId) {
     const year = new Date().getFullYear();
-    return `Authorized to ABS CRoll software licensed user ${username} (${hostname}) only, ${buildWatermarkTimestamp()}, copyright ${year} by ABS. All rights reserved.`;
+    return `Authorized to ABS Eagle CRoll software licensed user ${username} (${machineId}) only, ${buildWatermarkTimestamp()}, copyright ${year} by ABS. All rights reserved.`;
 }
 async function applyWatermarkToPdf(pdfBytes, username, hostname) {
     const pdfDoc = await pdf_lib_1.PDFDocument.load(pdfBytes);
@@ -437,12 +458,11 @@ electron_1.ipcMain.handle('open-pdf-window', async (_, pdfPath) => {
         }
         // Apply watermark to the PDF before opening
         const pdfBytes = fs.readFileSync(filePath);
-        const username = os.userInfo().username;
-        const hostname = os.hostname();
-        const watermarkedBytes = await applyWatermarkToPdf(pdfBytes, username, hostname);
+        const { fullName, machineId } = readLicenseInfo();
+        const watermarkedBytes = await applyWatermarkToPdf(pdfBytes, fullName, machineId);
         // Write watermarked PDF to a temp file
         const tempDir = electron_1.app.getPath('temp');
-        const tempFile = path.join(tempDir, `ABS_Eagle_CRoll_User_Guide_v2026.1.pdf`);
+        const tempFile = path.join(tempDir, `ABS Eagle CRoll User Guide v2026.1.1.pdf`);
         fs.writeFileSync(tempFile, watermarkedBytes);
         // Create a new independent BrowserWindow for the PDF
         const pdfWindow = new electron_1.BrowserWindow({
