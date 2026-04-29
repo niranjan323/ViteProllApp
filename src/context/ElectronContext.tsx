@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { FileSystemService } from '../services/fileSystem';
 import { WebFileSystemService } from '../services/webFileSystem';
+import { ApiFileSystemService } from '../services/apiFileService';
 import type { IFileSystemService } from '../services/IFileSystemService';
 import { DataLoader } from '../services/dataLoader';
 import type { VesselInfo, ParameterBounds, RepresentativeDrafts } from '../services/dataLoader';
@@ -28,7 +29,10 @@ interface ElectronContextType {
   vesselInfo: VesselInfo | null;
   parameterBounds: ParameterBounds | null;
   representativeDrafts: RepresentativeDrafts | null;
+  isElectronMode: boolean;
   selectFolder: () => Promise<boolean>;
+  /** Web mode only — set the active blob project by name, then load its control file. */
+  selectProject: (projectName: string) => Promise<boolean>;
   selectControlFile: () => Promise<boolean>;
   loadControlFile: (controlPath: string) => Promise<{ success: boolean; error?: string }>;
   resetAll: () => void;
@@ -38,9 +42,14 @@ interface ElectronContextType {
 const ElectronContext = createContext<ElectronContextType | undefined>(undefined);
 
 export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [fileSystem] = useState<IFileSystemService>(() =>
-    isElectron ? new FileSystemService() : new WebFileSystemService()
-  );
+  const [fileSystem] = useState<IFileSystemService>(() => {
+    if (isElectron) return new FileSystemService();
+    // Web mode: use API-backed file system (Blob Storage via CRoll .NET API)
+    // Falls back to WebFileSystemService (File System Access API) only if API URL is not set
+    return import.meta.env.VITE_API_BASE_URL
+      ? new ApiFileSystemService()
+      : new WebFileSystemService();
+  });
   const [dataLoader] = useState(() => new DataLoader(fileSystem));
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [controlFilePath, setControlFilePath] = useState<string | null>(null);
@@ -64,7 +73,27 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   /**
-   * User selects a folder containing polar data
+   * Web mode only — set the active project by blob project name, then auto-load control file.
+   * Called by the ProjectSelector UI component after fetching available projects.
+   */
+  const selectProject = async (projectName: string): Promise<boolean> => {
+    try {
+      fileSystem.setBasePath(projectName);
+      setSelectedFolder(projectName);
+      const result = await fileSystem.selectControlFile();
+      if (!result.success) {
+        console.error('No control file found for project:', projectName, result.error);
+        return false;
+      }
+      return (await loadControlFile(result.filePath!)).success;
+    } catch (error) {
+      console.error('Error selecting project:', error);
+      return false;
+    }
+  };
+
+  /**
+   * User selects a folder containing polar data (Electron / native folder picker)
    */
   const selectFolder = async (): Promise<boolean> => {
     try {
@@ -172,7 +201,9 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
     vesselInfo,
     parameterBounds,
     representativeDrafts,
+    isElectronMode: isElectron,
     selectFolder,
+    selectProject,
     selectControlFile,
     loadControlFile,
     resetAll,

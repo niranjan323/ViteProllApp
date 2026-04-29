@@ -20,5 +20,14 @@ dist-ssr
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
+
+# .NET build output
+CRoll.API/**/bin/
+CRoll.API/**/obj/
+
+# Local secrets — never commit
+CRoll.API/CRoll.API/appsettings.Development.json
+
+# Frontend local env
+.env.local
