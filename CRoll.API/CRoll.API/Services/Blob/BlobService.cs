@@ -20,11 +20,13 @@ namespace CRoll.API.Services.Blob
 
         public BlobService(IConfiguration configuration, AzureConnection azureConnection)
         {
-            var accountName = configuration["StorageAccountName"]
-                ?? throw new InvalidOperationException("Missing config: StorageAccountName");
+            var accountName = configuration["StorageAccountName"];
+            if (string.IsNullOrWhiteSpace(accountName))
+                throw new InvalidOperationException("Missing config: StorageAccountName");
 
-            var containerName = configuration["BlobContainerName"]
-                ?? throw new InvalidOperationException("Missing config: BlobContainerName");
+            var containerName = configuration["BlobContainerName"];
+            if (string.IsNullOrWhiteSpace(containerName))
+                throw new InvalidOperationException("Missing config: BlobContainerName");
 
             var accountKey = ResolveAccountKey(configuration, azureConnection);
 

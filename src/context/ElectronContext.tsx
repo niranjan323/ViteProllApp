@@ -14,12 +14,6 @@ import { PolarCalculations } from '../services/polarCalculations';
  */
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
-/**
- * Electron Context
- * Provides access to file system, data loading, and calculation services.
- * Works in both Electron (desktop) and web (browser) modes.
- */
-
 interface ElectronContextType {
   fileSystem: IFileSystemService;
   dataLoader: DataLoader;
@@ -32,7 +26,7 @@ interface ElectronContextType {
   isElectronMode: boolean;
   selectFolder: () => Promise<boolean>;
   /** Web mode only — set the active blob project by name, then load its control file. */
-  selectProject: (projectName: string) => Promise<boolean>;
+  selectProject: (projectName: string) => Promise<{ success: boolean; error?: string }>;
   selectControlFile: () => Promise<boolean>;
   loadControlFile: (controlPath: string) => Promise<{ success: boolean; error?: string }>;
   resetAll: () => void;
@@ -44,8 +38,6 @@ const ElectronContext = createContext<ElectronContextType | undefined>(undefined
 export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [fileSystem] = useState<IFileSystemService>(() => {
     if (isElectron) return new FileSystemService();
-    // Web mode: use API-backed file system (Blob Storage via CRoll .NET API)
-    // Falls back to WebFileSystemService (File System Access API) only if API URL is not set
     return import.meta.env.VITE_API_BASE_URL
       ? new ApiFileSystemService()
       : new WebFileSystemService();
@@ -58,8 +50,6 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [representativeDrafts, setRepresentativeDrafts] = useState<RepresentativeDrafts | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  // Always ready. In Electron: restore last-used folder from localStorage.
-  // In web: FileSystemDirectoryHandle cannot be persisted — user re-selects each session.
   useEffect(() => {
     setIsReady(true);
     if (isElectron) {
@@ -74,27 +64,26 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   /**
    * Web mode only — set the active project by blob project name, then auto-load control file.
-   * Called by the ProjectSelector UI component after fetching available projects.
+   * Returns the error string so the caller can display it to the user.
    */
-  const selectProject = async (projectName: string): Promise<boolean> => {
+  const selectProject = async (projectName: string): Promise<{ success: boolean; error?: string }> => {
     try {
       fileSystem.setBasePath(projectName);
       setSelectedFolder(projectName);
-      const result = await fileSystem.selectControlFile();
-      if (!result.success) {
-        console.error('No control file found for project:', projectName, result.error);
-        return false;
+
+      const ctlResult = await fileSystem.selectControlFile();
+      if (!ctlResult.success) {
+        return { success: false, error: ctlResult.error ?? 'Control file not found.' };
       }
-      return (await loadControlFile(result.filePath!)).success;
+
+      return loadControlFile(ctlResult.filePath!);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error loading project';
       console.error('Error selecting project:', error);
-      return false;
+      return { success: false, error: msg };
     }
   };
 
-  /**
-   * User selects a folder containing polar data (Electron / native folder picker)
-   */
   const selectFolder = async (): Promise<boolean> => {
     try {
       const result = await fileSystem.selectFolder();
@@ -104,19 +93,14 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
         return false;
       }
 
-      if (result.canceled) {
-        console.log('Folder selection canceled');
-        return false;
-      }
+      if (result.canceled) return false;
 
       const folderPath = result.folderPath!;
       fileSystem.setBasePath(folderPath);
       setSelectedFolder(folderPath);
-      // Only persist in Electron — web cannot restore a FileSystemDirectoryHandle
       if (isElectron) {
         localStorage.setItem('vesselDataFolder', folderPath);
       }
-      console.log('Folder selected:', folderPath);
 
       return true;
     } catch (error) {
@@ -125,9 +109,6 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
-  /**
-   * User selects a control file
-   */
   const selectControlFile = async (): Promise<boolean> => {
     try {
       const startPath = selectedFolder ? `${selectedFolder}/PolarData` : undefined;
@@ -138,10 +119,7 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
         return false;
       }
 
-      if (result.canceled) {
-        console.log('Control file selection canceled');
-        return false;
-      }
+      if (result.canceled) return false;
 
       const filePath = result.filePath!;
       setControlFilePath(filePath);
@@ -154,9 +132,6 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
-  /**
-   * Reset all state to initial values
-   */
   const resetAll = () => {
     setSelectedFolder(null);
     setControlFilePath(null);
@@ -166,9 +141,6 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
     fileSystem.setBasePath('');
   };
 
-  /**
-   * Load and parse the control file
-   */
   const loadControlFile = async (controlPath: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const result = await dataLoader.loadControlFile(controlPath);
@@ -178,12 +150,11 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
         return { success: false, error: result.error };
       }
 
-      setVesselInfo(result.vesselInfo || null);
-      setParameterBounds(result.parameterBounds || null);
-      setRepresentativeDrafts(result.representativeDrafts || null);
+      setVesselInfo(result.vesselInfo ?? null);
+      setParameterBounds(result.parameterBounds ?? null);
+      setRepresentativeDrafts(result.representativeDrafts ?? null);
       setControlFilePath(controlPath);
 
-      console.log('Control file loaded successfully');
       return { success: true };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error loading control file';
@@ -213,9 +184,6 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
   return <ElectronContext.Provider value={value}>{children}</ElectronContext.Provider>;
 };
 
-/**
- * Hook to use the Electron context
- */
 export const useElectron = (): ElectronContextType => {
   const context = useContext(ElectronContext);
   if (!context) {

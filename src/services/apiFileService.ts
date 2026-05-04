@@ -12,11 +12,11 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
  */
 export class ApiFileSystemService implements IFileSystemService {
   private basePath: string = '';
-  private cachedTree: string[] | null = null;  // cache the project tree to avoid repeat fetches
+  private cachedTree: string[] | null = null;
 
   setBasePath(basePath: string): void {
     this.basePath = basePath.replace(/\\/g, '/').replace(/\/$/, '');
-    this.cachedTree = null;  // clear cache on project change
+    this.cachedTree = null;
   }
 
   getBasePath(): string {
@@ -45,21 +45,41 @@ export class ApiFileSystemService implements IFileSystemService {
 
   // ─── DIRECTORY LISTING ──────────────────────────────────────────────────────
 
+  /**
+   * List direct children of dirPath within the project.
+   *
+   * The cached tree holds paths relative to the project root, e.g.:
+   *   "croll.ctl"
+   *   "Draft=11m/GM=1.5m/bin/MAXROLL_H10.0_T10.5.bpolar"
+   *
+   * For root listing (dirPath = '') we return unique first path segments:
+   *   ["croll.ctl", "Draft=11m", "Draft=15m"]
+   *
+   * For a subdir like "Draft=11m" we return unique first segments after the prefix:
+   *   ["GM=1.5m", "GM=2.0m"]
+   */
   async listDirectory(dirPath: string): Promise<string[]> {
     const tree = await this.getTree();
-    const prefix = this.toRelativePath(dirPath).replace(/\/$/, '') + '/';
+    const rel = this.toRelativePath(dirPath).replace(/\/$/, '');
 
-    // Return only entries directly inside this directory (one level deep)
-    return tree
-      .filter(blob => blob.startsWith(prefix))
-      .map(blob => blob.slice(prefix.length))
-      .filter(name => !name.includes('/'));  // direct children only
+    if (rel === '') {
+      // Root listing — unique top-level names
+      return [...new Set(tree.map(b => b.split('/')[0]))];
+    }
+
+    const prefix = rel + '/';
+    return [...new Set(
+      tree
+        .filter(b => b.startsWith(prefix))
+        .map(b => b.slice(prefix.length).split('/')[0])
+        .filter(s => s !== '')
+    )];
   }
 
   async fileExists(filePath: string): Promise<boolean> {
     const path = this.toRelativePath(filePath);
     const tree = await this.getTree();
-    return tree.some(blob => blob === path || blob.endsWith('/' + path));
+    return tree.some(blob => blob === path);
   }
 
   async directoryExists(dirPath: string): Promise<boolean> {
@@ -70,52 +90,48 @@ export class ApiFileSystemService implements IFileSystemService {
 
   // ─── PROJECT SELECTION ──────────────────────────────────────────────────────
 
-  /**
-   * Not used in web mode — project selection is handled by the ProjectSelector UI.
-   * Returns a special code so ElectronContext knows to defer to the web project picker.
-   */
   async selectFolder(): Promise<{ success: boolean; folderPath?: string; canceled?: boolean; error?: string }> {
     return { success: false, error: 'web-select-folder-not-supported' };
   }
 
   /**
-   * In web mode, fetches the control file text and returns its blob path as filePath.
+   * Locate the control file inside the current project.
+   * Tries croll.ctl, CRoll.ctl, control.ctl in order.
    */
   async selectControlFile(_startPath?: string): Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }> {
     if (!this.basePath)
       return { success: false, error: 'No project selected. Select a project first.' };
 
-    const controlBlobName = 'control.ctl';
-    const exists = await this.fileExists(controlBlobName);
-    if (!exists)
-      return { success: false, error: `control.ctl not found in project '${this.basePath}'.` };
+    for (const name of ['croll.ctl', 'CRoll.ctl', 'control.ctl']) {
+      if (await this.fileExists(name))
+        return { success: true, filePath: name };
+    }
 
-    // Return a virtual path that readTextFile / DataLoader will resolve via API
-    return { success: true, filePath: controlBlobName };
+    return {
+      success: false,
+      error: `Control file not found in project '${this.basePath}'. Tried: croll.ctl, CRoll.ctl, control.ctl`,
+    };
   }
 
   // ─── PUBLIC HELPERS ─────────────────────────────────────────────────────────
 
-  /**
-   * Fetch all available project names from blob storage.
-   * Used by the project picker UI.
-   */
   static async listProjects(): Promise<string[]> {
-    const response = await fetch(`${API_BASE}/api/files/projects`);
+    const url = `${API_BASE}/api/files/projects`;
+    let response: Response;
+    try {
+      response = await fetch(url);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Network error reaching ${url}: ${msg}`);
+    }
     if (!response.ok)
-      throw new Error(`Failed to list projects: ${response.status}`);
-    return response.json();
+      throw new Error(`Failed to list projects (${response.status}) from ${url}`);
+    return response.json() as Promise<string[]>;
   }
 
-  /**
-   * Upload files to a project folder.
-   * files: array of File objects from an <input type="file"> or drag-and-drop.
-   * relativePaths: matching array of paths within the project (e.g. "polars/Draft=15.0/GM=1.5/v.bpolar").
-   */
   static async uploadFiles(projectName: string, files: File[], relativePaths: string[]): Promise<void> {
     const formData = new FormData();
     files.forEach((file, i) => {
-      // Use relativePaths as file name — the server uses file.FileName as the blob sub-path
       const renamedFile = new File([file], relativePaths[i], { type: file.type });
       formData.append('files', renamedFile);
     });
@@ -133,31 +149,38 @@ export class ApiFileSystemService implements IFileSystemService {
 
   // ─── PRIVATE ────────────────────────────────────────────────────────────────
 
-  /** Fetch and cache the full blob tree for the current project. */
   private async getTree(): Promise<string[]> {
     if (this.cachedTree) return this.cachedTree;
 
-    const response = await fetch(
-      `${API_BASE}/api/files/projects/${encodeURIComponent(this.basePath)}/tree`
-    );
+    let response: Response;
+    try {
+      response = await fetch(
+        `${API_BASE}/api/files/projects/${encodeURIComponent(this.basePath)}/tree`
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Network error fetching project tree: ${msg}`);
+    }
+
     if (!response.ok)
-      throw new Error(`Failed to fetch project tree: ${response.status}`);
+      throw new Error(`Failed to fetch project tree: ${response.status} ${response.statusText}`);
 
     const blobs: string[] = await response.json();
-    // Strip the project name prefix — store paths relative to project root
+    // Strip the project-name prefix so all paths are relative to the project root
     this.cachedTree = blobs.map(b =>
       b.startsWith(this.basePath + '/') ? b.slice(this.basePath.length + 1) : b
     );
     return this.cachedTree;
   }
 
-  /** Convert an absolute or relative file path to a blob-relative path. */
+  /** Normalise any path format to a blob-relative path (no leading slash, forward slashes). */
   private toRelativePath(filePath: string): string {
-    const normalized = filePath.replace(/\\/g, '/');
-    // Strip leading project name if accidentally included
+    // Normalise separators and strip absolute Windows drive prefix (C:\...)
+    let normalized = filePath.replace(/\\/g, '/').replace(/^[A-Za-z]:\//, '');
+    // Strip leading project prefix if the caller accidentally included it
     if (normalized.startsWith(this.basePath + '/'))
-      return normalized.slice(this.basePath.length + 1);
-    // Strip leading slash
-    return normalized.replace(/^\//, '');
+      normalized = normalized.slice(this.basePath.length + 1);
+    // Strip any remaining leading slash
+    return normalized.replace(/^\/+/, '');
   }
 }
