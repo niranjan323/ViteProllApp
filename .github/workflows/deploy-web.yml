@@ -1,18 +1,19 @@
 # CRoll Frontend — Azure App Service Deploy
-# Triggers on push to main when frontend code changes, or manually from Actions tab.
+# Same pattern as digitalrules-frontend-dev.yml (reference project).
 #
-# Required GitHub Secrets:
-#   AZURE_CLIENT_ID        — App Registration client ID (OIDC)
-#   AZURE_TENANT_ID        — Azure AD tenant ID
-#   AZURE_SUBSCRIPTION_ID  — Azure subscription ID
-#   VITE_API_BASE_URL      — Production API URL
-#                            e.g. https://api-ngea-cr-dev-001.azurewebsites.net
+# Secrets (same as Digital Rules — may already exist at org level):
+#   AZURE_CLIENT_ID_NONPROD  — App Registration client ID (OIDC)
+#   AZURE_TENANT_ID          — Azure AD tenant ID
+#   AZURE_SUBSCRIPTION_ID    — Azure subscription ID
+#   VITE_API_BASE_URL        — Production API URL baked in at build time
+#                              https://api-ngea-cr-dev-001.azurewebsites.net
 
-name: Deploy CRoll Frontend
+name: croll-frontend-dev
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - 'src/**'
       - 'public/**'
@@ -25,44 +26,59 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write   # required for OIDC login
+  id-token: write
   contents: read
+
+env:
+  AZURE_WEBAPP_NAME: app-ngea-cr-dev-001
+  NODE_VERSION: '20'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    environment:
+      name: development
+
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
-        # --ignore-scripts skips the postinstall electron-rebuild step
-        # (electron-rebuild requires Windows and is only needed for the desktop build)
-        run: npm ci --ignore-scripts
-
-      - name: Build web app
-        # Override base to '/' so asset paths work correctly on nested routes
-        # (vite.config uses './' which is for Electron; web deploy needs '/')
-        run: npx tsc -b && npx vite build --base=/
+      - name: Install and Build
+        # --ignore-scripts skips postinstall electron-rebuild (Windows-only, not needed for web build)
+        # --base=/ overrides vite.config base './' so asset paths work correctly on nested routes
+        run: |
+          npm ci --ignore-scripts
+          npx tsc -b && npx vite build --base=/
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
 
-      - name: Azure Login (OIDC — no secrets stored)
+      - name: Zip build output
+        run: |
+          cd dist
+          zip -r ../frontend-release.zip ./*
+
+      - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID_NONPROD }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy to Azure App Service
+      - name: Deploy React to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: app-ngea-cr-dev-001
-          package: ./dist
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: frontend-release.zip
+
+      - name: Deployment Confirmation
+        if: success()
+        run: |
+          echo "Frontend deployed successfully to ${{ env.AZURE_WEBAPP_NAME }}"
