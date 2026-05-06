@@ -1,0 +1,57 @@
+# CRoll API — Azure App Service Deploy
+# Triggers on push to main when API code changes, or manually from Actions tab.
+#
+# Required GitHub Secrets:
+#   AZURE_CLIENT_ID       — App Registration client ID (OIDC)
+#   AZURE_TENANT_ID       — Azure AD tenant ID
+#   AZURE_SUBSCRIPTION_ID — Azure subscription ID
+
+name: Deploy CRoll API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'CRoll.API/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # required for OIDC login
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore CRoll.API/CRoll.API/CRoll.API.csproj
+
+      - name: Build & publish
+        run: |
+          dotnet publish CRoll.API/CRoll.API/CRoll.API.csproj \
+            --configuration Release \
+            --output ./api-publish \
+            --no-restore
+
+      - name: Azure Login (OIDC — no secrets stored)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: api-ngea-cr-dev-001
+          package: ./api-publish
