@@ -1,17 +1,17 @@
 # CRoll API — Azure App Service Deploy
-# Same pattern as digitalrules-api-dev.yml (reference project).
+# Triggers on push to develop branch (branch-based OIDC — must match federated credential)
 #
-# Secrets (same as Digital Rules — may already exist at org level):
-#   AZURE_CLIENT_ID_NONPROD  — App Registration client ID (OIDC)
-#   AZURE_TENANT_ID          — Azure AD tenant ID
-#   AZURE_SUBSCRIPTION_ID    — Azure subscription ID
+# GitHub Secrets required:
+#   AZURE_CLIENT_ID_NONPROD  = 443b366a-a00b-4fde-aa19-3578cc040008
+#   AZURE_TENANT_ID          = d810b06c-d004-4d52-b0aa-4f3581ee7020
+#   AZURE_SUBSCRIPTION_ID    = b7301a1c-8c93-44c4-b0fd-694385e99522
 
 name: croll-api-dev
 
 on:
   push:
     branches:
-      - main
+      - develop
     paths:
       - 'CRoll.API/**'
       - '.github/workflows/deploy-api.yml'
@@ -54,9 +54,6 @@ jobs:
   deploy-api:
     runs-on: ubuntu-latest
     needs: build-api
-    environment:
-      name: development
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
       - name: Azure Login
