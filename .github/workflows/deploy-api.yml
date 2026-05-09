@@ -1,5 +1,6 @@
 # CRoll API — Azure App Service Deploy
-# Triggers on push to develop branch (branch-based OIDC — must match federated credential)
+# Triggers on push to develop branch (branch-based OIDC)
+# Build runs on ubuntu-latest, deploy runs on self-hosted runner (VNet access for private endpoint)
 #
 # GitHub Secrets required:
 #   AZURE_CLIENT_ID_NONPROD  = 443b366a-a00b-4fde-aa19-3578cc040008
@@ -38,7 +39,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: .NET Publish
-        run: dotnet publish ./CRoll.API/CRoll.API/CRoll.API.csproj -c release -o ./dotnetapp
+        run: dotnet publish ./CRoll/CRoll.API/CRoll.API.csproj -c release -o ./dotnetapp
 
       - name: Zip application files
         run: |
@@ -52,7 +53,9 @@ jobs:
           path: release.zip
 
   deploy-api:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: ABS-IMS-DevOps-Self-Hosted
+      labels: [self-hosted]
     needs: build-api
 
     steps:
@@ -69,7 +72,6 @@ jobs:
           name: croll-api
 
       - name: Deploy to Azure Web App (API)
-        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
@@ -77,6 +79,4 @@ jobs:
 
       - name: Deployment Confirmation
         if: success()
-        run: |
-          echo "Deployment to ${{ env.AZURE_WEBAPP_NAME }} completed successfully."
-          echo "Web App URL: ${{ steps.deploy-to-webapp.outputs.webapp-url }}"
+        run: echo "API deployed successfully to ${{ env.AZURE_WEBAPP_NAME }}"
