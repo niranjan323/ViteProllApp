@@ -1,0 +1,41 @@
+name: network-diagnostic
+# Run manually from GitHub Actions tab to test SCM connectivity from self-hosted runner
+# This is NOT a deployment — it only tests network reachability
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-connectivity:
+    runs-on:
+      group: ABS-IMS-DevOps-Self-Hosted
+      labels: [self-hosted]
+
+    steps:
+      - name: DNS Resolution — CRoll vs Digital Rules
+        run: |
+          echo "========================================="
+          echo "DNS: CRoll API SCM"
+          nslookup api-ngea-cr-dev-001.scm.azurewebsites.net
+          echo "========================================="
+          echo "DNS: Digital Rules API SCM"
+          nslookup api-digitalrule-dev-001.scm.azurewebsites.net
+          echo "========================================="
+
+      - name: Connectivity — CRoll API SCM
+        run: |
+          echo "Testing CRoll API SCM (api-ngea-cr-dev-001)..."
+          curl -v --max-time 10 \
+            https://api-ngea-cr-dev-001.scm.azurewebsites.net \
+            2>&1 | head -40 \
+            && echo "RESULT: CRoll API SCM REACHABLE" \
+            || echo "RESULT: CRoll API SCM NOT REACHABLE (timeout/error)"
+
+      - name: Connectivity — Digital Rules API SCM
+        run: |
+          echo "Testing Digital Rules API SCM (api-digitalrule-dev-001)..."
+          curl -v --max-time 10 \
+            https://api-digitalrule-dev-001.scm.azurewebsites.net \
+            2>&1 | head -40 \
+            && echo "RESULT: Digital Rules API SCM REACHABLE" \
+            || echo "RESULT: Digital Rules API SCM NOT REACHABLE (timeout/error)"
