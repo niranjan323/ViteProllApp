@@ -1,0 +1,83 @@
+# CRoll API — Azure App Service UAT Deploy
+# Triggers on push to uat branch (branch-based OIDC)
+# Build runs on ubuntu-latest, deploy runs on self-hosted runner (VNet access for private endpoint)
+#
+# GitHub Secrets required:
+#   AZURE_CLIENT_ID_NONPROD  = 443b366a-a00b-4fde-aa19-3578cc040008
+#   AZURE_TENANT_ID          = d810b06c-d004-4d52-b0aa-4f3581ee7020
+#   AZURE_SUBSCRIPTION_ID    = b7301a1c-8c93-44c4-b0fd-694385e99522
+
+name: croll-api-uat
+
+on:
+  push:
+    branches:
+      - uat
+    paths:
+      - 'CRoll.API/**'
+      - '.github/workflows/deploy-api-uat.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_WEBAPP_NAME: api-ngea-cr-uat-001
+  DOTNET_VERSION: '8.x'
+  RESOURCE_GROUP: rg-ngea-cr-uat
+
+jobs:
+  build-api:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: .NET Publish
+        run: dotnet publish ./CRoll/CRoll.API/CRoll.API.csproj -c release -o ./dotnetapp
+
+      - name: Zip application files
+        run: |
+          cd dotnetapp
+          zip -r ../release.zip ./*
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: croll-api-uat
+          path: release.zip
+
+  deploy-api:
+    runs-on:
+      group: ABS-IMS-DevOps-Self-Hosted
+      labels: [self-hosted]
+    needs: build-api
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_NONPROD }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: croll-api-uat
+
+      - name: Deploy to Azure Web App (API)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: release.zip
+
+      - name: Deployment Confirmation
+        if: success()
+        run: echo "API deployed successfully to ${{ env.AZURE_WEBAPP_NAME }}"
