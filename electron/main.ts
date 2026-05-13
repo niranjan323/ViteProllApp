@@ -477,13 +477,14 @@ ipcMain.handle('open-pdf-window', async (_, pdfPath: string) => {
     const tempFile = path.join(tempDir, `ABS Eagle CRoll User Guide v2026.1.1.pdf`);
     fs.writeFileSync(tempFile, watermarkedBytes);
 
-    // Create a new independent BrowserWindow for the PDF
+     // parent: mainWindow ensures closing the PDF does not quit the whole app.
     const pdfWindow = new BrowserWindow({
       title: 'CRoll User Guide',
       width: 1000,
       height: 800,
       minWidth: 600,
       minHeight: 400,
+      parent: mainWindow ?? undefined,
       webPreferences: {
         preload: undefined,
         nodeIntegration: false,
