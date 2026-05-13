@@ -1426,22 +1426,36 @@
 /* 1366×768 laptops — most common small laptop, no breakpoint previously covered this */
 @media (max-width: 1400px) {
     .project-container {
-        padding: clamp(0.5rem, 0.8vw, 1rem);
-        gap: clamp(0.5rem, 0.8vw, 1rem);
+        padding: clamp(0.4rem, 0.7vw, 0.9rem);
+        gap: clamp(0.4rem, 0.7vw, 0.9rem);
     }
 
     .project-sidebar {
-        width: 290px;
-        min-width: 290px;
+        width: 255px;
+        min-width: 255px;
+    }
+
+    .sidebar-content {
+        padding: 0.4rem 0;
     }
 
     .section {
-        padding: 0 0.75rem;
-        margin-bottom: 0.9rem;
+        padding: 0 0.6rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .section-content {
+        padding: 0.6rem;
     }
 
     .section-title {
         font-size: 0.82rem;
+        margin-bottom: 3px;
+    }
+
+    .input-row-wrapper {
+        padding: 0.2rem 0.3rem;
+        margin-bottom: 0.3rem;
     }
 
     .input-label {
@@ -1449,7 +1463,7 @@
     }
 
     .input-field-standalone {
-        width: 70px;
+        width: 68px;
         font-size: 0.8rem;
     }
 
@@ -1457,9 +1471,24 @@
         font-size: 0.62rem;
     }
 
+    /* Increase polar chart size — 38vh was only 291px at 768px viewport */
+    .polar-chart {
+        width: clamp(300px, 48vh, 420px);
+        height: clamp(300px, 48vh, 420px);
+    }
+
+    .y-axis-scale {
+        height: clamp(300px, 48vh, 420px);
+    }
+
+    /* Reduce padding around chart so chart takes more room */
+    .polar-chart-container {
+        padding: 1.5rem;
+    }
+
     .plot-canvas-right {
-        width: 245px;
-        min-width: 245px;
+        width: 215px;
+        min-width: 215px;
         align-self: stretch;
         overflow-y: auto;
     }
@@ -1478,18 +1507,38 @@
     }
 
     .chart-right-panel {
-        padding: 10px;
-        gap: 8px;
-        zoom: 0.9;
+        padding: 8px;
+        gap: 6px;
+        zoom: 0.85;
     }
 
     .project-tab {
-        padding: 0.6rem 0.85rem;
+        padding: 0.55rem 0.8rem;
         font-size: 0.82rem;
     }
 
-    .sidebar-content {
-        padding: 0.5rem 0;
+    /* Tighten saved cases bar */
+    .saved-cases-section {
+        padding: 0.3rem 0.75rem;
+    }
+
+    .saved-cases-header {
+        gap: 0.25rem;
+        margin-bottom: 0.15rem;
+    }
+
+    .saved-cases-list {
+        height: 36px;
+    }
+
+    /* Tighten footer bar */
+    .footer-actions {
+        padding: 0.35rem 0.75rem;
+    }
+
+    .generate-report-btn {
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
     }
 }
 
