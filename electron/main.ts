@@ -474,10 +474,11 @@ ipcMain.handle('open-pdf-window', async (_, pdfPath: string) => {
 
     // Write watermarked PDF to a temp file
     const tempDir = app.getPath('temp');
-    const tempFile = path.join(tempDir, `ABS Eagle CRoll User Guide v2026.1.1.pdf`);
+    const tempFile = path.join(tempDir, `ABS Eagle CRoll User Guide v2026.1.pdf`);
     fs.writeFileSync(tempFile, watermarkedBytes);
 
-     // parent: mainWindow ensures closing the PDF does not quit the whole app.
+    // parent: mainWindow ensures closing the PDF does not quit the whole app.
+    // setMenu(null): removes Electron's default "File > Exit" which calls app.quit().
     const pdfWindow = new BrowserWindow({
       title: 'CRoll User Guide',
       width: 1000,
@@ -492,9 +493,10 @@ ipcMain.handle('open-pdf-window', async (_, pdfPath: string) => {
         sandbox: true,
       },
     });
+    pdfWindow.setMenu(null);
 
-    const fileUrl = `file://${tempFile}`;
-    await pdfWindow.loadURL(fileUrl);
+    // loadFile handles Windows path encoding correctly (no backslash issues)
+    await pdfWindow.loadFile(tempFile);
 
     // Clean up temp file after window is closed
     pdfWindow.on('closed', () => {

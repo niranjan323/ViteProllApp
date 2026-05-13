@@ -19,7 +19,7 @@ const handleClose = () => window.electronAPI?.closeWindow?.();
 const Header = () => {
     const [showAbout, setShowAbout] = useState(false);
     const handleOpenUserGuide = () => {
-        const documentUrl = '/ABS Eagle CRoll User Guide v2026.1.1.pdf';
+        const documentUrl = '/ABS Eagle CRoll User Guide v2026.1.pdf';
         
         if (isElectron) {
             // Open PDF in a new independent Electron window
