@@ -632,6 +632,9 @@ const Project: React.FC = () => {
         );
     }, [userInputData, parameterBounds]);
 
+    // All inputs must be in range before plotting
+    const allParamsValid = validation !== null && ParameterValidator.allValid(validation);
+
     // Load polar data when parameters change
     useEffect(() => {
         const loadPolarData = async () => {
@@ -1025,7 +1028,7 @@ const Project: React.FC = () => {
             <div className="project-main">
                 <div className="plot-section">
                     <div className="plot-canvas">
-                        {polarData.rollMatrix && polarData.speeds && polarData.headings ? (
+                        {allParamsValid && polarData.rollMatrix && polarData.speeds && polarData.headings ? (
                             <>
                                 <div className="plot-canvas-left">
                                     <CanvasPolarChart
