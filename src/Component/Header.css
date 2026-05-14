@@ -24,9 +24,11 @@
     align-items: center;
     gap: 4px;
     -webkit-app-region: no-drag;
+    min-width: 0;
+    overflow: hidden;
 }
 
-/* 9-dot grid */
+/* 9-dot grid — never shrink */
 .app-header__grid-icon {
     display: grid;
     grid-template-columns: repeat(3, 4px);
@@ -43,35 +45,45 @@
     border-radius: 2px;
 }
 
-/* ABS logo (eagle) */
+/* ABS logo — never shrink */
 .app-header__logo {
     height: 18px;
     width: auto;
     margin-left: 16px;
+    flex-shrink: 0;
 }
 
-/* Divider | */
+/* Divider | — never shrink */
 .app-header__divider {
     font-size: 18px;
     font-weight: 400;
     opacity: 0.75;
+    flex-shrink: 0;
 }
 
+/* "Eagle CRoll:" — never shrink */
 .app-header__title {
     font-size: 14px;
     font-weight: 400;
     opacity: 0.95;
     margin-right: 2px;
     margin-top: 4px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
-/* Subtitle */
+/* Subtitle — shrinks first, truncates with ellipsis */
 .app-header__subtitle {
     font-size: 14px;
     font-weight: 100;
     opacity: 0.95;
     margin-top: 4px;
     margin-right: 30px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
 }
 
 /* RIGHT SIDE */
@@ -82,13 +94,14 @@
     -webkit-app-region: no-drag;
 }
 
-/* Version label — same font as title, no background */
+/* Version label — never shrink */
 .app-header__version {
     font-size: 14px;
     font-weight: 400;
     opacity: 0.95;
     white-space: nowrap;
     margin-top: 4px;
+    flex-shrink: 0;
 }
 
 .app-header__icon {
@@ -265,4 +278,24 @@
 
 .about-guide-btn:hover {
     background: #1976d2;
+}
+
+/* ── Header responsive breakpoints ─────────────────────────────────────────── */
+
+/* Below 900px: hide the long subtitle entirely */
+@media (max-width: 900px) {
+    .app-header__subtitle {
+        display: none;
+    }
+}
+
+/* Below 700px: also hide the version label to keep controls accessible */
+@media (max-width: 700px) {
+    .app-header__version {
+        display: none;
+    }
+
+    .app-header {
+        padding: 0 12px;
+    }
 }
