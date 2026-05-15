@@ -571,8 +571,6 @@ const Project: React.FC = () => {
                     y = 20;
                 }
                 const imgX = margin + (contentWidth - imgSize) / 2;
-                // Draw dark background matching the app's plot-canvas colour (#64697A)
-                // so white text/arrows in the transparent chart PNG are visible on the PDF.
                 doc.setFillColor(100, 105, 122);
                 doc.rect(imgX, y, imgSize, imgSize, 'F');
                 doc.addImage(chartImage, 'PNG', imgX, y, imgSize, imgSize);
