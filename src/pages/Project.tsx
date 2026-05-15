@@ -571,6 +571,10 @@ const Project: React.FC = () => {
                     y = 20;
                 }
                 const imgX = margin + (contentWidth - imgSize) / 2;
+                // Draw dark background matching the app's plot-canvas colour (#64697A)
+                // so white text/arrows in the transparent chart PNG are visible on the PDF.
+                doc.setFillColor(100, 105, 122);
+                doc.rect(imgX, y, imgSize, imgSize, 'F');
                 doc.addImage(chartImage, 'PNG', imgX, y, imgSize, imgSize);
                 y += imgSize + 10;
             }
@@ -1409,7 +1413,7 @@ const Project: React.FC = () => {
                                             </>
                                         )}
 
-                                        <div className="report-chart-section">
+                                        <div className="report-chart-section" style={{ backgroundColor: '#64697A' }}>
                                             {data.chartImageUrl ? (
                                                 <img src={data.chartImageUrl} style={{ width: 400, height: 400 }} />
                                             ) : (

@@ -194,6 +194,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.fillText(text, x, y);
     };
 
+
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -551,7 +552,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         const waveOuterX = centerX + maxRadius * 1.25 * Math.cos(waveRad);
         const waveOuterY = centerY + maxRadius * 1.25 * Math.sin(waveRad);
 
-        // Arrow shaft - WHITE
+        // Arrow shaft
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
@@ -559,7 +560,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.lineTo(waveOuterX, waveOuterY);
         ctx.stroke();
 
-        // Arrow head at inner end, pointing toward diagram - WHITE
+        // Arrow head at inner end, pointing toward diagram
         const arrowSize = 12;
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
@@ -575,7 +576,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.closePath();
         ctx.fill();
 
-        // "Wave Direction" label — placed just outside the arrow, with perpendicular fallback
+        // "Wave Direction" label
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '11px Arial, sans-serif';
         ctx.textBaseline = 'middle';
@@ -688,14 +689,14 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         const legendFontSize = isSmall ? 10 : 12;
         const legendTickFontSize = isSmall ? 9 : 11;
 
-        // Title: "Roll [deg]" - WHITE text
+        // Title: "Roll [deg]"
         ctx.fillStyle = '#FFFFFF';
         ctx.font = `bold ${legendFontSize}px Arial, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
         ctx.fillText('Roll [deg]', legendBarX - 4, legendBarTop - 8);
 
-        // "Max roll [deg]" rotated vertical label - WHITE
+        // "Max roll [deg]" rotated vertical label
         ctx.save();
         ctx.translate(legendBarX - 10, centerY);
         ctx.rotate(-Math.PI / 2);
