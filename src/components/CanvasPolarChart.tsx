@@ -485,7 +485,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         }
 
 
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#CCCCCC';
         ctx.font = 'bold 12px Arial, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
@@ -553,7 +553,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         const waveOuterY = centerY + maxRadius * 1.25 * Math.sin(waveRad);
 
         // Arrow shaft
-        ctx.strokeStyle = '#FFFFFF';
+        ctx.strokeStyle = '#CCCCCC';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(waveInnerX, waveInnerY);
@@ -562,7 +562,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         // Arrow head at inner end, pointing toward diagram
         const arrowSize = 12;
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#CCCCCC';
         ctx.beginPath();
         ctx.moveTo(waveInnerX, waveInnerY);
         ctx.lineTo(
@@ -577,7 +577,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.fill();
 
         // "Wave Direction" label
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#CCCCCC';
         ctx.font = '11px Arial, sans-serif';
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'center';
@@ -690,7 +690,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         const legendTickFontSize = isSmall ? 9 : 11;
 
         // Title: "Roll [deg]"
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#CCCCCC';
         ctx.font = `bold ${legendFontSize}px Arial, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
@@ -731,7 +731,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         // Legend labels and boundary lines (mode-specific)
         const maxLegendValue = Math.ceil(colorScaleMax);
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = '#CCCCCC';
         ctx.font = `${legendTickFontSize}px Arial, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
@@ -750,7 +750,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
                 ctx.stroke();
 
                 // Value label
-                ctx.fillStyle = '#FFFFFF';
+                ctx.fillStyle = '#CCCCCC';
                 ctx.fillText(`${deg}`, legendBarX + legendBarWidth + 6, yPos);
             }
 
@@ -818,7 +818,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
                 ctx.stroke();
 
                 // Value label
-                ctx.fillStyle = '#FFFFFF';
+                ctx.fillStyle = '#CCCCCC';
                 ctx.fillText(label, legendBarX + legendBarWidth + 6, yPos);
             }
 
@@ -834,7 +834,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
                 ctx.lineTo(legendBarX + legendBarWidth + 4, yPos);
                 ctx.stroke();
 
-                ctx.fillStyle = '#FFFFFF';
+                ctx.fillStyle = '#CCCCCC';
                 ctx.fillText(`${deg}`, legendBarX + legendBarWidth + 6, yPos);
             }
 
