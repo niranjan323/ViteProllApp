@@ -105,6 +105,7 @@ const Project: React.FC = () => {
     const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
     const wavePeriodDropdownRef = useRef<HTMLDivElement>(null);
     const savedCasesListRef = useRef<HTMLDivElement>(null);
+    const freshChartImagesRef = useRef<Map<string, string>>(new Map());
 
     // System info for PDF watermarks (Electron only)
     const [_systemInfo, setSystemInfo] = useState<{ username: string; hostname: string } | null>(null);
@@ -571,8 +572,6 @@ const Project: React.FC = () => {
                     y = 20;
                 }
                 const imgX = margin + (contentWidth - imgSize) / 2;
-                doc.setFillColor(100, 105, 122);
-                doc.rect(imgX, y, imgSize, imgSize, 'F');
                 doc.addImage(chartImage, 'PNG', imgX, y, imgSize, imgSize);
                 y += imgSize + 10;
             }
@@ -596,9 +595,9 @@ const Project: React.FC = () => {
         let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];
         if (reportType === 'all' && savedCases.length > 0) {
             // Use the pure module-level function so no component-state closure can bleed in
-            cases = savedCases.map(c => ({ data: extractSavedCaseReportData(c), chartImageUrl: c.chartImageUrl ?? null }));
+            cases = savedCases.map(c => ({ data: extractSavedCaseReportData(c), chartImageUrl: freshChartImagesRef.current.get(c.id) ?? c.chartImageUrl ?? null }));
         } else if (selectedCaseForReport) {
-            cases = [{ data: extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl ?? null }];
+            cases = [{ data: extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: freshChartImagesRef.current.get(selectedCaseForReport.id) ?? selectedCaseForReport.chartImageUrl ?? null }];
         } else {
             cases = [{ data: getReportData(), chartImageUrl: undefined }];
         }
@@ -1264,7 +1263,6 @@ const Project: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="max-roll-label">Max roll [deg]</div>
                             </div>
                         )}
                     </div>
@@ -1411,25 +1409,22 @@ const Project: React.FC = () => {
                                             </>
                                         )}
 
-                                        <div className="report-chart-section" style={{ backgroundColor: '#64697A' }}>
-                                            {data.chartImageUrl ? (
-                                                <img src={data.chartImageUrl} style={{ width: 400, height: 400 }} />
-                                            ) : (
-                                                polarData.rollMatrix && polarData.speeds && polarData.headings && (
-                                                    <CanvasPolarChart
-                                                        rollMatrix={polarData.rollMatrix}
-                                                        speeds={polarData.speeds}
-                                                        headings={polarData.headings}
-                                                        vesselHeading={data.heading}
-                                                        vesselSpeed={data.speed}
-                                                        maxRollAngle={data.maxRoll}
-                                                        meanWaveDirection={data.waveDirection}
-                                                        width={400}
-                                                        height={400}
-                                                        mode={data.chartMode ?? chartMode}
-                                                        orientation={data.chartOrientation ?? chartDirection}
-                                                    />
-                                                )
+                                        <div className="report-chart-section">
+                                            {polarData.rollMatrix && polarData.speeds && polarData.headings && (
+                                                <CanvasPolarChart
+                                                    rollMatrix={polarData.rollMatrix}
+                                                    speeds={polarData.speeds}
+                                                    headings={polarData.headings}
+                                                    vesselHeading={data.heading}
+                                                    vesselSpeed={data.speed}
+                                                    maxRollAngle={data.maxRoll}
+                                                    meanWaveDirection={data.waveDirection}
+                                                    width={400}
+                                                    height={400}
+                                                    mode={data.chartMode ?? chartMode}
+                                                    orientation={data.chartOrientation ?? chartDirection}
+                                                    onDrawn={(url) => { freshChartImagesRef.current.set(data.caseId ?? 'current', url); }}
+                                                />
                                             )}
                                         </div>
 

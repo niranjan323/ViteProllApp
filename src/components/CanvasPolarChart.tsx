@@ -694,7 +694,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.font = `bold ${legendFontSize}px Arial, sans-serif`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
-        ctx.fillText('Roll [deg]', legendBarX - 4, legendBarTop - 8);
+        drawTextWithOutline(ctx, 'Roll [deg]', legendBarX - 4, legendBarTop - 8);
 
         // "Max roll [deg]" rotated vertical label
         ctx.save();
@@ -704,7 +704,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         ctx.font = `${legendTickFontSize}px Arial, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('Max roll [deg]', 0, 0);
+        drawTextWithOutline(ctx, 'Max roll [deg]', 0, 0);
         ctx.restore();
 
         // Draw discrete color scale legend
@@ -751,7 +751,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
                 // Value label
                 ctx.fillStyle = '#CCCCCC';
-                ctx.fillText(`${deg}`, legendBarX + legendBarWidth + 6, yPos);
+                drawTextWithOutline(ctx, `${deg}`, legendBarX + legendBarWidth + 6, yPos);
             }
 
             // "Max roll" indicator line on legend (continuous mode only)
@@ -769,8 +769,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
             ctx.fillStyle = '#CCCCCC';
             ctx.font = `bold ${isSmall ? 9 : 11}px Arial, sans-serif`;
             ctx.textAlign = 'right';
-            ctx.fillText('Max', legendBarX - 4, maxRollYPos - 7);
-            ctx.fillText('roll', legendBarX - 4, maxRollYPos + 5);
+            drawTextWithOutline(ctx, 'Max', legendBarX - 4, maxRollYPos - 7);
+            drawTextWithOutline(ctx, 'roll', legendBarX - 4, maxRollYPos + 5);
         } else {
             // Traffic light mode: regular interval lines + boundary lines
             const greenBoundary = Math.max(maxRollAngle - 5, 0);
@@ -819,7 +819,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
                 // Value label
                 ctx.fillStyle = '#CCCCCC';
-                ctx.fillText(label, legendBarX + legendBarWidth + 6, yPos);
+                drawTextWithOutline(ctx, label, legendBarX + legendBarWidth + 6, yPos);
             }
 
             // Labels at every 5° (without boundary lines)
@@ -835,7 +835,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
                 ctx.stroke();
 
                 ctx.fillStyle = '#CCCCCC';
-                ctx.fillText(`${deg}`, legendBarX + legendBarWidth + 6, yPos);
+                drawTextWithOutline(ctx, `${deg}`, legendBarX + legendBarWidth + 6, yPos);
             }
 
             // "Max roll" dashed indicator line on legend (traffic light mode)
@@ -853,8 +853,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
             ctx.fillStyle = '#CCCCCC';
             ctx.font = `bold ${isSmall ? 9 : 11}px Arial, sans-serif`;
             ctx.textAlign = 'right';
-            ctx.fillText('Max', legendBarX - 4, maxRollYPos - 7);
-            ctx.fillText('roll', legendBarX - 4, maxRollYPos + 5);
+            drawTextWithOutline(ctx, 'Max', legendBarX - 4, maxRollYPos - 7);
+            drawTextWithOutline(ctx, 'roll', legendBarX - 4, maxRollYPos + 5);
         }
 
         } // end if (isFinite(maxRollAngle)) — legend block
