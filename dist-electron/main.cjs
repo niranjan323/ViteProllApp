@@ -46,6 +46,34 @@ const better_sqlite3_1 = __importDefault(require("better-sqlite3"));
 const isDev = !electron_1.app.isPackaged;
 // ─── SQLite Database ──────────────────────────────────────────────────────────
 let db;
+const NEW_CASES_DDL = `
+  CREATE TABLE cases (
+    id            TEXT NOT NULL,
+    created_at    INTEGER NOT NULL,
+    os_username   TEXT NOT NULL,
+    machine_name  TEXT NOT NULL,
+    color         TEXT NOT NULL,
+    draft_aft     REAL,
+    draft_fore    REAL,
+    gm            REAL,
+    heading       REAL,
+    speed         REAL,
+    max_roll      REAL,
+    hs            REAL,
+    tz            REAL,
+    wave_direction REAL,
+    data_file_path TEXT NOT NULL DEFAULT '',
+    fitted_draft  REAL,
+    fitted_gm     REAL,
+    fitted_hs     REAL,
+    fitted_tz     REAL,
+    chart_mode    TEXT,
+    chart_orientation TEXT,
+    chart_image   TEXT,
+    synced        INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (id, data_file_path)
+  )
+`;
 function initDatabase() {
     // Store DB in the app's own folder — dev: project root, production: next to the exe
     const dbDir = isDev
@@ -54,33 +82,57 @@ function initDatabase() {
     const dbPath = path.join(dbDir, 'croll_cases.db');
     db = new better_sqlite3_1.default(dbPath);
     db.pragma('journal_mode = WAL'); // better performance for concurrent reads
-    db.exec(`
-    CREATE TABLE IF NOT EXISTS cases (
-      id            TEXT PRIMARY KEY,
-      created_at    INTEGER NOT NULL,
-      os_username   TEXT NOT NULL,
-      machine_name  TEXT NOT NULL,
-      color         TEXT NOT NULL,
-      draft_aft     REAL,
-      draft_fore    REAL,
-      gm            REAL,
-      heading       REAL,
-      speed         REAL,
-      max_roll      REAL,
-      hs            REAL,
-      tz            REAL,
-      wave_direction REAL,
-      data_file_path TEXT,
-      fitted_draft  REAL,
-      fitted_gm     REAL,
-      fitted_hs     REAL,
-      fitted_tz     REAL,
-      chart_mode    TEXT,
-      chart_orientation TEXT,
-      chart_image   TEXT,
-      synced        INTEGER NOT NULL DEFAULT 0
-    )
-  `);
+    // Schema version tracking for migrations
+    db.exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)`);
+    const versionRow = db.prepare('SELECT version FROM schema_version').get();
+    const schemaVersion = versionRow?.version ?? 0;
+    if (schemaVersion < 1) {
+        // Migrate to composite PRIMARY KEY (id, data_file_path) so two vessels can share case IDs
+        const casesExist = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='cases'`).get();
+        if (casesExist) {
+            db.exec(`
+        CREATE TABLE cases_new (
+          id            TEXT NOT NULL,
+          created_at    INTEGER NOT NULL,
+          os_username   TEXT NOT NULL,
+          machine_name  TEXT NOT NULL,
+          color         TEXT NOT NULL,
+          draft_aft     REAL,
+          draft_fore    REAL,
+          gm            REAL,
+          heading       REAL,
+          speed         REAL,
+          max_roll      REAL,
+          hs            REAL,
+          tz            REAL,
+          wave_direction REAL,
+          data_file_path TEXT NOT NULL DEFAULT '',
+          fitted_draft  REAL,
+          fitted_gm     REAL,
+          fitted_hs     REAL,
+          fitted_tz     REAL,
+          chart_mode    TEXT,
+          chart_orientation TEXT,
+          chart_image   TEXT,
+          synced        INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (id, data_file_path)
+        );
+        INSERT OR IGNORE INTO cases_new
+          SELECT id, created_at, os_username, machine_name, color,
+                 draft_aft, draft_fore, gm, heading, speed, max_roll,
+                 hs, tz, wave_direction, COALESCE(data_file_path, ''),
+                 fitted_draft, fitted_gm, fitted_hs, fitted_tz,
+                 chart_mode, chart_orientation, chart_image, synced
+          FROM cases;
+        DROP TABLE cases;
+        ALTER TABLE cases_new RENAME TO cases;
+      `);
+        }
+        else {
+            db.exec(NEW_CASES_DDL);
+        }
+        db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(1);
+    }
 }
 function readLicenseInfo() {
     const fallback = { fullName: os.userInfo().username, machineId: os.hostname() };
@@ -546,9 +598,9 @@ electron_1.ipcMain.handle('db-load-cases', () => {
 /**
  * Update chart image for an existing case
  */
-electron_1.ipcMain.handle('db-update-chart-image', (_event, id, chartImage) => {
+electron_1.ipcMain.handle('db-update-chart-image', (_event, id, dataFilePath, chartImage) => {
     try {
-        db.prepare(`UPDATE cases SET chart_image = ? WHERE id = ?`).run(chartImage, id);
+        db.prepare(`UPDATE cases SET chart_image = ? WHERE id = ? AND data_file_path = ?`).run(chartImage, id, dataFilePath);
         return { success: true };
     }
     catch (error) {
@@ -558,9 +610,9 @@ electron_1.ipcMain.handle('db-update-chart-image', (_event, id, chartImage) => {
 /**
  * Delete a case from SQLite
  */
-electron_1.ipcMain.handle('db-delete-case', (_event, id) => {
+electron_1.ipcMain.handle('db-delete-case', (_event, id, dataFilePath) => {
     try {
-        db.prepare(`DELETE FROM cases WHERE id = ?`).run(id);
+        db.prepare(`DELETE FROM cases WHERE id = ? AND data_file_path = ?`).run(id, dataFilePath);
         return { success: true };
     }
     catch (error) {

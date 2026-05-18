@@ -29,8 +29,8 @@ const electronAPI = {
     // SQLite case persistence
     dbSaveCase: (caseData) => electron_1.ipcRenderer.invoke('db-save-case', caseData),
     dbLoadCases: () => electron_1.ipcRenderer.invoke('db-load-cases'),
-    dbUpdateChartImage: (id, chartImage) => electron_1.ipcRenderer.invoke('db-update-chart-image', id, chartImage),
-    dbDeleteCase: (id) => electron_1.ipcRenderer.invoke('db-delete-case', id),
+    dbUpdateChartImage: (id, dataFilePath, chartImage) => electron_1.ipcRenderer.invoke('db-update-chart-image', id, dataFilePath, chartImage),
+    dbDeleteCase: (id, dataFilePath) => electron_1.ipcRenderer.invoke('db-delete-case', id, dataFilePath),
 };
 // Expose the electron API to the renderer process
 electron_1.contextBridge.exposeInMainWorld('electronAPI', electronAPI);

@@ -158,11 +158,11 @@ const electronAPI = {
   dbLoadCases: (): Promise<DbLoadResult> =>
     ipcRenderer.invoke('db-load-cases'),
 
-  dbUpdateChartImage: (id: string, chartImage: string): Promise<DbResult> =>
-    ipcRenderer.invoke('db-update-chart-image', id, chartImage),
+  dbUpdateChartImage: (id: string, dataFilePath: string, chartImage: string): Promise<DbResult> =>
+    ipcRenderer.invoke('db-update-chart-image', id, dataFilePath, chartImage),
 
-  dbDeleteCase: (id: string): Promise<DbResult> =>
-    ipcRenderer.invoke('db-delete-case', id),
+  dbDeleteCase: (id: string, dataFilePath: string): Promise<DbResult> =>
+    ipcRenderer.invoke('db-delete-case', id, dataFilePath),
 };
 
 // Expose the electron API to the renderer process

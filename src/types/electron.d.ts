@@ -136,8 +136,8 @@ interface ElectronAPI {
   // SQLite case persistence
   dbSaveCase(caseData: Omit<DbCaseRow, 'os_username' | 'machine_name' | 'synced'>): Promise<DbResult>;
   dbLoadCases(): Promise<DbLoadResult>;
-  dbUpdateChartImage(id: string, chartImage: string): Promise<DbResult>;
-  dbDeleteCase(id: string): Promise<DbResult>;
+  dbUpdateChartImage(id: string, dataFilePath: string, chartImage: string): Promise<DbResult>;
+  dbDeleteCase(id: string, dataFilePath: string): Promise<DbResult>;
 }
 
 declare global {

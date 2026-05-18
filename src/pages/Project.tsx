@@ -99,7 +99,7 @@ const Project: React.FC = () => {
     const [selectedCaseForReport, setSelectedCaseForReport] = useState<SavedCase | null>(null);
     const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
     const chartRef = useRef<CanvasPolarChartHandle>(null);
-    const pendingChartCaptureRef = useRef<string | null>(null);
+    const pendingChartCaptureRef = useRef<{ id: string; projectKey: string } | null>(null);
     const [captureKey, setCaptureKey] = useState(0);
     const [wavePeriodDropdownOpen, setWavePeriodDropdownOpen] = useState(false);
     const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
@@ -277,7 +277,7 @@ const Project: React.FC = () => {
 
         const caseIdToSave = caseId.trim();
 
-        if (caseManager.caseExists(caseIdToSave)) {
+        if (visibleSavedCases.some(c => c.id === caseIdToSave)) {
             showMessage(`Case "${caseIdToSave}" already exists. Use a different ID.`, 'error');
             return;
         }
@@ -298,7 +298,7 @@ const Project: React.FC = () => {
                 tz: userInputData.seaState.wavePeriod,
                 waveDirection: userInputData.seaState.meanWaveDirection,
             },
-            dataFilePath: '',
+            dataFilePath: projectKey,
         };
 
         // Deep-copy newCase so each saved entry is completely independent
@@ -343,20 +343,17 @@ const Project: React.FC = () => {
             { id: caseIdToSave, color: newColor, parameters: savedParameters, fittedParams: savedFittedParams, chartMode, chartOrientation: chartDirection },
         ]);
         // Trigger a forced redraw so onDrawn fires with a fresh capture for this case
-        pendingChartCaptureRef.current = caseIdToSave;
+        pendingChartCaptureRef.current = { id: caseIdToSave, projectKey };
         setCaptureKey(k => k + 1);
         setCaseId('');
         showMessage(`Case "${caseIdToSave}" saved`, 'success');
     };
 
     const handleDeleteCase = (id: string) => {
-        const deleted = caseManager.deleteCase(id);
-        if (deleted) {
-            setSavedCases(prev => prev.filter(c => c.id !== id));
-            // Remove from SQLite (Electron only)
-            window.electronAPI?.dbDeleteCase?.(id);
-            showMessage(`Case "${id}" deleted`, 'success');
-        }
+        caseManager.deleteCase(id); // best-effort in-memory cleanup
+        setSavedCases(prev => prev.filter(c => !(c.id === id && c.parameters.dataFilePath === projectKey)));
+        window.electronAPI?.dbDeleteCase?.(id, projectKey);
+        showMessage(`Case "${id}" deleted`, 'success');
     };
 
     const handleLoadCase = (item: SavedCase) => {
@@ -435,15 +432,15 @@ const Project: React.FC = () => {
 
     const handleChartDrawn = useCallback((dataUrl: string) => {
         if (!pendingChartCaptureRef.current) return;
-        const capturedId = pendingChartCaptureRef.current;
+        const { id: capturedId, projectKey: capturedProjectKey } = pendingChartCaptureRef.current;
         pendingChartCaptureRef.current = null;
         setSavedCases(prev => prev.map(c =>
-            c.id === capturedId && !c.chartImageUrl
+            c.id === capturedId && c.parameters.dataFilePath === capturedProjectKey && !c.chartImageUrl
                 ? { ...c, chartImageUrl: dataUrl }
                 : c
         ));
         // Persist chart image to SQLite (Electron only)
-        window.electronAPI?.dbUpdateChartImage?.(capturedId, dataUrl);
+        window.electronAPI?.dbUpdateChartImage?.(capturedId, capturedProjectKey, dataUrl);
     }, []);
 
     const handleDownloadPDF = useCallback((cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string | null }[]) => {
@@ -593,9 +590,9 @@ const Project: React.FC = () => {
 
     const handleDownloadReport = useCallback(async () => {
         let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];
-        if (reportType === 'all' && savedCases.length > 0) {
+        if (reportType === 'all' && visibleSavedCases.length > 0) {
             // Use the pure module-level function so no component-state closure can bleed in
-            cases = savedCases.map(c => ({ data: extractSavedCaseReportData(c), chartImageUrl: freshChartImagesRef.current.get(c.id) ?? c.chartImageUrl ?? null }));
+            cases = visibleSavedCases.map(c => ({ data: extractSavedCaseReportData(c), chartImageUrl: freshChartImagesRef.current.get(c.id) ?? c.chartImageUrl ?? null }));
         } else if (selectedCaseForReport) {
             cases = [{ data: extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: freshChartImagesRef.current.get(selectedCaseForReport.id) ?? selectedCaseForReport.chartImageUrl ?? null }];
         } else {
@@ -635,6 +632,15 @@ const Project: React.FC = () => {
 
     // All inputs must be in range before plotting
     const allParamsValid = validation !== null && ParameterValidator.allValid(validation);
+
+    // Unique key for the currently loaded project
+    const projectKey = controlFilePath ?? electronFolder ?? '';
+
+    // Only show cases that belong to the currently selected project
+    const visibleSavedCases = useMemo(
+        () => savedCases.filter(c => c.parameters.dataFilePath === projectKey),
+        [savedCases, projectKey]
+    );
 
     // Load polar data when parameters change
     useEffect(() => {
@@ -949,7 +955,7 @@ const Project: React.FC = () => {
                                             onChange={(e) => setDeleteConfirmId(e.target.value || null)}
                                         >
                                             <option value="">Select case to delete</option>
-                                            {savedCases.map((c) => (
+                                            {visibleSavedCases.map((c) => (
                                                 <option key={c.id} value={c.id}>
                                                     {c.id}
                                                 </option>
@@ -968,9 +974,9 @@ const Project: React.FC = () => {
                                             <img src={deleteIcon} alt="Delete" className="btn-icon" />
                                         </button>
                                     </div>
-                                    {savedCases.length > 0 && (
+                                    {visibleSavedCases.length > 0 && (
                                         <div className="case-count">
-                                            {savedCases.length} case{savedCases.length !== 1 ? 's' : ''} saved
+                                            {visibleSavedCases.length} case{visibleSavedCases.length !== 1 ? 's' : ''} saved
                                         </div>
                                     )}
                                 </div>
@@ -1276,7 +1282,7 @@ const Project: React.FC = () => {
                     <div className="saved-cases-content">
                         <button className="nav-arrow" onClick={() => savedCasesListRef.current?.scrollBy({ left: -120, behavior: 'smooth' })}><img src={arrowLeftIcon} alt="‹" className="nav-arrow-icon" /></button>
                         <div className="saved-cases-list" ref={savedCasesListRef}>
-                            {savedCases.map((item) => (
+                            {visibleSavedCases.map((item) => (
                                 <div key={item.id} className={`case-tile-box ${activeCaseId === item.id ? 'active' : ''}`} onClick={() => handleLoadCase(item)}>
                                     <div className={`case-tile-icon ${item.color}`}></div>
                                     <span className="case-tile-id">{item.id}</span>
@@ -1318,8 +1324,8 @@ const Project: React.FC = () => {
                             parameterBounds
                         )
                     );
-                const casesToShow = reportType === 'all' && savedCases.length > 0
-                    ? savedCases.map(c => { const d = extractSavedCaseReportData(c); return { ...d, chartImageUrl: c.chartImageUrl as string | undefined, paramsValid: checkValid(d) }; })
+                const casesToShow = reportType === 'all' && visibleSavedCases.length > 0
+                    ? visibleSavedCases.map(c => { const d = extractSavedCaseReportData(c); return { ...d, chartImageUrl: c.chartImageUrl as string | undefined, paramsValid: checkValid(d) }; })
                     : selectedCaseForReport
                         ? [{ ...extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl as string | undefined, paramsValid: checkValid(extractSavedCaseReportData(selectedCaseForReport)) }]
                         : [{ ...getReportData(), chartImageUrl: undefined as string | undefined, paramsValid: allParamsValid }];
