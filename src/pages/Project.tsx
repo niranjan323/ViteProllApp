@@ -270,6 +270,10 @@ const Project: React.FC = () => {
     };
 
     const handleSaveCase = () => {
+         if (!allParamsValid) {
+            showMessage('Cannot save case: one or more input values are out of range', 'error');
+            return;
+        }
         if (!caseId.trim()) {
             showMessage('Please enter a case ID', 'error');
             return;
@@ -945,7 +949,7 @@ const Project: React.FC = () => {
                                             placeholder="Max 12 characters"
                                             autoComplete="off"
                                         />
-                                        <button className="save-btn" onClick={handleSaveCase}><img src={saveCaseGreenIcon} alt="Save" className="btn-icon" /></button>
+                                        <button className="save-btn" onClick={handleSaveCase} disabled={!allParamsValid} title={!allParamsValid ? 'Cannot save: input values out of range' : 'Save case'}><img src={saveCaseGreenIcon} alt="Save" className="btn-icon" /></button>
                                     </div>
                                     <div className="case-row">
                                         <label className="case-label">Delete</label>
@@ -1315,20 +1319,11 @@ const Project: React.FC = () => {
 
             {/* Report Modal */}
             {showReportModal && (() => {
-                const checkValid = (d: ReturnType<typeof extractSavedCaseReportData>) =>
-                    !parameterBounds ? true : ParameterValidator.allValid(
-                        ParameterValidator.validateAll(
-                            d.draftAft, d.draftFore, d.gm,
-                            d.heading, d.speed, d.maxRoll,
-                            d.hs, d.wavePeriodValue, d.waveDirection,
-                            parameterBounds
-                        )
-                    );
                 const casesToShow = reportType === 'all' && visibleSavedCases.length > 0
-                    ? visibleSavedCases.map(c => { const d = extractSavedCaseReportData(c); return { ...d, chartImageUrl: c.chartImageUrl as string | undefined, paramsValid: checkValid(d) }; })
+                    ? visibleSavedCases.map(c => ({ ...extractSavedCaseReportData(c), chartImageUrl: c.chartImageUrl as string | undefined }))
                     : selectedCaseForReport
-                        ? [{ ...extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl as string | undefined, paramsValid: checkValid(extractSavedCaseReportData(selectedCaseForReport)) }]
-                        : [{ ...getReportData(), chartImageUrl: undefined as string | undefined, paramsValid: allParamsValid }];
+                        ? [{ ...extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl as string | undefined }]
+                        : [{ ...getReportData(), chartImageUrl: undefined as string | undefined }];
 
                 return (
                     <div className="report-modal-overlay" onClick={() => setShowReportModal(false)}>
@@ -1425,7 +1420,7 @@ const Project: React.FC = () => {
                                         )}
 
                                         <div className="report-chart-section">
-                                            {data.paramsValid && polarData.rollMatrix && polarData.speeds && polarData.headings ? (
+                                            {polarData.rollMatrix && polarData.speeds && polarData.headings && (
                                                 <CanvasPolarChart
                                                     rollMatrix={polarData.rollMatrix}
                                                     speeds={polarData.speeds}
@@ -1440,34 +1435,6 @@ const Project: React.FC = () => {
                                                     orientation={data.chartOrientation ?? chartDirection}
                                                     onDrawn={(url) => { freshChartImagesRef.current.set(data.caseId ?? 'current', url); }}
                                                 />
-                                            ) : (
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 400, height: 400, backgroundColor: '#64697A', borderRadius: 8 }}>
-                                                    <div className="polar-chart-container" style={{ padding: '40px' }}>
-                                                        <div className="polar-chart" style={{ width: 280, height: 280 }}>
-                                                            <div className="radial-line deg-30" />
-                                                            <div className="radial-line deg-60" />
-                                                            <div className="radial-line deg-120" />
-                                                            <div className="radial-line deg-150" />
-                                                            <div className="compass-label north">N</div>
-                                                            <div className="compass-label east">E</div>
-                                                            <div className="compass-label south">S</div>
-                                                            <div className="compass-label west">W</div>
-                                                            <div className="degree-label deg-30">30°</div>
-                                                            <div className="degree-label deg-60">60°</div>
-                                                            <div className="degree-label deg-120">120°</div>
-                                                            <div className="degree-label deg-150">150°</div>
-                                                            <div className="degree-label deg-210">210°</div>
-                                                            <div className="degree-label deg-240">240°</div>
-                                                            <div className="degree-label deg-300">300°</div>
-                                                            <div className="degree-label deg-330">330°</div>
-                                                            <div className="speed-label speed-25">25kn</div>
-                                                            <div className="speed-label speed-20">20kn</div>
-                                                            <div className="speed-label speed-15">15kn</div>
-                                                            <div className="speed-label speed-10">10kn</div>
-                                                            <div className="speed-label speed-5">5kn</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
                                             )}
                                         </div>
 

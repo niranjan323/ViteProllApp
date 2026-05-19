@@ -31,3 +31,8 @@ CRoll.API/CRoll.API/appsettings.Development.json
 
 # Frontend local env
 .env.local
+
+# SQLite local database — user-specific, never commit
+croll_cases.db
+croll_cases.db-shm
+croll_cases.db-wal

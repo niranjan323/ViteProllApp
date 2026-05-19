@@ -466,6 +466,16 @@
     background: #218838;
 }
 
+.save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: none;
+}
+
+.save-btn:disabled:hover {
+    background: none;
+}
+
 .delete-btn {
     padding: 0.5rem 0.75rem;
     background: white;
@@ -1423,132 +1433,15 @@
 
 /* Responsive Design */
 
-/* 1366×768 laptops — most common small laptop, no breakpoint previously covered this */
-@media (max-width: 1400px) {
-    .project-container {
-        padding: clamp(0.4rem, 0.7vw, 0.9rem);
-        gap: clamp(0.4rem, 0.7vw, 0.9rem);
-    }
-
-    .project-sidebar {
-        width: 255px;
-        min-width: 255px;
-    }
-
-    .sidebar-content {
-        padding: 0.4rem 0;
-    }
-
-    .section {
-        padding: 0 0.6rem;
-        margin-bottom: 0.6rem;
-    }
-
-    .section-content {
-        padding: 0.6rem;
-    }
-
-    .section-title {
-        font-size: 0.82rem;
-        margin-bottom: 3px;
-    }
-
-    .input-row-wrapper {
-        padding: 0.2rem 0.3rem;
-        margin-bottom: 0.3rem;
-    }
-
-    .input-label {
-        font-size: 0.82rem;
-    }
-
-    .input-field-standalone {
-        width: 68px;
-        font-size: 0.8rem;
-    }
-
-    .input-range {
-        font-size: 0.62rem;
-    }
-
-    /* Increase polar chart size — 38vh was only 291px at 768px viewport */
-    .polar-chart {
-        width: clamp(300px, 48vh, 420px);
-        height: clamp(300px, 48vh, 420px);
-    }
-
-    .y-axis-scale {
-        height: clamp(300px, 48vh, 420px);
-    }
-
-    /* Reduce padding around chart so chart takes more room */
-    .polar-chart-container {
-        padding: 1.5rem;
-    }
-
-    .plot-canvas-right {
-        width: 215px;
-        min-width: 215px;
-        align-self: stretch;
-        overflow-y: auto;
-    }
-
-    .plot-canvas-right::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    .plot-canvas-right::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .plot-canvas-right::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.35);
-        border-radius: 2px;
-    }
-
-    .chart-right-panel {
-        padding: 8px;
-        gap: 6px;
-        zoom: 0.85;
-    }
-
-    .project-tab {
-        padding: 0.55rem 0.8rem;
-        font-size: 0.82rem;
-    }
-
-    /* Tighten saved cases bar */
-    .saved-cases-section {
-        padding: 0.3rem 0.75rem;
-    }
-
-    .saved-cases-header {
-        gap: 0.25rem;
-        margin-bottom: 0.15rem;
-    }
-
-    .saved-cases-list {
-        height: 36px;
-    }
-
-    /* Tighten footer bar */
-    .footer-actions {
-        padding: 0.35rem 0.75rem;
-    }
-
-    .generate-report-btn {
-        padding: 0.4rem 1rem;
-        font-size: 0.8rem;
-    }
-}
-
-/* Small laptops (1280px and below) */
+/* Small laptops (1024-1280) */
 @media (max-width: 1280px) {
+    /* Sidebar: 310px gives 465px physical — close to 120%'s 499px physical (416px CSS × 1.2) */
     .project-sidebar {
-        width: 265px;
-        min-width: 265px;
+        width: 310px;
+        min-width: 310px;
     }
 
+    /* No horizontal padding on sidebar-content — same as 120% default */
     .sidebar-content {
         padding: 0.4rem 0;
     }
@@ -1558,6 +1451,7 @@
         margin-bottom: 0.8rem;
     }
 
+    /* 0.6rem = 14.4px physical, vs 19.2px at 120% — much closer to reference */
     .section-content {
         padding: 0.6rem;
     }
