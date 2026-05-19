@@ -1071,6 +1071,20 @@
     box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
 }
 
+.generate-btn-wrapper {
+    position: relative;
+}
+
+.generate-btn-wrapper .report-message {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    white-space: nowrap;
+    margin-bottom: 0;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
 .report-options {
     display: flex;
     gap: clamp(0.75rem, 1vw, 1.5rem);

@@ -78,6 +78,7 @@ const Project: React.FC = () => {
     const [caseManager] = useState(() => new CaseManager());
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [saveMessage, setSaveMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+    const [reportMessage, setReportMessage] = useState<string | null>(null);
     const { fileSystem } = useElectron();
     const [dataLoader] = useState(() => new DataLoader(fileSystem));
     const [polarData, setPolarData] = useState<{
@@ -269,6 +270,11 @@ const Project: React.FC = () => {
         setTimeout(() => setSaveMessage(null), 3000);
     };
 
+    const showReportMessage = (text: string) => {
+        setReportMessage(text);
+        setTimeout(() => setReportMessage(null), 3000);
+    };
+
     const handleSaveCase = () => {
          if (!allParamsValid) {
             showMessage('Cannot save case: one or more input values are out of range', 'error');
@@ -361,6 +367,10 @@ const Project: React.FC = () => {
     };
 
     const handleLoadCase = (item: SavedCase) => {
+        if (activeCaseId === item.id) {
+            setActiveCaseId(null);
+            return;
+        }
         const caseData = item.parameters as AnalysisCase;
         setActiveCaseId(item.id);
         updateVesselOperation({
@@ -422,6 +432,14 @@ const Project: React.FC = () => {
     }, [caseId, userInputData, wavePeriodType, displayedWavePeriod, fittedParams, chartMode, chartDirection]);
 
     const handleGenerateReport = () => {
+        if (visibleSavedCases.length === 0) {
+            showReportMessage('No cases saved. Please save a case to generate a report.');
+            return;
+        }
+        if (reportType === 'current' && activeCaseId === null) {
+            showReportMessage('Please select a case first.');
+            return;
+        }
         if (reportType === 'current') {
             // Use the actively selected case, or fall back to current inputs
             const activeCase = activeCaseId
@@ -1301,15 +1319,26 @@ const Project: React.FC = () => {
                                         {/* <img src={pdfIcon} alt="PDF" className="pdf-icon-img" /> */}
                                         <div className="pdf-icon-img" />
 
-                    <button className="generate-report-btn" onClick={handleGenerateReport}>Generate Report</button>
+                    <div className="generate-btn-wrapper">
+                        {reportMessage && (
+                            <div className="save-message error report-message">{reportMessage}</div>
+                        )}
+                        <button className="generate-report-btn" onClick={handleGenerateReport}>Generate Report</button>
+                    </div>
                     <div className="report-options">
                         <label className="radio-label">
-                            <input type="radio" name="report" value="current" checked={reportType === 'current'} onChange={() => setReportType('current')} />
+                            <input type="radio" name="report" value="current" checked={reportType === 'current'} onChange={() => {
+                                if (visibleSavedCases.length === 0) { showReportMessage('No cases saved. Please save a case first.'); return; }
+                                setReportType('current');
+                            }} />
                             <span className="radio-dot"></span>
                             <span>Current Case</span>
                         </label>
                         <label className="radio-label">
-                            <input type="radio" name="report" value="all" checked={reportType === 'all'} onChange={() => setReportType('all')} />
+                            <input type="radio" name="report" value="all" checked={reportType === 'all'} onChange={() => {
+                                if (visibleSavedCases.length === 0) { showReportMessage('No cases saved. Please save a case first.'); return; }
+                                setReportType('all');
+                            }} />
                             <span className="radio-dot"></span>
                             <span>All Cases</span>
                         </label>
