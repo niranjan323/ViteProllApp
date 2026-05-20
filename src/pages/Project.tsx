@@ -585,7 +585,7 @@ const Project: React.FC = () => {
                 ? chartRef.current?.getImageDataURL()
                 : chartImageUrl;
             if (chartImage) {
-                const imgSize = Math.min(contentWidth, 140);
+                const imgSize = Math.min(contentWidth, 160);
                 if (y + imgSize > pageHeight - bottomMargin) {
                     doc.addPage();
                     y = 20;
@@ -1450,20 +1450,24 @@ const Project: React.FC = () => {
 
                                         <div className="report-chart-section">
                                             {polarData.rollMatrix && polarData.speeds && polarData.headings && (
-                                                <CanvasPolarChart
-                                                    rollMatrix={polarData.rollMatrix}
-                                                    speeds={polarData.speeds}
-                                                    headings={polarData.headings}
-                                                    vesselHeading={data.heading}
-                                                    vesselSpeed={data.speed}
-                                                    maxRollAngle={data.maxRoll}
-                                                    meanWaveDirection={data.waveDirection}
-                                                    width={400}
-                                                    height={400}
-                                                    mode={data.chartMode ?? chartMode}
-                                                    orientation={data.chartOrientation ?? chartDirection}
-                                                    onDrawn={(url) => { freshChartImagesRef.current.set(data.caseId ?? 'current', url); }}
-                                                />
+                                                <div style={{ width: 420, height: 420, overflow: 'hidden', flexShrink: 0 }}>
+                                                    <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left', width: 700, height: 700 }}>
+                                                        <CanvasPolarChart
+                                                            rollMatrix={polarData.rollMatrix}
+                                                            speeds={polarData.speeds}
+                                                            headings={polarData.headings}
+                                                            vesselHeading={data.heading}
+                                                            vesselSpeed={data.speed}
+                                                            maxRollAngle={data.maxRoll}
+                                                            meanWaveDirection={data.waveDirection}
+                                                            width={700}
+                                                            height={700}
+                                                            mode={data.chartMode ?? chartMode}
+                                                            orientation={data.chartOrientation ?? chartDirection}
+                                                            onDrawn={(url) => { freshChartImagesRef.current.set(data.caseId ?? 'current', url); }}
+                                                        />
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
 
