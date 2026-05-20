@@ -1449,7 +1449,15 @@ const Project: React.FC = () => {
                                         )}
 
                                         <div className="report-chart-section">
-                                            {polarData.rollMatrix && polarData.speeds && polarData.headings && (
+                                            {data.chartImageUrl ? (
+                                                // Saved case: use the snapshot from save time — correct polar data
+                                                <img
+                                                    src={data.chartImageUrl}
+                                                    alt="Polar chart"
+                                                    style={{ width: 420, height: 420, objectFit: 'contain' }}
+                                                />
+                                            ) : polarData.rollMatrix && polarData.speeds && polarData.headings ? (
+                                                // Current inputs case (no snapshot): render live and capture for PDF
                                                 <div style={{ width: 420, height: 420, overflow: 'hidden', flexShrink: 0 }}>
                                                     <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left', width: 700, height: 700 }}>
                                                         <CanvasPolarChart
@@ -1468,7 +1476,7 @@ const Project: React.FC = () => {
                                                         />
                                                     </div>
                                                 </div>
-                                            )}
+                                            ) : null}
                                         </div>
 
                                         {idx < casesToShow.length - 1 && <hr className="report-divider" />}
