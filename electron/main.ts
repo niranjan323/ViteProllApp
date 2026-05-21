@@ -48,7 +48,12 @@ function initDatabase(): void {
   const dbPath = path.join(dbDir, 'croll_cases.db');
 
   db = new Database(dbPath);
-  db.pragma('journal_mode = WAL'); // better performance for concurrent reads
+  db.pragma('busy_timeout = 3000'); // wait up to 3s on lock before failing
+  try {
+    db.pragma('journal_mode = WAL'); // better performance for concurrent reads
+  } catch {
+    // WAL mode unavailable (stale lock files or OS restriction) — continue in default mode
+  }
 
   // Schema version tracking for migrations
   db.exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)`);
@@ -258,7 +263,21 @@ function createWindow() {
   });
 }
 
+// Prevent multiple instances — a second launch focuses the existing window instead
+const gotSingleLock = app.requestSingleInstanceLock();
+if (!gotSingleLock) {
+  app.quit();
+}
+
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
 app.on('ready', () => {
+  if (!gotSingleLock) return;
   if (!checkLicense()) {
     app.quit();
     return;
