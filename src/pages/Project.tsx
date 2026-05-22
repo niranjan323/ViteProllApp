@@ -16,8 +16,11 @@ import saveCaseGreenIcon from '../assets/save case_green.svg';
 import _saveCaseGrayIcon from '../assets/save case_gray.svg'; // used for disabled state
 import deleteIcon from '../assets/delete.svg';
 import folderIcon from '../assets/save case_gray.svg';
+import folderIconDark from '../assets/save_cases_dark.svg';
 import arrowLeftIcon from '../assets/case scroll_arrow_left.svg';
+import arrowLeftIconDark from '../assets/case scroll_arrow_left_dark.svg';
 import arrowRightIcon from '../assets/case scroll_arrow_right.svg';
+import arrowRightIconDark from '../assets/case scroll_arrow_right_dark.svg';
 import pdfIcon from '../assets/PDF.svg';
 import checkGreenIcon from '../assets/value_green check.svg';
 import redXIcon from '../assets/value_red x.svg';
@@ -1298,11 +1301,11 @@ const Project: React.FC = () => {
 
                 <div className="saved-cases-section">
                     <div className="saved-cases-header">
-                        <img src={folderIcon} alt="" className="folder-icon-img" />
+                        <img src={colorMode === 'dark' ? folderIconDark : folderIcon} alt="" className="folder-icon-img" />
                         <h3 className="saved-cases-title">Saved Cases</h3>
                     </div>
                     <div className="saved-cases-content">
-                        <button className="nav-arrow" onClick={() => savedCasesListRef.current?.scrollBy({ left: -120, behavior: 'smooth' })}><img src={arrowLeftIcon} alt="‹" className="nav-arrow-icon" /></button>
+                        <button className="nav-arrow" onClick={() => savedCasesListRef.current?.scrollBy({ left: -120, behavior: 'smooth' })}><img src={colorMode === 'dark' ? arrowLeftIconDark : arrowLeftIcon} alt="‹" className="nav-arrow-icon" /></button>
                         <div className="saved-cases-list" ref={savedCasesListRef}>
                             {visibleSavedCases.map((item) => (
                                 <div key={item.id} className={`case-tile-box ${activeCaseId === item.id ? 'active' : ''}`} onClick={() => handleLoadCase(item)}>
@@ -1311,7 +1314,7 @@ const Project: React.FC = () => {
                                 </div>
                             ))}
                         </div>
-                        <button className="nav-arrow" onClick={() => savedCasesListRef.current?.scrollBy({ left: 120, behavior: 'smooth' })}><img src={arrowRightIcon} alt="›" className="nav-arrow-icon" /></button>
+                        <button className="nav-arrow" onClick={() => savedCasesListRef.current?.scrollBy({ left: 120, behavior: 'smooth' })}><img src={colorMode === 'dark' ? arrowRightIconDark : arrowRightIcon} alt="›" className="nav-arrow-icon" /></button>
                     </div>
                 </div>
 

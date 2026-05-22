@@ -81,7 +81,13 @@ function initDatabase() {
         : path.dirname(electron_1.app.getPath('exe')); // same folder as the installed exe
     const dbPath = path.join(dbDir, 'croll_cases.db');
     db = new better_sqlite3_1.default(dbPath);
-    db.pragma('journal_mode = WAL'); // better performance for concurrent reads
+    db.pragma('busy_timeout = 3000'); // wait up to 3s on lock before failing
+    try {
+        db.pragma('journal_mode = WAL'); // better performance for concurrent reads
+    }
+    catch {
+        // WAL mode unavailable (stale lock files or OS restriction) — continue in default mode
+    }
     // Schema version tracking for migrations
     db.exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)`);
     const versionRow = db.prepare('SELECT version FROM schema_version').get();
@@ -254,7 +260,21 @@ function createWindow() {
         mainWindow = null;
     });
 }
+// Prevent multiple instances — a second launch focuses the existing window instead
+const gotSingleLock = electron_1.app.requestSingleInstanceLock();
+if (!gotSingleLock) {
+    electron_1.app.quit();
+}
+electron_1.app.on('second-instance', () => {
+    if (mainWindow) {
+        if (mainWindow.isMinimized())
+            mainWindow.restore();
+        mainWindow.focus();
+    }
+});
 electron_1.app.on('ready', () => {
+    if (!gotSingleLock)
+        return;
     if (!checkLicense()) {
         electron_1.app.quit();
         return;
