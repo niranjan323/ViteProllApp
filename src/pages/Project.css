@@ -923,13 +923,17 @@
     padding: clamp(0.4rem, 0.6vw, 0.75rem) clamp(0.75rem, 1.2vw, 1.5rem);
     margin-bottom: 0;
     border-top: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: clamp(0.5rem, 0.8vw, 1rem);
 }
 
 .saved-cases-header {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0;
+    flex-shrink: 0;
 }
 
 .saved-cases-title {
@@ -937,12 +941,15 @@
     font-weight: 600;
     color: #333;
     margin: 0;
+    white-space: nowrap;
 }
 
 .saved-cases-content {
     display: flex;
     align-items: center;
     gap: clamp(0.5rem, 0.8vw, 1rem);
+    flex: 1;
+    min-width: 0;
 }
 
 .saved-cases-list {
@@ -951,8 +958,8 @@
     align-items: center;
     flex: 1;
     overflow-x: auto;
-    padding: 0.15rem 0;
-    height: 42px;
+    padding: 0.25rem 0;
+    height: 85px;
     overflow-y: hidden;
 }
 
@@ -962,12 +969,12 @@
     align-items: center;
     gap: 0.1rem;
     cursor: pointer;
-    padding: 0.15rem 0.5rem;
+    padding: 0.25rem 0.6rem;
     background: white;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
     flex-shrink: 0;
-    min-width: 50px;
+    min-width: 55px;
 }
 
 .case-tile-box:hover {
@@ -1636,7 +1643,6 @@
     /* Saved Cases bar */
     .saved-cases-header {
         gap: 0.25rem;
-        margin-bottom: 0.15rem;
     }
 
     .folder-icon-img {
@@ -1645,7 +1651,12 @@
     }
 
     .saved-cases-list {
-        height: 36px;
+        height: 65px;
+    }
+
+    .case-tile-box {
+        padding: 0.2rem 0.5rem;
+        min-width: 50px;
     }
 
     .nav-arrow {
