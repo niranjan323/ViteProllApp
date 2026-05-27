@@ -1142,22 +1142,29 @@
     width: 6px;
 }
 
+.saved-cases-list::-webkit-scrollbar {
+    height: 6px;
+}
+
 .project-sidebar::-webkit-scrollbar-track,
 .sidebar-content::-webkit-scrollbar-track,
-.project-main::-webkit-scrollbar-track {
+.project-main::-webkit-scrollbar-track,
+.saved-cases-list::-webkit-scrollbar-track {
     background: #f1f1f1;
 }
 
 .project-sidebar::-webkit-scrollbar-thumb,
 .sidebar-content::-webkit-scrollbar-thumb,
-.project-main::-webkit-scrollbar-thumb {
+.project-main::-webkit-scrollbar-thumb,
+.saved-cases-list::-webkit-scrollbar-thumb {
     background: #888;
     border-radius: 3px;
 }
 
 .project-sidebar::-webkit-scrollbar-thumb:hover,
 .sidebar-content::-webkit-scrollbar-thumb:hover,
-.project-main::-webkit-scrollbar-thumb:hover {
+.project-main::-webkit-scrollbar-thumb:hover,
+.saved-cases-list::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
 
@@ -2758,19 +2765,22 @@
 /* Scrollbar dark mode */
 [data-theme="dark"] .project-sidebar::-webkit-scrollbar-track,
 [data-theme="dark"] .sidebar-content::-webkit-scrollbar-track,
-[data-theme="dark"] .project-main::-webkit-scrollbar-track {
+[data-theme="dark"] .project-main::-webkit-scrollbar-track,
+[data-theme="dark"] .saved-cases-list::-webkit-scrollbar-track {
     background: #0d1721;
 }
 
 [data-theme="dark"] .project-sidebar::-webkit-scrollbar-thumb,
 [data-theme="dark"] .sidebar-content::-webkit-scrollbar-thumb,
-[data-theme="dark"] .project-main::-webkit-scrollbar-thumb {
+[data-theme="dark"] .project-main::-webkit-scrollbar-thumb,
+[data-theme="dark"] .saved-cases-list::-webkit-scrollbar-thumb {
     background: #3a5a7a;
 }
 
 [data-theme="dark"] .project-sidebar::-webkit-scrollbar-thumb:hover,
 [data-theme="dark"] .sidebar-content::-webkit-scrollbar-thumb:hover,
-[data-theme="dark"] .project-main::-webkit-scrollbar-thumb:hover {
+[data-theme="dark"] .project-main::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .saved-cases-list::-webkit-scrollbar-thumb:hover {
     background: #4a7a9a;
 }
 
