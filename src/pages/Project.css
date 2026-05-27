@@ -1782,6 +1782,63 @@
     }
 }
 
+/* Medium laptops 1281–1440px — right panel scroll fix */
+@media (max-width: 1440px) and (min-width: 1281px) {
+    /* Allow right panel to stretch full canvas height and scroll internally */
+    .plot-canvas-right {
+        align-self: stretch;
+        overflow-y: auto;
+    }
+
+    .plot-canvas-right::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .plot-canvas-right::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .plot-canvas-right::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.35);
+        border-radius: 2px;
+    }
+
+    /* Slight zoom so all 4 params fit without scrolling on most displays */
+    .chart-right-panel {
+        zoom: 0.88;
+    }
+}
+
+/* Short viewport — browser at 768px total height leaves ~630px viewport */
+@media (max-height: 750px) {
+    /* Reduce chart so N compass label is never clipped by plot-canvas overflow */
+    .polar-chart {
+        width: clamp(200px, 32vh, 380px);
+        height: clamp(200px, 32vh, 380px);
+    }
+
+    .y-axis-scale {
+        height: clamp(200px, 32vh, 380px);
+    }
+
+    .polar-chart-container {
+        padding: 1.75rem;
+    }
+
+    /* Compact report modal so it fits without feeling cramped */
+    .report-modal {
+        max-height: 92vh;
+    }
+
+    .report-modal-body {
+        padding: 16px;
+    }
+
+    .report-chart-section {
+        margin: 12px 0 4px 0;
+    }
+}
+
 /* Large desktops (1920+) */
 @media (min-width: 1920px) {
     .project-sidebar {
