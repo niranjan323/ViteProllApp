@@ -625,24 +625,10 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    align-self: stretch;
-    overflow-y: auto;
+    align-self: flex-start;
     margin-left: auto;
     position: relative;
     z-index: 1;
-}
-
-.plot-canvas-right::-webkit-scrollbar {
-    width: 4px;
-}
-
-.plot-canvas-right::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.plot-canvas-right::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.35);
-    border-radius: 2px;
 }
 
 /* Y-Axis Container */
@@ -1534,27 +1520,9 @@
         height: 15px;
     }
 
-    /* align-self: stretch bounds panel to plot-canvas height, preventing
-       overflow: hidden from clipping the bottom params */
     .plot-canvas-right {
         width: 265px;
         min-width: 265px;
-        align-self: stretch;
-        overflow-y: auto;
-    }
-
-    /* Thin scrollbar so it doesn't eat into panel content width */
-    .plot-canvas-right::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    .plot-canvas-right::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    .plot-canvas-right::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.35);
-        border-radius: 2px;
     }
 
     /* zoom: 0.82 scales the entire panel by 18% — fits all 4 params at 150% DPI
@@ -1800,6 +1768,27 @@
 @media (max-width: 1440px) and (min-width: 1281px) {
     .chart-right-panel {
         zoom: 0.88;
+    }
+}
+
+/* Viewport < 850px — web browser on laptop screens.
+   Electron window is 900px viewport so this does NOT fire there.
+   Switch to a single page-level scroll instead of clipping content. */
+@media (max-height: 850px) {
+    .project-main {
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .plot-section {
+        flex: none;
+        overflow: visible;
+    }
+
+    .plot-canvas {
+        overflow: visible;
+        flex: none;
+        min-height: 300px;
     }
 }
 
