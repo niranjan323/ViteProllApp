@@ -72,7 +72,7 @@ const Project: React.FC = () => {
     const handleClearInput = () => {
         resetUserData();
     };
-    const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo } = useElectron();
+    const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo, isElectronMode } = useElectron();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(initialTab);
     const [caseId, setCaseId] = useState('');
@@ -1057,7 +1057,7 @@ const Project: React.FC = () => {
                 </div>
             </div>
 
-            <div className="project-main">
+            <div className={`project-main${isElectronMode ? '' : ' web-scroll'}`}>
                 <div className="plot-section">
                     <div className="plot-canvas">
                         {allParamsValid && polarData.rollMatrix && polarData.speeds && polarData.headings ? (
@@ -1078,6 +1078,7 @@ const Project: React.FC = () => {
                                         orientation={chartDirection}
                                         captureKey={captureKey}
                                         onDrawn={handleChartDrawn}
+                                        maxSpeed={parameterBounds?.speedUpper}
                                     />
                                 </div>
 
@@ -1476,6 +1477,7 @@ const Project: React.FC = () => {
                                                             mode={data.chartMode ?? chartMode}
                                                             orientation={data.chartOrientation ?? chartDirection}
                                                             onDrawn={(url) => { freshChartImagesRef.current.set(data.caseId ?? 'current', url); }}
+                                                            maxSpeed={parameterBounds?.speedUpper}
                                                         />
                                                     </div>
                                                 </div>

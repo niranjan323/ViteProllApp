@@ -14,6 +14,7 @@ interface CanvasPolarChartProps {
     orientation?: 'north-up' | 'heads-up';
     captureKey?: number;
     onDrawn?: (dataUrl: string) => void;
+    maxSpeed?: number;
 }
 
 export function normalizeAngle(angle: number): number {
@@ -134,6 +135,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
     orientation = 'north-up',
     captureKey: _captureKey,
     onDrawn,
+    maxSpeed: propMaxSpeed,
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -225,8 +227,8 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         const centerY = height / 2;
         const maxRadius = Math.min(width - legendTotalWidth - 60, height - 80) * 0.42;
 
-        // Fixed speed range: 0-25 kn as per specification
-        const maxSpeed = 25;
+        // Speed range from Croll.ctl; fall back to 25 kn if not supplied
+        const maxSpeed = propMaxSpeed ?? 25;
 
         // Declared in outer scope so both color block and legend block can access them
         let minRoll = 0;
@@ -281,6 +283,9 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
                     if (encounterAngle > 180) {
                         encounterAngle = 360 - encounterAngle;
                     }
+                    // CRoll data convention: 180° = head sea, 0° = following sea.
+                    // Flip so head sea (180° in data) is displayed at the top of the chart.
+                    encounterAngle = 180 - encounterAngle;
 
                     const speed = (radius / maxRadius) * maxSpeed;
 

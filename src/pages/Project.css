@@ -1771,25 +1771,22 @@
     }
 }
 
-/* Viewport < 850px — web browser on laptop screens.
-   Electron window is 900px viewport so this does NOT fire there.
-   Switch to a single page-level scroll instead of clipping content. */
-@media (max-height: 850px) {
-    .project-main {
-        overflow-y: auto;
-        overflow-x: hidden;
-    }
+/* Web-only scroll — applied via .web-scroll class set in JS when isElectronMode=false.
+   Electron always uses the fixed flex layout; web gets page-level scroll instead. */
+.web-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
 
-    .plot-section {
-        flex: none;
-        overflow: visible;
-    }
+.web-scroll .plot-section {
+    flex: none;
+    overflow: visible;
+}
 
-    .plot-canvas {
-        overflow: visible;
-        flex: none;
-        min-height: 300px;
-    }
+.web-scroll .plot-canvas {
+    overflow: visible;
+    flex: none;
+    min-height: 300px;
 }
 
 /* Short viewport — browser at 768px total height leaves ~630px viewport */
