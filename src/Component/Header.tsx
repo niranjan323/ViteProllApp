@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import './Header.css';
 import logo from '../assets/ABS_Logo.png';
+import { useIsAuthenticated, useMsal } from '@azure/msal-react';
 import aboutIcon from '../assets/about.svg';
 import appIcon from '../assets/CRoll App icon.svg';
 import versionIcon from '../assets/version.svg';
@@ -15,6 +16,47 @@ const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 const handleMinimize = () => window.electronAPI?.minimizeWindow?.();
 const handleMaximize = () => window.electronAPI?.maximizeWindow?.();
 const handleClose = () => window.electronAPI?.closeWindow?.();
+
+// Rendered only in web mode — uses MSAL hooks (requires MsalProvider in tree)
+function WebUserSection() {
+    const isAuthenticated = useIsAuthenticated();
+    const { instance, accounts } = useMsal();
+    const [showMenu, setShowMenu] = useState(false);
+
+    if (!isAuthenticated) return null;
+
+    const user = accounts[0];
+    const displayName = user?.name ?? user?.username ?? 'User';
+
+    const handleLogout = () => {
+        setShowMenu(false);
+        instance.logoutPopup({ postLogoutRedirectUri: window.location.origin });
+    };
+
+    return (
+        <div className="app-header__user" onClick={() => setShowMenu(v => !v)}>
+            <div className="app-header__user-avatar">
+                {displayName.charAt(0).toUpperCase()}
+            </div>
+            <span className="app-header__user-name">{displayName}</span>
+            {showMenu && (
+                <>
+                    <div className="user-menu-backdrop" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
+                    <div className="user-menu">
+                        <div className="user-menu-info">
+                            <strong>{displayName}</strong>
+                            <span>{user?.username}</span>
+                        </div>
+                        <hr className="user-menu-divider" />
+                        <button className="user-menu-signout" onClick={handleLogout}>
+                            Sign out
+                        </button>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
 
 const Header = () => {
     const [showAbout, setShowAbout] = useState(false);
@@ -60,6 +102,9 @@ const Header = () => {
 
             {/* RIGHT SIDE */}
             <div className="app-header__right">
+                {/* Logged-in user info — web only */}
+                {!isElectron && <WebUserSection />}
+
                 <div className="about-anchor">
                 <img 
                     src={aboutIcon}

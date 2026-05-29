@@ -3,18 +3,19 @@ import './App.css';
 import MainLayout from './Component/MainLayout';
 import Home from './pages/Home';
 import Project from './pages/Project';
+import { AuthGuard } from './auth/AuthGuard';
 
-function App()
-{
-  return (
-    <Routes>
-      <Route element={<MainLayout />}>
-        <Route index element={<Home />} />
-        <Route path="/project" element={<Project />} />
-        {/* Add more routes here as needed */}
-      </Route>
-    </Routes>
-  );
+function App() {
+    return (
+        <AuthGuard>
+            <Routes>
+                <Route element={<MainLayout />}>
+                    <Route index element={<Home />} />
+                    <Route path="/project" element={<Project />} />
+                </Route>
+            </Routes>
+        </AuthGuard>
+    );
 }
 
 export default App;
