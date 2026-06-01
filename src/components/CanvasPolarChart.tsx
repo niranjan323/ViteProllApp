@@ -276,16 +276,19 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
                     const displayAngle = normalizeAngle(atan2Deg + 90);
 
              
-                    const compassHeading = orientation === 'heads-up'
+                    // Tester algorithm (Step 2):
+                    // Bow Up rotates the display; North Up is unrotated.
+                    const adjustedAngle = orientation === 'heads-up'
                         ? normalizeAngle(displayAngle + vesselHeading)
                         : displayAngle;
-                    let encounterAngle = normalizeAngle(meanWaveDirection - compassHeading);
-                    if (encounterAngle > 180) {
-                        encounterAngle = 360 - encounterAngle;
-                    }
-                    // CRoll data convention: 180° = head sea, 0° = following sea.
-                    // Flip so head sea (180° in data) is displayed at the top of the chart.
-                    encounterAngle = 180 - encounterAngle;
+
+                    // Y1 = 180 - Y  (head sea 180° in data → top of chart)
+                    // Normalise to 0–360, then fold the expanded 0–360 dataset back
+                    // to 0–180 using the mirror formula: Z(180+a) = Z(180-a).
+                    let Y1 = 180 - adjustedAngle;
+                    if (Y1 < 0) Y1 += 360;
+                    if (Y1 >= 360) Y1 -= 360;
+                    const encounterAngle = Y1 <= 180 ? Y1 : 360 - Y1;
 
                     const speed = (radius / maxRadius) * maxSpeed;
 
@@ -325,11 +328,13 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
                 if (r > maxRadius || r < 1) continue;
                 const atan2Deg = Math.atan2(dy, dx) * (180 / Math.PI);
                 const displayAngle = normalizeAngle(atan2Deg + 90);
-                const compassH = orientation === 'heads-up'
+                const adjustedA = orientation === 'heads-up'
                     ? normalizeAngle(displayAngle + vesselHeading)
                     : displayAngle;
-                let enc = normalizeAngle(meanWaveDirection - compassH);
-                if (enc > 180) enc = 360 - enc;
+                let cY1 = 180 - adjustedA;
+                if (cY1 < 0) cY1 += 360;
+                if (cY1 >= 360) cY1 -= 360;
+                const enc = cY1 <= 180 ? cY1 : 360 - cY1;
                 const spd = (r / maxRadius) * maxSpeed;
                 const roll = interpolateRoll(rollMatrix, speeds, headings, spd, enc);
                 if (isFinite(roll) && roll >= maxRollAngle) {
