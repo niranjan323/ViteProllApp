@@ -77,46 +77,40 @@ export class DataLoader {
     try {
       const text = await this.fs.readTextFile(controlFilePath);
 
-      // Parse control file - format: "values  !comment"
-      // Lines:
-      //   IMO_NUMBER        !Vessel IMO number
-      //   MIN  MAX           !Min, Max Draft
-      //   MIN  MAX           !Min, Max GM
-      //   MIN  MAX           !Min, Max Speed
-      //   MIN  MAX           !Min, Max Significant Wave Height (Hs)
-      //   MIN  MAX           !Min, Max Wave Period
+      // Parse control file - supports two strategies (tried in order):
+      //   1. Comment-based: find line by keyword in comment after "!"
+      //   2. Positional:    fixed line order (works even with no comments)
+      //
+      // Fixed order (blank lines ignored):
+      //   0: IMO number
+      //   1: GM min, max
+      //   2: Speed min, max
+      //   3: Roll min, max
+      //   4: Hs min, max
+      //   5: Tz min, max
+      //   6: Td design draft
+      //   7: Ti intermediate draft
+      //   8: Ts scantling draft
       const lines = text
         .split('\n')
         .map((l) => l.trim())
         .filter((l) => l.length > 0);
 
-      // Helper: parse a line with "!comment" format, returning the values before "!"
+      // Helper: strip comment, return numeric tokens from a line
       const parseLine = (line: string): string[] => {
         const dataPart = line.split('!')[0].trim();
         return dataPart.split(/\s+/).filter(s => s.length > 0);
       };
 
-      // Helper: find a line by comment keyword (case-insensitive)
-      // Searches for keyword anywhere in the comment part after "!"
-      const findLineByComment = (keyword: string): string | undefined => {
-        return lines.find(l => {
-          const bangIndex = l.indexOf('!');
-          if (bangIndex === -1) return false;
-          const commentPart = l.substring(bangIndex + 1).toLowerCase();
-          return commentPart.includes(keyword.toLowerCase());
+      // Helper: find a line by keyword in its comment part (case-insensitive)
+      const findLineByComment = (keyword: string): string | undefined =>
+        lines.find(l => {
+          const bang = l.indexOf('!');
+          if (bang === -1) return false;
+          return l.substring(bang + 1).toLowerCase().includes(keyword.toLowerCase());
         });
-      };
 
-      // Parse IMO
-      const imoLine = findLineByComment('imo') || findLineByComment('vessel');
-      const imoValues = imoLine ? parseLine(imoLine) : [];
-
-      const vesselInfo: VesselInfo = {
-        imo: imoValues[0] || 'Unknown',
-        name: 'Unknown',
-      };
-
-      // Helper: find a key=value pair anywhere in the file (e.g. "GM_lower=0.5" or "GM_lower = 0.5")
+      // Helper: find key=value anywhere in the file
       const findKeyValue = (key: string): number | null => {
         const re = new RegExp(`^${key}\\s*=\\s*([\\d.]+)`, 'i');
         for (const l of lines) {
@@ -126,87 +120,107 @@ export class DataLoader {
         return null;
       };
 
-      // Helper: try comment format first, then key=value format for a single numeric value
-      const resolveValue = (commentLine: string | undefined, idx: number, keyName: string): number | null => {
+      // Helper: positional fallback — value at (lineIndex, tokenIndex) in the non-empty lines array
+      const posVal = (lineIdx: number, valIdx: number): number | null => {
+        if (lineIdx >= lines.length) return null;
+        const vals = parseLine(lines[lineIdx]);
+        const v = parseFloat(vals[valIdx] ?? '');
+        return isNaN(v) ? null : v;
+      };
+
+      // Helper: comment-based first, then key=value, then positional
+      const resolve = (
+        commentLine: string | undefined,
+        tokenIdx: number,
+        keyName: string,
+        posLineIdx: number,
+        posTokenIdx: number
+      ): number | null => {
         if (commentLine) {
           const vals = parseLine(commentLine);
-          if (vals[idx] !== undefined) {
-            const v = parseFloat(vals[idx]);
+          if (vals[tokenIdx] !== undefined) {
+            const v = parseFloat(vals[tokenIdx]);
             if (!isNaN(v)) return v;
           }
         }
-        return findKeyValue(keyName);
+        return findKeyValue(keyName) ?? posVal(posLineIdx, posTokenIdx);
       };
 
-      // --- GM bounds (REQUIRED) ---
+      // --- IMO (line 0) ---
+      const imoLine = findLineByComment('imo') || findLineByComment('vessel');
+      const imoValues = imoLine ? parseLine(imoLine) : parseLine(lines[0] ?? '');
+      const vesselInfo: VesselInfo = {
+        imo: imoValues[0] || 'Unknown',
+        name: 'Unknown',
+      };
+
+      // --- GM bounds — line 1 (REQUIRED) ---
       const gmLine = findLineByComment('gm');
-      const gmLower = resolveValue(gmLine, 0, 'GM_lower') ?? resolveValue(gmLine, 0, 'gm_lower');
-      const gmUpper = resolveValue(gmLine, 1, 'GM_upper') ?? resolveValue(gmLine, 1, 'gm_upper');
+      const gmLower = resolve(gmLine, 0, 'GM_lower', 1, 0);
+      const gmUpper = resolve(gmLine, 1, 'GM_upper', 1, 1);
       if (gmLower === null || isNaN(gmLower)) {
-        return { success: false, error: 'Control file is missing required range: GM lower bound (GM_lower)' };
+        return { success: false, error: 'Control file is missing required range: GM lower bound' };
       }
       if (gmUpper === null || isNaN(gmUpper)) {
-        return { success: false, error: 'Control file is missing required range: GM upper bound (GM_upper)' };
+        return { success: false, error: 'Control file is missing required range: GM upper bound' };
       }
 
-      // --- Hs bounds (REQUIRED) ---
+      // --- Speed bounds — line 2 (optional, default 0–30) ---
+      const speedLine = findLineByComment('speed');
+      const speedLower = resolve(speedLine, 0, 'Speed_lower', 2, 0) ?? 0;
+      const speedUpper = resolve(speedLine, 1, 'Speed_upper', 2, 1) ?? 30;
+
+      // --- Roll bounds — line 3 (optional, default 0–60) ---
+      const rollLine = findLineByComment('allowed roll') || findLineByComment('roll');
+      const rollLower = resolve(rollLine, 0, 'Roll_lower', 3, 0) ?? 0;
+      const rollUpper = resolve(rollLine, 1, 'Roll_upper', 3, 1) ?? 60;
+
+      // --- Hs bounds — line 4 (REQUIRED) ---
       const hsLine = findLineByComment('wave height') || findLineByComment('hs');
-      const hsLower = resolveValue(hsLine, 0, 'Hs_lower') ?? resolveValue(hsLine, 0, 'hs_lower');
-      const hsUpper = resolveValue(hsLine, 1, 'Hs_upper') ?? resolveValue(hsLine, 1, 'hs_upper');
+      const hsLower = resolve(hsLine, 0, 'Hs_lower', 4, 0);
+      const hsUpper = resolve(hsLine, 1, 'Hs_upper', 4, 1);
       if (hsLower === null || isNaN(hsLower)) {
-        return { success: false, error: 'Control file is missing required range: Hs lower bound (Hs_lower)' };
+        return { success: false, error: 'Control file is missing required range: Hs lower bound' };
       }
       if (hsUpper === null || isNaN(hsUpper)) {
-        return { success: false, error: 'Control file is missing required range: Hs upper bound (Hs_upper)' };
+        return { success: false, error: 'Control file is missing required range: Hs upper bound' };
       }
 
-      // --- Tz bounds (REQUIRED) ---
+      // --- Tz bounds — line 5 (REQUIRED) ---
       const tzLine = findLineByComment('wave period') || findLineByComment('tz');
-      const tzLower = resolveValue(tzLine, 0, 'Tz_lower') ?? resolveValue(tzLine, 0, 'tz_lower');
-      const tzUpper = resolveValue(tzLine, 1, 'Tz_upper') ?? resolveValue(tzLine, 1, 'tz_upper');
+      const tzLower = resolve(tzLine, 0, 'Tz_lower', 5, 0);
+      const tzUpper = resolve(tzLine, 1, 'Tz_upper', 5, 1);
       if (tzLower === null || isNaN(tzLower)) {
-        return { success: false, error: 'Control file is missing required range: Tz lower bound (Tz_lower)' };
+        return { success: false, error: 'Control file is missing required range: Tz lower bound' };
       }
       if (tzUpper === null || isNaN(tzUpper)) {
-        return { success: false, error: 'Control file is missing required range: Tz upper bound (Tz_upper)' };
+        return { success: false, error: 'Control file is missing required range: Tz upper bound' };
       }
 
-      // --- Draft / Speed / Roll bounds (optional — use defaults if absent) ---
-      const draftLine = findLineByComment('draft');
-      const speedLine = findLineByComment('speed');
-      const rollLine  = findLineByComment('allowed roll') || findLineByComment('roll');
-
       const parameterBounds: ParameterBounds = {
-        draftLower:  resolveValue(draftLine, 0, 'Draft_lower') ?? 0,
-        draftUpper:  resolveValue(draftLine, 1, 'Draft_upper') ?? 50,
+        draftLower:  findKeyValue('Draft_lower') ?? 0,
+        draftUpper:  findKeyValue('Draft_upper') ?? 50,
         gmLower,
         gmUpper,
-        speedLower:  resolveValue(speedLine, 0, 'Speed_lower') ?? 0,
-        speedUpper:  resolveValue(speedLine, 1, 'Speed_upper') ?? 30,
-        rollLower:   resolveValue(rollLine,  0, 'Roll_lower')  ?? 0,
-        rollUpper:   resolveValue(rollLine,  1, 'Roll_upper')  ?? 60,
+        speedLower,
+        speedUpper,
+        rollLower,
+        rollUpper,
         hsLower,
         hsUpper,
         tzLower,
         tzUpper,
       };
 
-      // Try to parse representative drafts if present (Td, Ti, Ts lines)
-      // Strategy 1: comment-based format  "10.5  !Ts - Scantling draft"
+      // --- Representative drafts — lines 6, 7, 8 ---
       const tdLine = findLineByComment('td') || findLineByComment('design draft');
       const tiLine = findLineByComment('ti') || findLineByComment('intermediate');
       const tsLine = findLineByComment('ts') || findLineByComment('scantling');
 
       const representativeDrafts: RepresentativeDrafts = {
-        design: tdLine
-          ? parseFloat(parseLine(tdLine)[0] || '0')
-          : (findKeyValue('td') ?? findKeyValue('design') ?? 0),
-        intermediate: tiLine
-          ? parseFloat(parseLine(tiLine)[0] || '0')
-          : (findKeyValue('ti') ?? findKeyValue('intermediate') ?? 0),
-        scantling: tsLine
-          ? parseFloat(parseLine(tsLine)[0] || '0')
-          : (findKeyValue('ts') ?? findKeyValue('scantling') ?? 0),
+        design:       tdLine ? parseFloat(parseLine(tdLine)[0] || '0') : (findKeyValue('td') ?? findKeyValue('design') ?? posVal(6, 0) ?? 0),
+        intermediate: tiLine ? parseFloat(parseLine(tiLine)[0] || '0') : (findKeyValue('ti') ?? findKeyValue('intermediate') ?? posVal(7, 0) ?? 0),
+        scantling:    tsLine ? parseFloat(parseLine(tsLine)[0] || '0') : (findKeyValue('ts') ?? findKeyValue('scantling') ?? posVal(8, 0) ?? 0),
       };
 
       console.log('Control file parsed:', { vesselInfo, parameterBounds, representativeDrafts });
