@@ -545,9 +545,48 @@ export class DataLoader {
         }
       }
 
+      // ── Tester specification: transform heading convention in data reading phase ──
+      // Step 1: Expand Y=0:180 to Y=0:360 using Z(X, 180+a) = Z(X, 180-a)
+      // Step 2: Apply Y1 = 180-Y (with bounds) so head sea (Y=180) → Y1=0 (chart top)
+      // After this the chart plots Z(X, Y1) directly — no changes needed in chart code.
+
+      const rollByRawY = new Map<number, number[]>();
+      for (let j = 0; j < headings.length; j++) {
+        rollByRawY.set(headings[j], rollMatrix.map(sr => sr[j]));
+      }
+
+      // Step 1: expand to 0-360
+      const expandedY: number[] = [...headings];
+      const expandedRolls: number[][] = headings.map((_, j) => rollMatrix.map(sr => sr[j]));
+      for (let j = 0; j < headings.length; j++) {
+        const a = headings[j];
+        if (a === 0) continue;
+        const mirrorY = 180 + a;
+        if (mirrorY >= 360) continue;
+        const sourceRolls = rollByRawY.get(180 - a);
+        if (sourceRolls) { expandedY.push(mirrorY); expandedRolls.push(sourceRolls); }
+      }
+
+      // Step 2: Y1 = 180-Y, normalise, sort ascending, rebuild arrays
+      const xfm = expandedY.map((y, i) => {
+        let y1 = 180 - y;
+        if (y1 < 0) y1 += 360;
+        if (y1 >= 360) y1 -= 360;
+        return { y1, rolls: expandedRolls[i] };
+      });
+      xfm.sort((a, b) => a.y1 - b.y1);
+
+      headings.length = xfm.length;
+      for (let j = 0; j < xfm.length; j++) {
+        headings[j] = xfm[j].y1;
+        for (let si = 0; si < numSpeeds; si++) rollMatrix[si][j] = xfm[j].rolls[si];
+        for (let si = 0; si < numSpeeds; si++) rollMatrix[si].length = xfm.length;
+      }
+      // ─────────────────────────────────────────────────────────────────────────────
+
       console.log('=== PARSED DATA ===');
       console.log('Speeds:', speeds);
-      console.log('Headings:', headings);
+      console.log('Headings (Y1 transformed 0-360):', headings);
       console.log('Roll matrix (first row - speed 0):', rollMatrix[0]?.slice(0, 5).map(v => v.toFixed(2)));
       console.log('Roll statistics:', {
         totalPoints: numSpeeds * numHeadings,
@@ -575,7 +614,7 @@ export class DataLoader {
           headings,
           rollMatrix,
           numSpeeds,
-          numHeadings,
+          numHeadings: headings.length,
           numParameters: 0,
         },
         fittedGM: fittedGM,
