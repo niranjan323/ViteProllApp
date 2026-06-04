@@ -72,7 +72,7 @@ const Project: React.FC = () => {
     const handleClearInput = () => {
         resetUserData();
     };
-    const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo, isElectronMode } = useElectron();
+    const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo } = useElectron();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(initialTab);
     const [caseId, setCaseId] = useState('');
@@ -255,7 +255,7 @@ const Project: React.FC = () => {
         if (!polarData.rollMatrix || !polarData.speeds || !polarData.headings) {
             return 'green'; // default if no data available
         }
-        // Match chart formula exactly: encounterAngle = |meanWaveDirection - heading|
+        // Compute encounter angle: angle between wave direction and vessel heading (0–180°)
         let encounterAngle = ((caseData.seaState.waveDirection - caseData.vesselData.heading) % 360 + 360) % 360;
         if (encounterAngle > 180) encounterAngle = 360 - encounterAngle;
         const roll = interpolateRoll(
@@ -1057,7 +1057,7 @@ const Project: React.FC = () => {
                 </div>
             </div>
 
-            <div className={`project-main${isElectronMode ? '' : ' web-scroll'}`}>
+            <div className="project-main">
                 <div className="plot-section">
                     <div className="plot-canvas">
                         {allParamsValid && polarData.rollMatrix && polarData.speeds && polarData.headings ? (
@@ -1078,7 +1078,6 @@ const Project: React.FC = () => {
                                         orientation={chartDirection}
                                         captureKey={captureKey}
                                         onDrawn={handleChartDrawn}
-                                        maxSpeed={parameterBounds?.speedUpper}
                                     />
                                 </div>
 
@@ -1344,7 +1343,7 @@ const Project: React.FC = () => {
                                 setReportType('all');
                             }} />
                             <span className="radio-dot"></span>
-                            <span>All Cases</span>
+                            <span>All Saved Cases</span>
                         </label>
                     </div>
                 </div>
@@ -1477,7 +1476,6 @@ const Project: React.FC = () => {
                                                             mode={data.chartMode ?? chartMode}
                                                             orientation={data.chartOrientation ?? chartDirection}
                                                             onDrawn={(url) => { freshChartImagesRef.current.set(data.caseId ?? 'current', url); }}
-                                                            maxSpeed={parameterBounds?.speedUpper}
                                                         />
                                                     </div>
                                                 </div>
