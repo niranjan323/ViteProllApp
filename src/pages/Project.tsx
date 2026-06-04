@@ -255,7 +255,7 @@ const Project: React.FC = () => {
         if (!polarData.rollMatrix || !polarData.speeds || !polarData.headings) {
             return 'green'; // default if no data available
         }
-        // Compute encounter angle: angle between wave direction and vessel heading (0–180°)
+        // Match chart formula exactly: encounterAngle = |meanWaveDirection - heading|
         let encounterAngle = ((caseData.seaState.waveDirection - caseData.vesselData.heading) % 360 + 360) % 360;
         if (encounterAngle > 180) encounterAngle = 360 - encounterAngle;
         const roll = interpolateRoll(

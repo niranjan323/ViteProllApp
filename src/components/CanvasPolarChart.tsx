@@ -276,11 +276,13 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
                     const displayAngle = normalizeAngle(atan2Deg + 90);
 
              
-                    // Data is pre-transformed in dataLoader (Y1=180-Y applied at read time).
-                    // Chart plots Z(X, Y1) directly. Bow Up adds vessel heading for rotation.
-                    const encounterAngle = orientation === 'heads-up'
+                    // Data pre-transformed in dataLoader (head sea → angle 0).
+                    // Use original encounter angle formula so chart rotates with meanWaveDirection.
+                    const compassHeading = orientation === 'heads-up'
                         ? normalizeAngle(displayAngle + vesselHeading)
                         : displayAngle;
+                    let encounterAngle = normalizeAngle(meanWaveDirection - compassHeading);
+                    if (encounterAngle > 180) encounterAngle = 360 - encounterAngle;
 
                     const speed = (radius / maxRadius) * maxSpeed;
 
@@ -320,9 +322,11 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
                 if (r > maxRadius || r < 1) continue;
                 const atan2Deg = Math.atan2(dy, dx) * (180 / Math.PI);
                 const displayAngle = normalizeAngle(atan2Deg + 90);
-                const enc = orientation === 'heads-up'
+                const compassH = orientation === 'heads-up'
                     ? normalizeAngle(displayAngle + vesselHeading)
                     : displayAngle;
+                let enc = normalizeAngle(meanWaveDirection - compassH);
+                if (enc > 180) enc = 360 - enc;
                 const spd = (r / maxRadius) * maxSpeed;
                 const roll = interpolateRoll(rollMatrix, speeds, headings, spd, enc);
                 if (isFinite(roll) && roll >= maxRollAngle) {
