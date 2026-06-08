@@ -451,10 +451,11 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
 
         } // end if (isFinite(maxRollAngle)) — color + contour block
 
+        // Light grid lines at every 1kn (the 4 lines between each pair of major rings)
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.30)';
         ctx.lineWidth = 0.5;
         for (let spd = 1; spd <= maxSpeed; spd++) {
-            // Skip major circles (5, 10, 15, 20, 25)
+            // Skip major circles (5, 10, 15, 20, 25) — drawn darker below
             if (spd % 5 === 0) continue;
             const r = (spd / maxSpeed) * maxRadius;
             ctx.beginPath();
@@ -462,15 +463,19 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
             ctx.stroke();
         }
 
+        // Major (slightly darker) grid lines at every 5kn interval
         ctx.strokeStyle = 'rgba(70, 70, 70, 0.65)';
         ctx.lineWidth = 0.9;
-        for (let i = 1; i <= 5; i++) {
-            const r = (maxRadius / 5) * i;
+        for (let spd = 5; spd <= maxSpeed; spd += 5) {
+            const r = (spd / maxSpeed) * maxRadius;
             ctx.beginPath();
             ctx.arc(centerX, centerY, r, 0, 2 * Math.PI);
             ctx.stroke();
         }
 
+        // Radial spoke lines every 30°
+        ctx.strokeStyle = 'rgba(70, 70, 70, 0.65)';
+        ctx.lineWidth = 0.9;
         for (let angle = 0; angle < 360; angle += 30) {
             let displayAngle = angle;
             if (orientation === 'heads-up') {
@@ -496,7 +501,7 @@ export const CanvasPolarChart = forwardRef<CanvasPolarChartHandle, CanvasPolarCh
         for (let spd = speedStep; spd <= maxSpeedLabel; spd += speedStep) {
             const r = (spd / maxSpeed) * maxRadius;
             if (r <= maxRadius) {
-                drawTextWithOutline(ctx, `${spd}kn`, centerX + 3, centerY - r - 4);
+                drawTextWithOutline(ctx, `${spd}kn`, centerX + 3, centerY - r - 1);
             }
         }
 
