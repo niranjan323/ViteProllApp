@@ -296,6 +296,7 @@
 
 .input-field-standalone[type="number"] {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .input-range {
@@ -1772,10 +1773,14 @@
 }
 
 /* Web-only scroll — applied via .web-scroll class set in JS when isElectronMode=false.
-   Electron always uses the fixed flex layout; web gets page-level scroll instead. */
+   Electron always uses the fixed flex layout; web gets page-level scroll instead.
+   align-self: flex-start prevents the card stretching to full parent height,
+   which would leave empty space when content is shorter than the viewport. */
 .web-scroll {
     overflow-y: auto;
     overflow-x: hidden;
+    align-self: flex-start;
+    max-height: 100%;
 }
 
 .web-scroll .plot-section {

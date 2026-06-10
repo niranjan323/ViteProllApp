@@ -95,7 +95,7 @@ export class DataLoader {
       const lines = text
         .split('\n')
         .map((l) => l.trim())
-        .filter((l) => l.length > 0);
+        .filter((l) => l.length > 0 && !l.startsWith('!')); // skip blank + comment-only lines
 
       // Helper: strip comment, return numeric tokens from a line
       const parseLine = (line: string): string[] => {
