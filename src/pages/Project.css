@@ -1772,24 +1772,11 @@
     }
 }
 
-/* Web-only scroll — content-area.web-scroll is set in MainLayout.tsx.
-   project-container collapses to natural height so content-area can scroll.
-   Electron uses the original fixed flex layout; these rules never apply there. */
-.content-area.web-scroll .project-container {
-    flex: none;
-    height: auto;
-    align-items: flex-start; /* prevent sidebar from stretching project-main taller than content */
-}
-
-.content-area.web-scroll .plot-section {
-    flex: none;
-    overflow: visible;
-}
-
+/* Web-only: keep the original Electron flex layout (chart fills height, no empty space).
+   content-area scrolls for overflow. Only change: plot-canvas overflow:visible
+   so the right-side controls panel is never clipped on smaller viewports. */
 .content-area.web-scroll .plot-canvas {
     overflow: visible;
-    flex: none;
-    min-height: 300px;
 }
 
 /* Short viewport — browser at 768px total height leaves ~630px viewport */
