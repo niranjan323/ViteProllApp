@@ -1772,23 +1772,20 @@
     }
 }
 
-/* Web-only scroll — applied via .web-scroll class set in JS when isElectronMode=false.
-   Electron always uses the fixed flex layout; web gets page-level scroll instead.
-   align-self: flex-start prevents the card stretching to full parent height,
-   which would leave empty space when content is shorter than the viewport. */
-.web-scroll {
-    overflow-y: auto;
-    overflow-x: hidden;
-    align-self: flex-start;
-    max-height: 100%;
+/* Web-only scroll — content-area.web-scroll is set in MainLayout.tsx.
+   project-container collapses to natural height so content-area can scroll.
+   Electron uses the original fixed flex layout; these rules never apply there. */
+.content-area.web-scroll .project-container {
+    flex: none;
+    height: auto;
 }
 
-.web-scroll .plot-section {
+.content-area.web-scroll .plot-section {
     flex: none;
     overflow: visible;
 }
 
-.web-scroll .plot-canvas {
+.content-area.web-scroll .plot-canvas {
     overflow: visible;
     flex: none;
     min-height: 300px;

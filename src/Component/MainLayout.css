@@ -36,6 +36,12 @@
     background: #666;
 }
 
+/* Web mode: page-level scroll on content-area instead of inside project-main */
+.content-area.web-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 /* Copyright Footer */
 .app-footer {
     flex-shrink: 0;

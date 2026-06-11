@@ -1057,7 +1057,7 @@ const Project: React.FC = () => {
                 </div>
             </div>
 
-            <div className={`project-main${isElectronMode ? '' : ' web-scroll'}`}>
+            <div className="project-main">
                 <div className="plot-section">
                     <div className="plot-canvas">
                         {allParamsValid && polarData.rollMatrix && polarData.speeds && polarData.headings ? (
