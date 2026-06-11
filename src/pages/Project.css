@@ -1778,6 +1778,7 @@
 .content-area.web-scroll .project-container {
     flex: none;
     height: auto;
+    align-items: flex-start; /* prevent sidebar from stretching project-main taller than content */
 }
 
 .content-area.web-scroll .plot-section {
