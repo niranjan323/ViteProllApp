@@ -1772,11 +1772,12 @@
     }
 }
 
-/* Web-only: keep the original Electron flex layout (chart fills height, no empty space).
-   content-area scrolls for overflow. Only change: plot-canvas overflow:visible
-   so the right-side controls panel is never clipped on smaller viewports. */
-.content-area.web-scroll .plot-canvas {
-    overflow: visible;
+/* Web-only: allow project-container to grow beyond viewport height when needed.
+   flex:1 fills the viewport normally; the 0 shrink + auto basis means it won't
+   shrink below its natural content height → triggers content-area page scroll
+   on small screens. No changes to project-main/plot-section/plot-canvas. */
+.content-area.web-scroll .project-container {
+    flex: 1 0 auto;
 }
 
 /* Short viewport — browser at 768px total height leaves ~630px viewport */

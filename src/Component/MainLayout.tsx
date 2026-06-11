@@ -14,7 +14,7 @@ const MainLayout: React.FC = () =>
             {/* Header Component */}
             <Header />
 
-            {/* Main Content Area - web mode gets overflow scroll at page level */}
+            {/* In web mode, content-area scrolls at page level */}
             <main className={`content-area${isElectronMode ? '' : ' web-scroll'}`}>
                 <Outlet />
                 <footer className="app-footer">

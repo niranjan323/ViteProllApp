@@ -36,7 +36,9 @@
     background: #666;
 }
 
-/* Web mode: page-level scroll on content-area instead of inside project-main */
+/* Web mode: page scrolls when content exceeds viewport height.
+   project-container uses flex:1 0 auto so it fills the viewport normally
+   but can grow taller when content demands it → triggering this scroll. */
 .content-area.web-scroll {
     overflow-y: auto;
     overflow-x: hidden;
