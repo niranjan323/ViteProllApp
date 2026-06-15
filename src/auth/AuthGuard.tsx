@@ -3,6 +3,9 @@ import { InteractionStatus } from '@azure/msal-browser';
 import { useElectron } from '../context/ElectronContext';
 import { LoginPage } from '../pages/LoginPage';
 
+// Set VITE_SKIP_AUTH=true in .env.local to bypass login during local testing
+const skipAuth = import.meta.env.VITE_SKIP_AUTH === 'true';
+
 // Inner component — only rendered in web mode (MsalProvider must be present)
 function WebAuthGuard({ children }: { children: React.ReactNode }) {
     const isAuthenticated = useIsAuthenticated();
@@ -25,6 +28,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     // Electron desktop: no login required
     if (isElectronMode) {
+        return <>{children}</>;
+    }
+
+    // Local dev mode: skip auth when VITE_SKIP_AUTH=true in .env.local
+    if (skipAuth) {
         return <>{children}</>;
     }
 

@@ -6,6 +6,10 @@ import { useElectron } from '../context/ElectronContext';
 import { useUserData } from '../context/UserDataContext';
 import { ApiFileSystemService } from '../services/apiFileService';
 
+// When VITE_API_BASE_URL is empty we use WebFileSystemService (local folder picker)
+// which behaves the same as Electron — no project dropdown needed.
+const useLocalFolderPicker = !import.meta.env.VITE_API_BASE_URL;
+
 const Home: React.FC = () => {
     const navigate = useNavigate();
     const {
@@ -21,10 +25,10 @@ const Home: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
-    // Electron-mode loading
+    // Folder-picker mode (Electron OR local web dev)
     const [loading, setLoading] = useState(false);
 
-    // Web-mode state
+    // Web-mode state (Azure project dropdown — only when VITE_API_BASE_URL is set)
     const [projects, setProjects] = useState<string[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(false);
     const [selectedProject, setSelectedProject] = useState('');
@@ -36,9 +40,9 @@ const Home: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electronFolder]);
 
-    // Fetch project list from API on mount (web mode only)
+    // Fetch project list from API on mount (web mode with Azure only)
     useEffect(() => {
-        if (!isElectronMode) fetchProjects();
+        if (!isElectronMode && !useLocalFolderPicker) fetchProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isElectronMode]);
 
@@ -134,8 +138,8 @@ const Home: React.FC = () => {
                     </div>
 
                     <div className="card-body">
-                        {isElectronMode ? (
-                            /* ── Desktop (Electron) ─────────────────────────────────── */
+                        {(isElectronMode || useLocalFolderPicker) ? (
+                            /* ── Desktop (Electron) or local web dev ────────────────── */
                             <>
                                 <div className="file-row">
                                     <div className="file-item">

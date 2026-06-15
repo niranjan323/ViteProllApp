@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "npm run build:electron && concurrently \"vite\" \"electron dist-electron/main.cjs\"",
     "dev:web": "vite",
+    "dev:web-local": "vite",
     "build:electron": "tsc --project tsconfig.electron.json && node rename-electron.cjs",
     "rename:electron": "node rename-electron.cjs",
     "build": "npm run build:electron && tsc -b && vite build && electron-builder",
