@@ -12,7 +12,7 @@ function WebAuthGuard({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // Auto-redirect to Microsoft login when not authenticated and no interaction in progress
         if (!isAuthenticated && inProgress === InteractionStatus.None) {
-            instance.loginRedirect(loginRequest);
+            instance.loginRedirect(loginRequest).catch(console.error);
         }
     }, [isAuthenticated, inProgress, instance]);
 

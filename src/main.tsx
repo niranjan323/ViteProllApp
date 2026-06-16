@@ -22,11 +22,11 @@ if (isElectron) {
         </StrictMode>
     );
 } else {
-    // Dynamically import MSAL so it's excluded from the Electron bundle path
     import('@azure/msal-browser').then(({ PublicClientApplication }) =>
         import('@azure/msal-react').then(({ MsalProvider }) =>
             import('./auth/msalConfig').then(({ msalConfig }) => {
                 const msalInstance = new PublicClientApplication(msalConfig);
+
                 root.render(
                     <StrictMode>
                         <MsalProvider instance={msalInstance}>
