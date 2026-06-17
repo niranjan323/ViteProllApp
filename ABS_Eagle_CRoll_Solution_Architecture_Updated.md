@@ -1,7 +1,7 @@
 # ABS Eagle CRoll — Solution Architecture
-**Version:** 2.0  
-**Status:** Updated for Security Review  
-**Date:** 2026-05-18  
+**Version:** 2.1  
+**Status:** Updated — Azure AD Login + User-Based Case Saving  
+**Date:** 2026-06-17  
 **Author:** Eagle Digital Team  
 
 ---
@@ -31,8 +31,9 @@
 16. [CI/CD Pipeline](#16-cicd-pipeline)
 17. [Environments and Branch Strategy](#17-environments-and-branch-strategy)
 18. [Scalability and Performance](#18-scalability-and-performance)
-19. [Open Questions and Decisions](#19-open-questions-and-decisions)
-20. [Glossary](#20-glossary)
+19. [Key Deliverables — v2.0 → v2.1](#19-key-deliverables--v20--v21-2026-05-18--2026-06-17)
+20. [Open Questions and Decisions](#20-open-questions-and-decisions)
+21. [Glossary](#21-glossary)
 
 ---
 
@@ -226,8 +227,14 @@ Both modes share a single React + Vite frontend codebase. Runtime detection at s
 | `src/pages/Project.tsx` | Main calculation page — inputs, polar chart, case management, report trigger |
 | `src/pages/Project.css` | Layout, responsive breakpoints (1400 / 1280 / 1024 / 768 px) |
 | `src/context/ElectronContext.tsx` | Runtime detection; wires correct file-system service |
+| `src/context/UserEmailContext.tsx` | Provides logged-in user email to all components via `useUserEmail()` hook |
+| `src/auth/AuthGuard.tsx` | Web-only guard — auto-redirects unauthenticated users to Microsoft login |
+| `src/auth/msalConfig.ts` | MSAL configuration — Client ID, Tenant ID, redirect URIs, login scopes |
+| `src/auth/WebUserEmailProvider.tsx` | Reads `useMsal()` accounts and feeds email into `UserEmailContext` |
+| `src/auth/msalInstance.ts` | Module-level MSAL instance reference for silent token acquisition outside React |
 | `src/services/fileSystem.ts` | Desktop file service (reads local FS via Electron IPC) |
 | `src/services/apiFileService.ts` | Web file service (HTTP calls to .NET API) |
+| `src/services/apiCaseService.ts` | Web case service — HTTP calls to `/api/cases`; adds Bearer token header |
 | `src/components/CanvasPolarChart.tsx` | Canvas-rendered polar roll diagram |
 | `src/components/ReportModal.tsx` | In-browser PDF preview and download |
 
@@ -260,8 +267,10 @@ Both modes share a single React + Vite frontend codebase. Runtime detection at s
 | Desktop shell | Electron | 29 |
 | Desktop DB | SQLite via `better-sqlite3` | 9 |
 | PDF generation | jsPDF + html2canvas | Latest |
+| Authentication (web) | MSAL — `@azure/msal-browser` + `@azure/msal-react` | 5.11 / 5.4 |
 | Backend | .NET | 8 (LTS) |
-| Backend ORM / data access | Entity Framework Core / ADO.NET | 8 |
+| Backend auth | Microsoft.Identity.Web (JWT Bearer) | 3.8 |
+| Backend data access | ADO.NET / `Microsoft.Data.SqlClient` (raw SQL) | 8 / 5.2 |
 | Cloud database | Azure SQL Database | — |
 | Cloud storage | Azure Blob Storage | — |
 | Secret management | Azure Key Vault | — |
@@ -302,11 +311,45 @@ CREATE TABLE cases (
 
 ### Web — Azure SQL Database
 
-Cases and session data for the web mode are persisted to **Azure SQL Database** (not PostgreSQL). Connection strings are stored in Azure Key Vault and injected into the App Service at runtime via environment variables using the ASP.NET Core `__` double-underscore convention for nested config keys.
+Cases for the web mode are persisted to **Azure SQL Database**. Connection strings are stored in Azure Key Vault and injected into the App Service at runtime via environment variables.
 
 ```
 ConnectionStrings__DefaultConnection = <Azure SQL connection string from Key Vault>
 ```
+
+**Cases table schema (SQL Server):**
+
+```sql
+CREATE TABLE Cases (
+    Id               NVARCHAR(50)   NOT NULL PRIMARY KEY,
+    CreatedAt        BIGINT         NOT NULL,   -- Unix timestamp ms
+    OsUsername       NVARCHAR(255)  NOT NULL,   -- Azure AD email (web) or Windows username (desktop)
+    MachineName      NVARCHAR(255)  NOT NULL,
+    Color            NVARCHAR(10)   NOT NULL,   -- 'green' | 'pink'
+    DraftAft         FLOAT,
+    DraftFore        FLOAT,
+    Gm               FLOAT,
+    Heading          FLOAT,
+    Speed            FLOAT,
+    MaxRoll          FLOAT,
+    Hs               FLOAT,
+    Tz               FLOAT,
+    WaveDirection    FLOAT,
+    DataFilePath     NVARCHAR(500),
+    FittedDraft      FLOAT,
+    FittedGm         FLOAT,
+    FittedHs         FLOAT,
+    FittedTz         FLOAT,
+    ChartMode        NVARCHAR(50),
+    ChartOrientation NVARCHAR(50),
+    ChartImage       NVARCHAR(MAX),  -- base64 PNG
+    Synced           INT            NOT NULL DEFAULT 0,
+    ProjectId        NVARCHAR(255),  -- blob container folder name (project scope)
+    UpdatedAt        DATETIME2
+);
+```
+
+**User isolation:** Every query to `GET /api/cases` filters by `OsUsername`. Users can only see and modify their own cases. On web, `OsUsername` is the Azure AD email from the MSAL token (e.g. `schappidi@eagle.org`). On desktop, it is the Windows login username.
 
 ### Blob Storage
 
@@ -335,11 +378,15 @@ The .NET 8 API follows RESTful conventions. All endpoints require internal netwo
 
 ### Case Endpoints (Web Mode)
 
+All case endpoints require a valid Azure AD Bearer token (`Authorization: Bearer <token>`).
+
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/cases` | List saved cases for the calling user's project |
+| GET | `/api/cases?osUsername={email}` | List saved cases for a specific user (filtered by `OsUsername`) |
+| GET | `/api/cases/{id}` | Get a single case by ID |
 | POST | `/api/cases` | Save a new case |
-| PUT | `/api/cases/{id}` | Update case (e.g., attach chart image) |
+| PUT | `/api/cases/{id}` | Update all fields of an existing case |
+| PATCH | `/api/cases/{id}/chart` | Update only the chart image (called after chart capture) |
 | DELETE | `/api/cases/{id}` | Delete a case |
 
 ### Configuration Endpoints
@@ -353,6 +400,27 @@ The .NET 8 API follows RESTful conventions. All endpoints require internal netwo
 ## 13. Security Architecture
 
 ### 13.1 Cloud Security
+
+**Authentication — Azure AD (MSAL):**
+
+Web app users authenticate with their ABS Azure AD account (`@eagle.org`) before accessing any application functionality. The flow is:
+
+1. User opens the web app → `AuthGuard` detects unauthenticated state → `loginRedirect()` sends user to Microsoft login page.
+2. Microsoft authenticates the user and redirects back with an authorization code.
+3. MSAL exchanges the code for an ID token (user identity) and an access token (API access).
+4. All API calls from `apiCaseService.ts` include `Authorization: Bearer <access_token>`.
+5. The .NET API validates the token using `Microsoft.Identity.Web` (JWT Bearer middleware). Only tokens issued for the correct Azure AD tenant and API audience are accepted.
+
+**App Registration: `ea-ngea-croll-nonprod`**
+
+| Setting | Value |
+|---|---|
+| Client ID | `443b366a-a00b-4fde-aa19-3578cc040008` |
+| Tenant ID | `d810b06c-d004-4d52-b0aa-4f3581ee7020` |
+| API scope | `api://443b366a-a00b-4fde-aa19-3578cc040008/access_as_user` |
+| Redirect URIs (SPA) | `https://app-ngea-cr-dev-001.azurewebsites.net`, `https://app-ngea-cr-uat-001.azurewebsites.net`, `http://localhost:5173` |
+
+Electron desktop mode is completely unaffected — `AuthGuard` bypasses MSAL when `window.electronAPI` is present.
 
 **Network isolation:**
 
@@ -560,12 +628,25 @@ main ────► [Production — future]
 
 ---
 
-## 19. Open Questions and Decisions
+## 19. Key Deliverables — v2.0 → v2.1 (2026-05-18 → 2026-06-17)
+
+| Feature | Description | Status |
+|---|---|---|
+| **Azure AD Login** | Auto-redirect SSO using MSAL v5. `AuthGuard` calls `loginRedirect()` on unauthenticated web load. Electron unaffected. | ✅ Complete |
+| **User-based case saving** | Web cases saved to Azure SQL Database per logged-in user (`OsUsername` = Azure AD email). `ApiCaseService.ts` handles all CRUD. `Project.tsx` conditionally routes to Electron IPC or API. | ✅ Complete |
+| **JWT Bearer API auth** | `CasesController` decorated with `[Authorize]`. `Microsoft.Identity.Web` validates Bearer tokens from Azure AD. Frontend acquires token silently via `msalInstance.ts`. | ✅ Complete |
+| **Polar chart direction algorithm** | Head sea (Y=180°) correctly appears at top of chart. `dataLoader.ts` expands Y=0:180 → 0:360, applies Y1=180−Y transform. Chart rotates with mean wave direction. | ✅ Complete |
+| **Control file parsing** | Reads fields by comment keyword OR line position. Works with or without comment headers. Pure comment lines (`!`) excluded from positional counting. | ✅ Complete |
+| **Web scroll/space fix** | `content-area.web-scroll { overflow-y: auto }` in `MainLayout.css`. `project-container { flex: 1 0 auto }` in `Project.css`. Electron CSS untouched — uses `isElectronMode` class guard, not height media queries. | ✅ Complete |
+| **Security vulnerabilities** | `npm audit` → 0 vulnerabilities. Fixed `react-router`, `vite`, replaced `electron-rebuild` with `@electron/rebuild`, and all transitive dependencies. | ✅ Complete |
+| **CI/CD pipelines** | All 4 GitHub Actions workflows operational (DEV + UAT, frontend + API). Branch-scoped OIDC, self-hosted deploy runner, `npm ci --ignore-scripts`, `--base=/` build flag. | ✅ Complete |
+
+## 20. Open Questions and Decisions
 
 | ID | Question | Status | Resolution |
 |---|---|---|---|
 | Q1 | Final production Azure subscription and resource naming | Open | Pending infrastructure decision |
-| Q2 | Authentication for web mode users (Azure AD SSO vs. local accounts) | Open | — |
+| Q2 | Authentication for web mode users (Azure AD SSO vs. local accounts) | **Resolved** | Azure AD SSO implemented using MSAL v5. Auto-redirect flow — no custom login page. Users sign in with their ABS `@eagle.org` account. App Registration: `ea-ngea-croll-nonprod`. JWT Bearer validation on the API via `Microsoft.Identity.Web`. |
 | Q3 | Data retention policy for saved cases in web mode | Open | — |
 | Q4 | Backup strategy for Azure SQL Database | Open | — |
 | Q5 | Log aggregation platform (Application Insights vs. Log Analytics) | Open | — |
@@ -578,7 +659,7 @@ main ────► [Production — future]
 
 ---
 
-## 20. Glossary
+## 21. Glossary
 
 | Term | Definition |
 |---|---|
