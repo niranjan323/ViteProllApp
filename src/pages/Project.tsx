@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import './Project.css';
 import { useUserData } from '../context/UserDataContext';
 import { useElectron } from '../context/ElectronContext';
+import { useUserEmail } from '../context/UserEmailContext';
+import { ApiCaseService } from '../services/apiCaseService';
+import type { ApiCase } from '../services/apiCaseService';
 import { ParameterValidator } from '../services/parameterValidator';
 import { CaseManager } from '../services/caseManager';
 import type { AnalysisCase } from '../services/caseManager';
@@ -73,6 +76,7 @@ const Project: React.FC = () => {
         resetUserData();
     };
     const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo, isElectronMode } = useElectron();
+    const userEmail = useUserEmail();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(initialTab);
     const [caseId, setCaseId] = useState('');
@@ -163,6 +167,51 @@ const Project: React.FC = () => {
         }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Load persisted cases from API on mount (web only)
+    useEffect(() => {
+        if (isElectronMode || !userEmail) return;
+        ApiCaseService.getAllCases(userEmail).then(apiCases => {
+            const loaded: SavedCase[] = apiCases.map(row => ({
+                id: row.id,
+                color: row.color as 'green' | 'pink',
+                chartImageUrl: row.chartImage ?? undefined,
+                chartMode: (row.chartMode ?? 'continuous') as 'continuous' | 'traffic-light',
+                chartOrientation: (row.chartOrientation ?? 'north-up') as 'north-up' | 'heads-up',
+                fittedParams: {
+                    draft: row.fittedDraft ?? null,
+                    gm: row.fittedGm ?? null,
+                    hs: row.fittedHs ?? null,
+                    tz: row.fittedTz ?? null,
+                },
+                parameters: {
+                    id: row.id,
+                    timestamp: row.createdAt,
+                    vesselData: {
+                        draftAft: row.draftAft ?? 0,
+                        draftFore: row.draftFore ?? 0,
+                        gm: row.gm ?? 0,
+                        heading: row.heading ?? 0,
+                        speed: row.speed ?? 0,
+                        maxRoll: row.maxRoll ?? 0,
+                    },
+                    seaState: {
+                        hs: row.hs ?? 0,
+                        tz: row.tz ?? 0,
+                        waveDirection: row.waveDirection ?? 0,
+                    },
+                    dataFilePath: row.projectId ?? '',
+                },
+            }));
+            setSavedCases(loaded);
+            loaded.forEach(c => {
+                if (!caseManager.caseExists(c.id)) {
+                    caseManager.addCase(c.id, c.parameters);
+                }
+            });
+        }).catch(err => console.error('Failed to load cases from API:', err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isElectronMode, userEmail]);
 
     const handleChangeVesselData = () => { navigate('/'); };
 
@@ -351,6 +400,38 @@ const Project: React.FC = () => {
             chart_image: null,
         });
 
+        // Persist to API (web only)
+        if (!isElectronMode && userEmail) {
+            const apiCase: ApiCase = {
+                id: caseIdToSave,
+                createdAt: savedParameters.timestamp,
+                osUsername: userEmail,
+                machineName: window.location.hostname,
+                color: newColor,
+                draftAft: savedParameters.vesselData.draftAft,
+                draftFore: savedParameters.vesselData.draftFore,
+                gm: savedParameters.vesselData.gm,
+                heading: savedParameters.vesselData.heading,
+                speed: savedParameters.vesselData.speed,
+                maxRoll: savedParameters.vesselData.maxRoll,
+                hs: savedParameters.seaState.hs,
+                tz: savedParameters.seaState.tz,
+                waveDirection: savedParameters.seaState.waveDirection,
+                dataFilePath: savedParameters.dataFilePath,
+                fittedDraft: savedFittedParams?.draft ?? undefined,
+                fittedGm: savedFittedParams?.gm ?? undefined,
+                fittedHs: savedFittedParams?.hs ?? undefined,
+                fittedTz: savedFittedParams?.tz ?? undefined,
+                chartMode,
+                chartOrientation: chartDirection,
+                synced: 0,
+                projectId: projectKey,
+            };
+            ApiCaseService.saveCase(apiCase).catch(err =>
+                console.error('Failed to save case to API:', err)
+            );
+        }
+
         setSavedCases(prev => [
             ...prev,
             { id: caseIdToSave, color: newColor, parameters: savedParameters, fittedParams: savedFittedParams, chartMode, chartOrientation: chartDirection },
@@ -366,6 +447,11 @@ const Project: React.FC = () => {
         caseManager.deleteCase(id); // best-effort in-memory cleanup
         setSavedCases(prev => prev.filter(c => !(c.id === id && c.parameters.dataFilePath === projectKey)));
         window.electronAPI?.dbDeleteCase?.(id, projectKey);
+        if (!isElectronMode) {
+            ApiCaseService.deleteCase(id).catch(err =>
+                console.error('Failed to delete case from API:', err)
+            );
+        }
         showMessage(`Case "${id}" deleted`, 'success');
     };
 
@@ -466,7 +552,13 @@ const Project: React.FC = () => {
         ));
         // Persist chart image to SQLite (Electron only)
         window.electronAPI?.dbUpdateChartImage?.(capturedId, capturedProjectKey, dataUrl);
-    }, []);
+        // Persist chart image to API (web only)
+        if (!isElectronMode) {
+            ApiCaseService.updateChartImage(capturedId, dataUrl).catch(err =>
+                console.error('Failed to update chart image in API:', err)
+            );
+        }
+    }, [isElectronMode]);
 
     const handleDownloadPDF = useCallback((cases: { data: ReturnType<typeof getReportData>; chartImageUrl?: string | null }[]) => {
         const doc = new jsPDF('p', 'mm', 'a4');

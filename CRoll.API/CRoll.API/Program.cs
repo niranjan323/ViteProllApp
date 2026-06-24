@@ -1,8 +1,14 @@
 using CRoll.API.Services.Blob;
 using CRoll.API.Services.Cases;
 using CRoll.API.Services.KeyVault;
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ─── AUTHENTICATION (Azure AD JWT Bearer) ────────────────────────────────────
+// Validates Bearer tokens issued by Azure AD for the CRoll API scope.
+// Requires App Registration → Expose an API → scope: access_as_user
+builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
 
 // ─── AZURE / KEY VAULT ────────────────────────────────────────────────────────
 // AzureConnection is null-safe: if KeyVault:Url is empty (local dev),
@@ -50,6 +56,7 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableS
 
 app.UseHttpsRedirection();
 app.UseCors();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");

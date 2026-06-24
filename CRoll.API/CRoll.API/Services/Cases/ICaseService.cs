@@ -4,7 +4,7 @@ namespace CRoll.API.Services.Cases
 {
     public interface ICaseService
     {
-        Task<IEnumerable<Case>> GetAllAsync();
+        Task<IEnumerable<Case>> GetAllAsync(string osUsername);
         Task<Case?> GetByIdAsync(string id);
         Task CreateAsync(Case caseItem);
         Task UpdateAsync(Case caseItem);

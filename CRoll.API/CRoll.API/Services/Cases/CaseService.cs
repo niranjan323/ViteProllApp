@@ -17,7 +17,7 @@ namespace CRoll.API.Services.Cases
             _connectionString = connectionStringProvider.CRollDb;
         }
 
-        public async Task<IEnumerable<Case>> GetAllAsync()
+        public async Task<IEnumerable<Case>> GetAllAsync(string osUsername)
         {
             const string sql = @"
                 SELECT Id, CreatedAt, OsUsername, MachineName, Color,
@@ -26,12 +26,15 @@ namespace CRoll.API.Services.Cases
                        FittedDraft, FittedGm, FittedHs, FittedTz,
                        ChartMode, ChartOrientation, ChartImage, Synced,
                        ProjectId, UpdatedAt
-                FROM Cases ORDER BY CreatedAt ASC";
+                FROM Cases
+                WHERE OsUsername = @OsUsername
+                ORDER BY CreatedAt ASC";
 
             var cases = new List<Case>();
             await using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
             await using var cmd = new SqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@OsUsername", osUsername);
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
                 cases.Add(MapRow(reader));

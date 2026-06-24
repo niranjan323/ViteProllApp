@@ -1,11 +1,13 @@
 using CRoll.API.Models;
 using CRoll.API.Services.Cases;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRoll.API.Controllers
 {
     [ApiController]
     [Route("api/cases")]
+    [Authorize]
     public class CasesController : ControllerBase
     {
         private readonly ICaseService _caseService;
@@ -17,18 +19,21 @@ namespace CRoll.API.Controllers
             _logger = logger;
         }
 
-        /// <summary>Load all saved cases ordered by creation time.</summary>
+        /// <summary>Load all saved cases for a specific user ordered by creation time.</summary>
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string osUsername)
         {
+            if (string.IsNullOrWhiteSpace(osUsername))
+                return BadRequest("osUsername query parameter is required.");
+
             try
             {
-                var cases = await _caseService.GetAllAsync();
+                var cases = await _caseService.GetAllAsync(osUsername);
                 return Ok(cases);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to load cases");
+                _logger.LogError(ex, "Failed to load cases for user {User}", osUsername);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }

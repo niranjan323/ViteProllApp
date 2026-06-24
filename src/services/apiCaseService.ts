@@ -1,3 +1,5 @@
+import { getAccessToken } from '../auth/msalInstance';
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
 
 /**
@@ -32,27 +34,36 @@ export interface ApiCase {
   updatedAt?: string;          // ISO date string from server
 }
 
-const headers = { 'Content-Type': 'application/json' };
+async function buildHeaders(includeContentType = true): Promise<Record<string, string>> {
+    const h: Record<string, string> = {};
+    if (includeContentType) h['Content-Type'] = 'application/json';
+    const token = await getAccessToken();
+    if (token) h['Authorization'] = `Bearer ${token}`;
+    return h;
+}
 
 /**
  * HTTP client for /api/cases.
  * Mirrors the Electron IPC calls in electron/main.ts:
- *   db-save-case     → createCase / updateCase
- *   db-load-cases    → getAllCases
+ *   db-save-case          → createCase / updateCase
+ *   db-load-cases         → getAllCases
  *   db-update-chart-image → updateChartImage
- *   db-delete-case   → deleteCase
+ *   db-delete-case        → deleteCase
  */
 export const ApiCaseService = {
 
-  async getAllCases(): Promise<ApiCase[]> {
-    const response = await fetch(`${API_BASE}/api/cases`);
+  async getAllCases(osUsername: string): Promise<ApiCase[]> {
+    const h = await buildHeaders(false);
+    const url = `${API_BASE}/api/cases?osUsername=${encodeURIComponent(osUsername)}`;
+    const response = await fetch(url, { headers: h });
     if (!response.ok)
       throw new Error(`Failed to load cases: ${response.status} ${response.statusText}`);
     return response.json();
   },
 
   async getCaseById(id: string): Promise<ApiCase | null> {
-    const response = await fetch(`${API_BASE}/api/cases/${encodeURIComponent(id)}`);
+    const h = await buildHeaders(false);
+    const response = await fetch(`${API_BASE}/api/cases/${encodeURIComponent(id)}`, { headers: h });
     if (response.status === 404) return null;
     if (!response.ok)
       throw new Error(`Failed to get case ${id}: ${response.status}`);
@@ -60,9 +71,10 @@ export const ApiCaseService = {
   },
 
   async createCase(caseItem: ApiCase): Promise<ApiCase> {
+    const h = await buildHeaders();
     const response = await fetch(`${API_BASE}/api/cases`, {
       method: 'POST',
-      headers,
+      headers: h,
       body: JSON.stringify(caseItem),
     });
     if (!response.ok) {
@@ -73,9 +85,10 @@ export const ApiCaseService = {
   },
 
   async updateCase(caseItem: ApiCase): Promise<ApiCase> {
+    const h = await buildHeaders();
     const response = await fetch(`${API_BASE}/api/cases/${encodeURIComponent(caseItem.id)}`, {
       method: 'PUT',
-      headers,
+      headers: h,
       body: JSON.stringify(caseItem),
     });
     if (!response.ok) {
@@ -94,9 +107,10 @@ export const ApiCaseService = {
   },
 
   async updateChartImage(id: string, chartImage: string): Promise<void> {
+    const h = await buildHeaders();
     const response = await fetch(`${API_BASE}/api/cases/${encodeURIComponent(id)}/chart`, {
       method: 'PATCH',
-      headers,
+      headers: h,
       body: JSON.stringify({ chartImage }),
     });
     if (!response.ok) {
@@ -106,8 +120,10 @@ export const ApiCaseService = {
   },
 
   async deleteCase(id: string): Promise<void> {
+    const h = await buildHeaders(false);
     const response = await fetch(`${API_BASE}/api/cases/${encodeURIComponent(id)}`, {
       method: 'DELETE',
+      headers: h,
     });
     if (!response.ok) {
       const text = await response.text();
