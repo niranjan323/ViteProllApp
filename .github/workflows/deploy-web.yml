@@ -56,6 +56,8 @@ jobs:
           npx tsc -b && npx vite build --base=/
         env:
           VITE_API_BASE_URL: ${{ secrets.CROLL_API_BASE_URL }}
+          VITE_AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID_NONPROD }}
+          VITE_AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Zip build output
         run: |
