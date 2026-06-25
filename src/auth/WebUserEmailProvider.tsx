@@ -8,6 +8,6 @@ import { UserEmailProvider } from '../context/UserEmailContext';
  */
 export function WebUserEmailProvider({ children }: { children: React.ReactNode }) {
     const { accounts } = useMsal();
-    const email = accounts[0]?.username ?? '';
+    const email = accounts[0]?.localAccountId ?? '';
     return <UserEmailProvider value={email}>{children}</UserEmailProvider>;
 }
