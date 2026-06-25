@@ -1,4 +1,4 @@
-import { Configuration, BrowserCacheLocation } from '@azure/msal-browser';
+import { type Configuration, BrowserCacheLocation } from '@azure/msal-browser';
 
 export const msalConfig: Configuration = {
     auth: {
@@ -9,7 +9,6 @@ export const msalConfig: Configuration = {
     },
     cache: {
         cacheLocation: BrowserCacheLocation.SessionStorage,
-        storeAuthStateInCookie: false,
     },
 };
 
