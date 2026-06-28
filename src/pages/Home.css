@@ -339,6 +339,47 @@
     margin: 0;
 }
 
+/* ── Upload tab ─────────────────────────────────────────────────── */
+
+.upload-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.web-input {
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    color: #333;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.web-input:focus {
+    outline: none;
+    border-color: #2196f3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.15);
+}
+
+.upload-pick-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.upload-pick-label {
+    font-size: 0.875rem;
+    color: #555;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .home-container {

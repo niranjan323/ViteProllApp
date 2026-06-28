@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 import absLogo from '../assets/ABS_Logo.png';
@@ -25,10 +25,21 @@ const Home: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
     // Web-mode state
+    const [activeTab, setActiveTab] = useState<'load' | 'upload'>('load');
     const [projects, setProjects] = useState<string[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(false);
     const [selectedProject, setSelectedProject] = useState('');
     const [loadingProject, setLoadingProject] = useState(false);
+
+    // Upload state
+    const [uploadProjectName, setUploadProjectName] = useState('');
+    const [folderFiles, setFolderFiles] = useState<File[]>([]);
+    const [controlFile, setControlFile] = useState<File | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [uploadStatus, setUploadStatus] = useState('');
+    const [uploadError, setUploadError] = useState('');
+    const folderInputRef = useRef<HTMLInputElement>(null);
+    const ctlInputRef = useRef<HTMLInputElement>(null);
 
     // Sync selected folder into UserDataContext
     useEffect(() => {
@@ -117,6 +128,66 @@ const Home: React.FC = () => {
         navigate('/project', { state: { activeTab: 'project' } });
     };
 
+    // ── Upload handlers ──────────────────────────────────────────────────────
+
+    const handleFolderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files ?? []);
+        setFolderFiles(files);
+        if (files.length > 0 && !uploadProjectName) {
+            const topFolder = files[0].webkitRelativePath.split('/')[0];
+            setUploadProjectName(topFolder);
+        }
+        setUploadStatus('');
+        setUploadError('');
+    };
+
+    const handleCtlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] ?? null;
+        setControlFile(file);
+        setUploadStatus('');
+        setUploadError('');
+    };
+
+    const folderHasCtl = folderFiles.some(f =>
+        f.name.toLowerCase().endsWith('.ctl')
+    );
+
+    const handleUpload = async () => {
+        if (!uploadProjectName.trim()) return;
+
+        const allFiles: File[] = [];
+        const allPaths: string[] = [];
+
+        for (const file of folderFiles) {
+            const parts = file.webkitRelativePath.split('/');
+            const relativePath = parts.slice(1).join('/');
+            allFiles.push(file);
+            allPaths.push(relativePath);
+        }
+
+        if (controlFile && !folderHasCtl) {
+            allFiles.push(controlFile);
+            allPaths.push(controlFile.name);
+        }
+
+        if (allFiles.length === 0) return;
+
+        setUploading(true);
+        setUploadError('');
+        setUploadStatus(`Uploading ${allFiles.length} files...`);
+
+        try {
+            await ApiFileSystemService.uploadFiles(uploadProjectName.trim(), allFiles, allPaths);
+            setUploadStatus(`✓ Uploaded ${allFiles.length} files to project "${uploadProjectName.trim()}"`);
+            fetchProjects();
+        } catch (err) {
+            setUploadError(err instanceof Error ? err.message : String(err));
+            setUploadStatus('');
+        } finally {
+            setUploading(false);
+        }
+    };
+
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
@@ -130,7 +201,24 @@ const Home: React.FC = () => {
 
                 <div className="project-card">
                     <div className="card-tabs">
-                        <button className="tab active">Vessel Data</button>
+                        {isElectronMode ? (
+                            <button className="tab active">Vessel Data</button>
+                        ) : (
+                            <>
+                                <button
+                                    className={`tab${activeTab === 'load' ? ' active' : ''}`}
+                                    onClick={() => { setActiveTab('load'); setError(''); }}
+                                >
+                                    Load Project
+                                </button>
+                                <button
+                                    className={`tab${activeTab === 'upload' ? ' active' : ''}`}
+                                    onClick={() => { setActiveTab('upload'); setError(''); }}
+                                >
+                                    Upload Project
+                                </button>
+                            </>
+                        )}
                     </div>
 
                     <div className="card-body">
@@ -175,8 +263,8 @@ const Home: React.FC = () => {
                                     </button>
                                 </div>
                             </>
-                        ) : (
-                            /* ── Web (browser) ──────────────────────────────────────── */
+                        ) : activeTab === 'load' ? (
+                            /* ── Web: Load Project ──────────────────────────────────── */
                             <>
                                 {loadingProjects ? (
                                     <div className="web-loading">
@@ -233,6 +321,101 @@ const Home: React.FC = () => {
                                         disabled={!selectedProject || loadingProjects || loadingProject}
                                     >
                                         {loadingProject ? 'Loading...' : 'Load Project'}
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            /* ── Web: Upload Project ────────────────────────────────── */
+                            <>
+                                {/* Hidden file inputs */}
+                                <input
+                                    ref={folderInputRef}
+                                    type="file"
+                                    style={{ display: 'none' }}
+                                    multiple
+                                    // @ts-ignore — webkitdirectory is non-standard but works in all modern browsers
+                                    webkitdirectory=""
+                                    onChange={handleFolderChange}
+                                />
+                                <input
+                                    ref={ctlInputRef}
+                                    type="file"
+                                    style={{ display: 'none' }}
+                                    accept=".ctl"
+                                    onChange={handleCtlChange}
+                                />
+
+                                {/* Project name */}
+                                <div className="upload-field">
+                                    <label className="web-label" htmlFor="upload-project-name">
+                                        Project name
+                                    </label>
+                                    <input
+                                        id="upload-project-name"
+                                        type="text"
+                                        className="web-input"
+                                        placeholder="e.g. VesselName_2024"
+                                        value={uploadProjectName}
+                                        onChange={e => setUploadProjectName(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Folder picker */}
+                                <div className="upload-pick-row">
+                                    <button
+                                        className="select-btn"
+                                        onClick={() => folderInputRef.current?.click()}
+                                        disabled={uploading}
+                                    >
+                                        📁 Select Folder
+                                    </button>
+                                    <span className="upload-pick-label">
+                                        {folderFiles.length > 0
+                                            ? `${folderFiles[0].webkitRelativePath.split('/')[0]} (${folderFiles.length} files${folderHasCtl ? ', includes .ctl' : ''})`
+                                            : 'No folder selected'}
+                                    </span>
+                                </div>
+
+                                {/* Control file picker — only show if folder has no .ctl */}
+                                {!folderHasCtl && (
+                                    <div className="upload-pick-row">
+                                        <button
+                                            className="select-btn"
+                                            onClick={() => ctlInputRef.current?.click()}
+                                            disabled={uploading}
+                                        >
+                                            📄 Select Control File
+                                        </button>
+                                        <span className="upload-pick-label">
+                                            {controlFile ? controlFile.name : 'No .ctl file selected'}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Status messages */}
+                                {uploadError && (
+                                    <div className="status-message error">
+                                        <span className="status-text">{uploadError}</span>
+                                    </div>
+                                )}
+                                {uploadStatus && !uploadError && (
+                                    <div className={`status-message${uploadStatus.startsWith('✓') ? ' success' : ''}`}>
+                                        {uploading && <div className="spinner" />}
+                                        <span className="status-text">{uploadStatus}</span>
+                                    </div>
+                                )}
+
+                                <div className="button-footer">
+                                    <button
+                                        className="view-input-btn"
+                                        onClick={handleUpload}
+                                        disabled={
+                                            uploading ||
+                                            !uploadProjectName.trim() ||
+                                            (folderFiles.length === 0 && !controlFile)
+                                        }
+                                    >
+                                        {uploading ? 'Uploading...' : 'Upload to Azure'}
                                     </button>
                                 </div>
                             </>
