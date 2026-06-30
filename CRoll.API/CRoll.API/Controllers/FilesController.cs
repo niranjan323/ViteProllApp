@@ -110,7 +110,8 @@ namespace CRoll.API.Controllers
         /// The FileName should carry the relative sub-path, e.g. "polars/Draft=15.0/GM=1.5/v.bpolar".
         /// </summary>
         [HttpPost("projects/{projectName}/upload")]
-        [RequestSizeLimit(500 * 1024 * 1024)]
+        [RequestSizeLimit(1024 * 1024 * 1024)]
+        [RequestFormLimits(ValueCountLimit = 50000, MultipartBodyLengthLimit = 1024 * 1024 * 1024)]
         public async Task<IActionResult> UploadFiles(string projectName, IList<IFormFile> files)
         {
             if (files == null || files.Count == 0)
