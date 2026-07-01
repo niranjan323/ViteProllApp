@@ -1,6 +1,7 @@
 using CRoll.API.Services.Blob;
 using CRoll.API.Services.Cases;
 using CRoll.API.Services.KeyVault;
+using CRoll.API.Services.Users;
 using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +28,9 @@ builder.Services.AddSingleton<IBlobService, BlobService>();
 
 // ─── CASES (SQL SERVER) ───────────────────────────────────────────────────────
 builder.Services.AddScoped<ICaseService, CaseService>();
+
+// ─── USERS (SQL SERVER) ───────────────────────────────────────────────────────
+builder.Services.AddScoped<IUserService, UserService>();
 
 // ─── CONTROLLERS + SWAGGER ───────────────────────────────────────────────────
 builder.Services.AddControllers();

@@ -3,25 +3,25 @@
 -- Run in order: Users first, then Cases (FK dependency).
 
 -- ─── 1. Users ────────────────────────────────────────────────────────────────
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Users')
-BEGIN
-    CREATE TABLE [dbo].[Users] (
-        [user_id]       UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-        [abs_user_id]   UNIQUEIDENTIFIER NOT NULL,
-        [user_name]     NVARCHAR(50)     NOT NULL,
-        [user_email]    NVARCHAR(50)     NULL,
-        [created_date]  DATETIME         NOT NULL DEFAULT GETDATE(),
-        [created_by]    NVARCHAR(50)     NOT NULL DEFAULT 'system',
-        [modified_date] DATETIME         NULL,
-        [modified_by]   NVARCHAR(50)     NULL,
-        [is_active]     BIT              NOT NULL DEFAULT 1,
-        CONSTRAINT [PK_Users] PRIMARY KEY CLUSTERED ([user_id] ASC),
-        CONSTRAINT [UQ_Users_AbsUserId] UNIQUE ([abs_user_id])
-    );
-    PRINT 'Users table created.';
-END
-ELSE
-    PRINT 'Users table already exists.';
+-- Drop and recreate if exists (safe in dev — no FK dependencies yet)
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Users')
+    DROP TABLE [dbo].[Users];
+GO
+
+CREATE TABLE [dbo].[Users] (
+    [Id]           UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    [AbsUserId]    NVARCHAR(256)    NOT NULL,
+    [UserName]     NVARCHAR(100)    NOT NULL,
+    [UserEmail]    NVARCHAR(100)    NULL,
+    [CreatedDate]  DATETIME         NOT NULL DEFAULT GETDATE(),
+    [CreatedBy]    NVARCHAR(100)    NOT NULL DEFAULT 'system',
+    [ModifiedDate] DATETIME         NULL,
+    [ModifiedBy]   NVARCHAR(100)    NULL,
+    [IsActive]     BIT              NOT NULL DEFAULT 1,
+    CONSTRAINT [PK_Users] PRIMARY KEY CLUSTERED ([Id] ASC),
+    CONSTRAINT [UQ_Users_AbsUserId] UNIQUE ([AbsUserId])
+);
+PRINT 'Users table created.';
 GO
 
 -- ─── 2. Cases ────────────────────────────────────────────────────────────────
