@@ -4,47 +4,53 @@ using Microsoft.Data.SqlClient;
 
 namespace CRoll.API.Services.Cases
 {
-    /// <summary>
-    /// Inline SQL queries via Microsoft.Data.SqlClient — no EF Core.
-    /// Mirrors the SQLite operations in electron/main.ts.
-    /// </summary>
     public class CaseService : ICaseService
     {
         private readonly string _connectionString;
+        private readonly ILogger<CaseService> _logger;
 
-        public CaseService(IDbConnectionStringProvider connectionStringProvider)
+        public CaseService(IDbConnectionStringProvider connectionStringProvider, ILogger<CaseService> logger)
         {
             _connectionString = connectionStringProvider.CRollDb;
+            _logger = logger;
         }
 
-        public async Task<IEnumerable<Case>> GetAllAsync(string osUsername)
+        public async Task<IEnumerable<Case>> GetAllAsync(string userId)
         {
             const string sql = @"
-                SELECT Id, CreatedAt, OsUsername, MachineName, Color,
+                SELECT Id, CreatedAt, UserId, Color,
                        DraftAft, DraftFore, Gm, Heading, Speed, MaxRoll,
                        Hs, Tz, WaveDirection, DataFilePath,
                        FittedDraft, FittedGm, FittedHs, FittedTz,
                        ChartMode, ChartOrientation, ChartImage, Synced,
                        ProjectId, UpdatedAt
                 FROM Cases
-                WHERE OsUsername = @OsUsername
+                WHERE UserId = @UserId
                 ORDER BY CreatedAt ASC";
 
-            var cases = new List<Case>();
-            await using var conn = new SqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@OsUsername", osUsername);
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-                cases.Add(MapRow(reader));
-            return cases;
+            try
+            {
+                var cases = new List<Case>();
+                await using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+                await using var cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                    cases.Add(MapRow(reader));
+                return cases;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get cases for user {User}", userId);
+                throw new InvalidOperationException($"Failed to load cases: {ex.Message}", ex);
+            }
         }
 
         public async Task<Case?> GetByIdAsync(string id)
         {
             const string sql = @"
-                SELECT Id, CreatedAt, OsUsername, MachineName, Color,
+                SELECT Id, CreatedAt, UserId, Color,
                        DraftAft, DraftFore, Gm, Heading, Speed, MaxRoll,
                        Hs, Tz, WaveDirection, DataFilePath,
                        FittedDraft, FittedGm, FittedHs, FittedTz,
@@ -52,26 +58,34 @@ namespace CRoll.API.Services.Cases
                        ProjectId, UpdatedAt
                 FROM Cases WHERE Id = @Id";
 
-            await using var conn = new SqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@Id", id);
-            await using var reader = await cmd.ExecuteReaderAsync();
-            return await reader.ReadAsync() ? MapRow(reader) : null;
+            try
+            {
+                await using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+                await using var cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@Id", id);
+                await using var reader = await cmd.ExecuteReaderAsync();
+                return await reader.ReadAsync() ? MapRow(reader) : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get case {Id}", id);
+                throw new InvalidOperationException($"Failed to get case {id}: {ex.Message}", ex);
+            }
         }
 
         public async Task CreateAsync(Case c)
         {
             const string sql = @"
                 INSERT INTO Cases (
-                    Id, CreatedAt, OsUsername, MachineName, Color,
+                    Id, CreatedAt, UserId, Color,
                     DraftAft, DraftFore, Gm, Heading, Speed, MaxRoll,
                     Hs, Tz, WaveDirection, DataFilePath,
                     FittedDraft, FittedGm, FittedHs, FittedTz,
                     ChartMode, ChartOrientation, ChartImage, Synced,
                     ProjectId, UpdatedAt
                 ) VALUES (
-                    @Id, @CreatedAt, @OsUsername, @MachineName, @Color,
+                    @Id, @CreatedAt, @UserId, @Color,
                     @DraftAft, @DraftFore, @Gm, @Heading, @Speed, @MaxRoll,
                     @Hs, @Tz, @WaveDirection, @DataFilePath,
                     @FittedDraft, @FittedGm, @FittedHs, @FittedTz,
@@ -79,18 +93,26 @@ namespace CRoll.API.Services.Cases
                     @ProjectId, @UpdatedAt
                 )";
 
-            await using var conn = new SqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand(sql, conn);
-            BindParameters(cmd, c);
-            await cmd.ExecuteNonQueryAsync();
+            try
+            {
+                await using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+                await using var cmd = new SqlCommand(sql, conn);
+                BindParameters(cmd, c);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create case {Id}", c.Id);
+                throw new InvalidOperationException($"Failed to create case: {ex.Message}", ex);
+            }
         }
 
         public async Task UpdateAsync(Case c)
         {
             const string sql = @"
                 UPDATE Cases SET
-                    OsUsername = @OsUsername, MachineName = @MachineName, Color = @Color,
+                    UserId = @UserId, Color = @Color,
                     DraftAft = @DraftAft, DraftFore = @DraftFore, Gm = @Gm,
                     Heading = @Heading, Speed = @Speed, MaxRoll = @MaxRoll,
                     Hs = @Hs, Tz = @Tz, WaveDirection = @WaveDirection,
@@ -102,35 +124,59 @@ namespace CRoll.API.Services.Cases
                     ProjectId = @ProjectId, UpdatedAt = @UpdatedAt
                 WHERE Id = @Id";
 
-            await using var conn = new SqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand(sql, conn);
-            BindParameters(cmd, c);
-            await cmd.ExecuteNonQueryAsync();
+            try
+            {
+                await using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+                await using var cmd = new SqlCommand(sql, conn);
+                BindParameters(cmd, c);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update case {Id}", c.Id);
+                throw new InvalidOperationException($"Failed to update case: {ex.Message}", ex);
+            }
         }
 
         public async Task UpdateChartImageAsync(string id, string chartImage)
         {
             const string sql = "UPDATE Cases SET ChartImage = @ChartImage, UpdatedAt = @UpdatedAt WHERE Id = @Id";
 
-            await using var conn = new SqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@Id", id);
-            cmd.Parameters.AddWithValue("@ChartImage", chartImage);
-            cmd.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
-            await cmd.ExecuteNonQueryAsync();
+            try
+            {
+                await using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+                await using var cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@Id", id);
+                cmd.Parameters.AddWithValue("@ChartImage", chartImage);
+                cmd.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update chart image for case {Id}", id);
+                throw new InvalidOperationException($"Failed to update chart image: {ex.Message}", ex);
+            }
         }
 
         public async Task DeleteAsync(string id)
         {
             const string sql = "DELETE FROM Cases WHERE Id = @Id";
 
-            await using var conn = new SqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var cmd = new SqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("@Id", id);
-            await cmd.ExecuteNonQueryAsync();
+            try
+            {
+                await using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+                await using var cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@Id", id);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete case {Id}", id);
+                throw new InvalidOperationException($"Failed to delete case: {ex.Message}", ex);
+            }
         }
 
         // ─── HELPERS ───────────────────────────────────────────────────────────────
@@ -139,8 +185,7 @@ namespace CRoll.API.Services.Cases
         {
             cmd.Parameters.AddWithValue("@Id", c.Id);
             cmd.Parameters.AddWithValue("@CreatedAt", c.CreatedAt);
-            cmd.Parameters.AddWithValue("@OsUsername", c.OsUsername);
-            cmd.Parameters.AddWithValue("@MachineName", c.MachineName);
+            cmd.Parameters.AddWithValue("@UserId", c.UserId);
             cmd.Parameters.AddWithValue("@Color", c.Color);
             cmd.Parameters.AddWithValue("@DraftAft", (object?)c.DraftAft ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@DraftFore", (object?)c.DraftFore ?? DBNull.Value);
@@ -168,8 +213,7 @@ namespace CRoll.API.Services.Cases
         {
             Id = r.GetString(r.GetOrdinal("Id")),
             CreatedAt = r.GetInt64(r.GetOrdinal("CreatedAt")),
-            OsUsername = r.GetString(r.GetOrdinal("OsUsername")),
-            MachineName = r.GetString(r.GetOrdinal("MachineName")),
+            UserId = r.GetString(r.GetOrdinal("UserId")),
             Color = r.GetString(r.GetOrdinal("Color")),
             DraftAft = Dbl(r, "DraftAft"),
             DraftFore = Dbl(r, "DraftFore"),

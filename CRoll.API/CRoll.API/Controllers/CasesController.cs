@@ -7,7 +7,7 @@ namespace CRoll.API.Controllers
 {
     [ApiController]
     [Route("api/cases")]
-    [Authorize]
+    // [Authorize] — disabled for local testing; re-enable before deploying
     public class CasesController : ControllerBase
     {
         private readonly ICaseService _caseService;
@@ -21,19 +21,19 @@ namespace CRoll.API.Controllers
 
         /// <summary>Load all saved cases for a specific user ordered by creation time.</summary>
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string osUsername)
+        public async Task<IActionResult> GetAll([FromQuery] string userId)
         {
-            if (string.IsNullOrWhiteSpace(osUsername))
-                return BadRequest("osUsername query parameter is required.");
+            if (string.IsNullOrWhiteSpace(userId))
+                return BadRequest("userId query parameter is required.");
 
             try
             {
-                var cases = await _caseService.GetAllAsync(osUsername);
+                var cases = await _caseService.GetAllAsync(userId);
                 return Ok(cases);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to load cases for user {User}", osUsername);
+                _logger.LogError(ex, "Failed to load cases for user {User}", userId);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }

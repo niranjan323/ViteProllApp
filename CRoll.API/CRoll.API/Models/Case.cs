@@ -1,15 +1,10 @@
 namespace CRoll.API.Models
 {
-    /// <summary>
-    /// Mirrors the SQLite 'cases' table used by the Electron app,
-    /// plus ProjectId and UpdatedAt for the web layer.
-    /// </summary>
     public class Case
     {
         public string Id { get; set; } = string.Empty;
         public long CreatedAt { get; set; }
-        public string OsUsername { get; set; } = string.Empty;
-        public string MachineName { get; set; } = string.Empty;
+        public string UserId { get; set; } = string.Empty;
         public string Color { get; set; } = string.Empty;
 
         public double? DraftAft { get; set; }

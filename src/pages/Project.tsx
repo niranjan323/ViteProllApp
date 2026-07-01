@@ -405,8 +405,7 @@ const Project: React.FC = () => {
             const apiCase: ApiCase = {
                 id: caseIdToSave,
                 createdAt: savedParameters.timestamp,
-                osUsername: userEmail,
-                machineName: window.location.hostname,
+                userId: userEmail,
                 color: newColor,
                 draftAft: savedParameters.vesselData.draftAft,
                 draftFore: savedParameters.vesselData.draftFore,

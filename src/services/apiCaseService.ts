@@ -9,8 +9,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
 export interface ApiCase {
   id: string;
   createdAt: number;           // unix timestamp ms
-  osUsername: string;
-  machineName: string;
+  userId: string;
   color: string;               // 'green' | 'pink'
   draftAft?: number;
   draftFore?: number;
@@ -52,9 +51,9 @@ async function buildHeaders(includeContentType = true): Promise<Record<string, s
  */
 export const ApiCaseService = {
 
-  async getAllCases(osUsername: string): Promise<ApiCase[]> {
+  async getAllCases(userId: string): Promise<ApiCase[]> {
     const h = await buildHeaders(false);
-    const url = `${API_BASE}/api/cases?osUsername=${encodeURIComponent(osUsername)}`;
+    const url = `${API_BASE}/api/cases?userId=${encodeURIComponent(userId)}`;
     const response = await fetch(url, { headers: h });
     if (!response.ok)
       throw new Error(`Failed to load cases: ${response.status} ${response.statusText}`);
