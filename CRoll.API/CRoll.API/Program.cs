@@ -5,6 +5,12 @@ using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ─── KESTREL: 1 GB request body limit for large folder uploads ────────────────
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 1024L * 1024 * 1024;
+});
+
 // ─── AUTHENTICATION (Azure AD JWT Bearer) ────────────────────────────────────
 // Validates Bearer tokens issued by Azure AD for the CRoll API scope.
 // Requires App Registration → Expose an API → scope: access_as_user
@@ -36,7 +42,7 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         var allowedOrigin = builder.Configuration["CRollReactApp"] ?? "http://localhost:5173";
-        policy.WithOrigins(allowedOrigin)
+        policy.WithOrigins(allowedOrigin, "http://localhost:5174")
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -54,7 +60,7 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableS
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "CRoll API v1"));
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
