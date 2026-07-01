@@ -115,8 +115,9 @@ export class ApiFileSystemService implements IFileSystemService {
 
   // ─── PUBLIC HELPERS ─────────────────────────────────────────────────────────
 
-  static async listProjects(): Promise<string[]> {
-    const url = `${API_BASE}/api/files/projects`;
+  static async listProjects(userId?: string): Promise<string[]> {
+    const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+    const url = `${API_BASE}/api/files/projects${query}`;
     let response: Response;
     try {
       response = await fetch(url);
@@ -129,15 +130,16 @@ export class ApiFileSystemService implements IFileSystemService {
     return response.json() as Promise<string[]>;
   }
 
-  static async uploadFiles(projectName: string, files: File[], relativePaths: string[]): Promise<void> {
+  static async uploadFiles(projectName: string, files: File[], relativePaths: string[], ownerId?: string): Promise<void> {
     const formData = new FormData();
     files.forEach((file, i) => {
       const renamedFile = new File([file], relativePaths[i], { type: file.type });
       formData.append('files', renamedFile);
     });
 
+    const ownerQuery = ownerId ? `?ownerId=${encodeURIComponent(ownerId)}` : '';
     const response = await fetch(
-      `${API_BASE}/api/files/projects/${encodeURIComponent(projectName)}/upload`,
+      `${API_BASE}/api/files/projects/${encodeURIComponent(projectName)}/upload${ownerQuery}`,
       { method: 'POST', body: formData }
     );
 

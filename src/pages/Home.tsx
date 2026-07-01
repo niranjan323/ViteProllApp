@@ -4,6 +4,7 @@ import './Home.css';
 import absLogo from '../assets/ABS_Logo.png';
 import { useElectron } from '../context/ElectronContext';
 import { useUserData } from '../context/UserDataContext';
+import { useUserEmail } from '../context/UserEmailContext';
 import { ApiFileSystemService } from '../services/apiFileService';
 
 const Home: React.FC = () => {
@@ -16,6 +17,7 @@ const Home: React.FC = () => {
         isElectronMode,
     } = useElectron();
     const { setSelectedFolder } = useUserData();
+    const userId = useUserEmail(); // Azure AD Object ID (localAccountId)
 
     // Shared status
     const [error, setError] = useState('');
@@ -57,7 +59,7 @@ const Home: React.FC = () => {
         setLoadingProjects(true);
         setError('');
         try {
-            const list = await ApiFileSystemService.listProjects();
+            const list = await ApiFileSystemService.listProjects(userId || undefined);
             setProjects(list);
             if (list.length > 0) setSelectedProject(list[0]);
         } catch (err) {
@@ -177,7 +179,7 @@ const Home: React.FC = () => {
         setUploadStatus(`Uploading ${allFiles.length} files...`);
 
         try {
-            await ApiFileSystemService.uploadFiles(uploadProjectName.trim(), allFiles, allPaths);
+            await ApiFileSystemService.uploadFiles(uploadProjectName.trim(), allFiles, allPaths, userId || undefined);
             setUploadStatus(`✓ Uploaded ${allFiles.length} files to project "${uploadProjectName.trim()}"`);
             fetchProjects();
         } catch (err) {

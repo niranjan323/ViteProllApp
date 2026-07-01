@@ -16,23 +16,42 @@ namespace CRoll.API.Controllers
             _logger = logger;
         }
 
-        /// <summary>List all vessel project folder names in blob storage.</summary>
+        /// <summary>
+        /// List vessel project folder names visible to the requesting user.
+        /// Projects with no owner marker are visible to everyone (default/admin projects).
+        /// Projects with an owner marker (_owner_{userId}) are only visible to that user.
+        /// </summary>
         [HttpGet("projects")]
-        public async Task<IActionResult> GetProjects()
+        public async Task<IActionResult> GetProjects([FromQuery] string? userId = null)
         {
             try
             {
                 var allBlobs = await _blobService.ListBlobsAsync(string.Empty);
+
+                // Build owner map from _owner_ marker blobs: projectName → ownerId
+                var ownerMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var blob in allBlobs)
+                {
+                    var parts = blob.Split('/');
+                    if (parts.Length >= 2 && parts[1].StartsWith("_owner_"))
+                        ownerMap[parts[0]] = parts[1]["_owner_".Length..];
+                }
+
                 var projects = allBlobs
+                    .Where(b => !b.Contains("/_owner_"))
                     .Select(b => b.Split('/')[0])
                     .Distinct()
+                    .Where(p => string.IsNullOrEmpty(userId)
+                                || !ownerMap.ContainsKey(p)
+                                || ownerMap[p] == userId)
                     .OrderBy(p => p)
                     .ToList();
+
                 return Ok(projects);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to list projects");
+                _logger.LogError(ex, "Failed to list projects for user {UserId}", userId);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
@@ -107,12 +126,13 @@ namespace CRoll.API.Controllers
         /// <summary>
         /// Upload one or more files into a project folder.
         /// Accepts multipart/form-data. Each file's blob path = {projectName}/{file.FileName}.
-        /// The FileName should carry the relative sub-path, e.g. "polars/Draft=15.0/GM=1.5/v.bpolar".
+        /// Optional ownerId: writes a {projectName}/_owner_{ownerId} marker blob so the project
+        /// is only visible to that user via GetProjects.
         /// </summary>
         [HttpPost("projects/{projectName}/upload")]
         [RequestSizeLimit(1024 * 1024 * 1024)]
         [RequestFormLimits(ValueCountLimit = 50000, MultipartBodyLengthLimit = 1024 * 1024 * 1024)]
-        public async Task<IActionResult> UploadFiles(string projectName, IList<IFormFile> files)
+        public async Task<IActionResult> UploadFiles(string projectName, IList<IFormFile> files, [FromQuery] string? ownerId = null)
         {
             if (files == null || files.Count == 0)
                 return BadRequest("No files provided.");
@@ -120,6 +140,15 @@ namespace CRoll.API.Controllers
             try
             {
                 var uploaded = new List<string>();
+
+                // Write ownership marker so this project is only visible to ownerId
+                if (!string.IsNullOrEmpty(ownerId))
+                {
+                    var markerBlob = $"{projectName}/_owner_{ownerId}";
+                    using var empty = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ownerId));
+                    await _blobService.UploadAsync(markerBlob, empty, "text/plain");
+                }
+
                 foreach (var file in files)
                 {
                     var relativePath = file.FileName.Replace("\\", "/");
