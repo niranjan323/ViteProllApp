@@ -2,6 +2,7 @@ using CRoll.API.Services.Blob;
 using CRoll.API.Services.Cases;
 using CRoll.API.Services.KeyVault;
 using CRoll.API.Services.Users;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,10 +13,19 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = 1024L * 1024 * 1024;
 });
 
-// ─── AUTHENTICATION (Azure AD JWT Bearer) ────────────────────────────────────
-// Validates Bearer tokens issued by Azure AD for the CRoll API scope.
-// Requires App Registration → Expose an API → scope: access_as_user
-builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration);
+// ─── AUTHENTICATION (Azure AD + Azure AD B2C JWT Bearer) ─────────────────────
+// Both schemes are accepted. The default authorization policy requires the
+// request to pass either — matching CRoute's DynamicOidc dual-auth pattern.
+builder.Services.AddAuthentication()
+    .AddMicrosoftIdentityWebApi(builder.Configuration, "AzureAd",  jwtBearerScheme: "AAD")
+    .AddMicrosoftIdentityWebApi(builder.Configuration, "AzureB2C", jwtBearerScheme: "B2C");
+
+builder.Services.AddAuthorization(options =>
+{
+    options.DefaultPolicy = new AuthorizationPolicyBuilder("AAD", "B2C")
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 // ─── AZURE / KEY VAULT ────────────────────────────────────────────────────────
 // AzureConnection is null-safe: if KeyVault:Url is empty (local dev),

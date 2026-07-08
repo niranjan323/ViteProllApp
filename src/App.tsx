@@ -11,6 +11,7 @@ function App() {
             <Routes>
                 <Route element={<MainLayout />}>
                     <Route index element={<Home />} />
+                    <Route path="/internal" element={<Home />} />
                     <Route path="/project" element={<Project />} />
                 </Route>
             </Routes>
