@@ -7,18 +7,20 @@ using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ─── KESTREL: 1 GB request body limit for large folder uploads ────────────────
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.Limits.MaxRequestBodySize = 1024L * 1024 * 1024;
-});
+// ─── REQUEST BODY LIMITS (large multi-file uploads) ───────────────────────────
+// Kestrel + IIS in-process host both cap request bodies; raise to 1 GB so large
+// upload batches aren't rejected with HTTP 413 before reaching the controller.
+const long MaxUploadBytes = 1024L * 1024 * 1024; // 1 GB
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = MaxUploadBytes);
+builder.Services.Configure<Microsoft.AspNetCore.Builder.IISServerOptions>(
+    options => options.MaxRequestBodySize = MaxUploadBytes);
 
 // ─── AUTHENTICATION (Azure AD + Azure AD B2C JWT Bearer) ─────────────────────
 // Both schemes are accepted. The default authorization policy requires the
 // request to pass either — matching CRoute's DynamicOidc dual-auth pattern.
-builder.Services.AddAuthentication()
-    .AddMicrosoftIdentityWebApi(builder.Configuration, "AzureAd",  jwtBearerScheme: "AAD")
-    .AddMicrosoftIdentityWebApi(builder.Configuration, "AzureB2C", jwtBearerScheme: "B2C");
+var authBuilder = builder.Services.AddAuthentication();
+authBuilder.AddMicrosoftIdentityWebApi(builder.Configuration, "AzureAd",  jwtBearerScheme: "AAD");
+authBuilder.AddMicrosoftIdentityWebApi(builder.Configuration, "AzureB2C", jwtBearerScheme: "B2C");
 
 builder.Services.AddAuthorization(options =>
 {
@@ -51,12 +53,18 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
+// CRollReactApp can be a comma-separated list so DEV + UAT both work without code changes.
+// App Service env var: CRollReactApp = https://app-ngea-cr-dev-001.azurewebsites.net
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        var allowedOrigin = builder.Configuration["CRollReactApp"] ?? "http://localhost:5173";
-        policy.WithOrigins(allowedOrigin, "http://localhost:5174")
+        var configured = builder.Configuration["CRollReactApp"] ?? "";
+        var origins = new List<string> { "http://localhost:5173", "http://localhost:5174" };
+        foreach (var o in configured.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            origins.Add(o);
+
+        policy.WithOrigins([.. origins])
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
