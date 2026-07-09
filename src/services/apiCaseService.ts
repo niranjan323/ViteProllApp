@@ -51,9 +51,10 @@ async function buildHeaders(includeContentType = true): Promise<Record<string, s
  */
 export const ApiCaseService = {
 
-  async getAllCases(userId: string): Promise<ApiCase[]> {
+  async getAllCases(userId: string, projectId?: string): Promise<ApiCase[]> {
     const h = await buildHeaders(false);
-    const url = `${API_BASE}/api/cases?userId=${encodeURIComponent(userId)}`;
+    let url = `${API_BASE}/api/cases?userId=${encodeURIComponent(userId)}`;
+    if (projectId) url += `&projectId=${encodeURIComponent(projectId)}`;
     const response = await fetch(url, { headers: h });
     if (!response.ok)
       throw new Error(`Failed to load cases: ${response.status} ${response.statusText}`);

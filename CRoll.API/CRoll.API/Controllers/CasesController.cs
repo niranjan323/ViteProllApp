@@ -19,16 +19,16 @@ namespace CRoll.API.Controllers
             _logger = logger;
         }
 
-        /// <summary>Load all saved cases for a specific user ordered by creation time.</summary>
+        /// <summary>Load saved cases for a user, optionally filtered to a specific vessel project.</summary>
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string userId)
+        public async Task<IActionResult> GetAll([FromQuery] string userId, [FromQuery] string? projectId = null)
         {
             if (string.IsNullOrWhiteSpace(userId))
                 return BadRequest("userId query parameter is required.");
 
             try
             {
-                var cases = await _caseService.GetAllAsync(userId);
+                var cases = await _caseService.GetAllAsync(userId, projectId);
                 return Ok(cases);
             }
             catch (Exception ex)

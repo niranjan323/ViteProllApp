@@ -69,7 +69,9 @@ function extractSavedCaseReportData(item: SavedCase) {
 
 const Project: React.FC = () => {
     const location = useLocation();
-    const initialTab = (location.state as { activeTab?: string })?.activeTab || 'project';
+    const locationState = location.state as { activeTab?: string; projectId?: string } | null;
+    const initialTab = locationState?.activeTab || 'project';
+    const webProjectId = locationState?.projectId ?? '';
     const { userInputData, updateVesselOperation, updateSeaState, resetUserData } = useUserData();
 
     const handleClearInput = () => {
@@ -171,7 +173,7 @@ const Project: React.FC = () => {
     // Load persisted cases from API on mount (web only)
     useEffect(() => {
         if (isElectronMode || !userEmail) return;
-        ApiCaseService.getAllCases(userEmail).then(apiCases => {
+        ApiCaseService.getAllCases(userEmail, webProjectId).then(apiCases => {
             const loaded: SavedCase[] = apiCases.map(row => ({
                 id: row.id,
                 color: row.color as 'green' | 'pink',
@@ -749,8 +751,11 @@ const Project: React.FC = () => {
     // All inputs must be in range before plotting
     const allParamsValid = validation !== null && ParameterValidator.allValid(validation);
 
-    // Unique key for the currently loaded project
-    const projectKey = controlFilePath ?? electronFolder ?? '';
+    // Unique key for the currently loaded project.
+    // Web: clean project name passed from Home ("PIL9000"). Electron: ctl file path or folder.
+    const projectKey = isElectronMode
+        ? (controlFilePath ?? electronFolder ?? '')
+        : webProjectId;
 
     // Only show cases that belong to the currently selected project
     const visibleSavedCases = useMemo(

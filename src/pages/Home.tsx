@@ -85,7 +85,7 @@ const Home: React.FC = () => {
             return;
         }
 
-        navigate('/project', { state: { activeTab: 'project' } });
+        navigate('/project', { state: { activeTab: 'project', projectId: selectedProject } });
     };
 
     // ── Electron mode handlers ────────────────────────────────────────────────

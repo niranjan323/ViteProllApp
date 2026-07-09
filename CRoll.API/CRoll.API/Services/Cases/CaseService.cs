@@ -15,7 +15,7 @@ namespace CRoll.API.Services.Cases
             _logger = logger;
         }
 
-        public async Task<IEnumerable<Case>> GetAllAsync(string userId)
+        public async Task<IEnumerable<Case>> GetAllAsync(string userId, string? projectId = null)
         {
             const string sql = @"
                 SELECT Id, CreatedAt, UserId, Color,
@@ -26,6 +26,7 @@ namespace CRoll.API.Services.Cases
                        ProjectId, UpdatedAt
                 FROM Cases
                 WHERE UserId = @UserId
+                AND (@ProjectId IS NULL OR ProjectId = @ProjectId)
                 ORDER BY CreatedAt ASC";
 
             try
@@ -35,6 +36,7 @@ namespace CRoll.API.Services.Cases
                 await conn.OpenAsync();
                 await using var cmd = new SqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@ProjectId", (object?)projectId ?? DBNull.Value);
                 await using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                     cases.Add(MapRow(reader));
