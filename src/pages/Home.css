@@ -339,6 +339,87 @@
     margin: 0;
 }
 
+/* ── Project custom list ────────────────────────────────────────── */
+
+.project-list {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    background: white;
+}
+
+.project-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s;
+    gap: 0.5rem;
+}
+
+.project-list-item:last-child {
+    border-bottom: none;
+}
+
+.project-list-item:hover:not(.disabled) {
+    background: #f5f8ff;
+}
+
+.project-list-item.selected {
+    background: #e3f0ff;
+}
+
+.project-list-item.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.project-list-name {
+    font-size: 0.92rem;
+    color: #333;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.project-delete-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.project-delete-btn:hover:not(:disabled) {
+    color: #d32f2f;
+    background: #ffeaea;
+    border-color: #f5c6c6;
+}
+
+.project-delete-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.project-delete-btn.deleting {
+    color: #999;
+}
+
 /* ── Upload collapsible ─────────────────────────────────────────── */
 
 .upload-toggle {

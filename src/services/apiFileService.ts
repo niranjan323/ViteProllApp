@@ -2,6 +2,11 @@ import type { IFileSystemService } from './IFileSystemService';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
 
+export interface ProjectInfo {
+  name: string;
+  isOwned: boolean;
+}
+
 /**
  * Web implementation of IFileSystemService.
  * All file operations go through the CRoll .NET API → Azure Blob Storage.
@@ -115,7 +120,7 @@ export class ApiFileSystemService implements IFileSystemService {
 
   // ─── PUBLIC HELPERS ─────────────────────────────────────────────────────────
 
-  static async listProjects(userId?: string): Promise<string[]> {
+  static async listProjects(userId?: string): Promise<ProjectInfo[]> {
     const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
     const url = `${API_BASE}/api/files/projects${query}`;
     let response: Response;
@@ -127,7 +132,16 @@ export class ApiFileSystemService implements IFileSystemService {
     }
     if (!response.ok)
       throw new Error(`Failed to list projects (${response.status}) from ${url}`);
-    return response.json() as Promise<string[]>;
+    return response.json() as Promise<ProjectInfo[]>;
+  }
+
+  static async deleteProject(projectName: string, userId: string): Promise<void> {
+    const url = `${API_BASE}/api/files/projects/${encodeURIComponent(projectName)}?userId=${encodeURIComponent(userId)}`;
+    const response = await fetch(url, { method: 'DELETE' });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Delete failed (${response.status}): ${text}`);
+    }
   }
 
   static async uploadFiles(projectName: string, files: File[], relativePaths: string[], ownerId?: string): Promise<void> {

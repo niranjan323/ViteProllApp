@@ -37,7 +37,7 @@ namespace CRoll.API.Controllers
                         ownerMap[parts[0]] = parts[1]["_owner_".Length..];
                 }
 
-                var projects = allBlobs
+                var result = allBlobs
                     .Where(b => !b.Contains("/_owner_"))
                     .Select(b => b.Split('/')[0])
                     .Distinct()
@@ -45,13 +45,50 @@ namespace CRoll.API.Controllers
                                 || !ownerMap.ContainsKey(p)
                                 || ownerMap[p] == userId)
                     .OrderBy(p => p)
+                    .Select(p => new
+                    {
+                        name = p,
+                        isOwned = !string.IsNullOrEmpty(userId)
+                                  && ownerMap.ContainsKey(p)
+                                  && ownerMap[p] == userId,
+                    })
                     .ToList();
 
-                return Ok(projects);
+                return Ok(result);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to list projects for user {UserId}", userId);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Delete a project and all its blobs. Only the project owner (matched via
+        /// the _owner_{userId} marker blob) may delete it.
+        /// </summary>
+        [HttpDelete("projects/{projectName}")]
+        public async Task<IActionResult> DeleteProject(string projectName, [FromQuery] string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return BadRequest("userId is required.");
+
+            try
+            {
+                var markerBlob = $"{projectName}/_owner_{userId}";
+                if (!await _blobService.ExistsAsync(markerBlob))
+                    return StatusCode(403, "You do not own this project.");
+
+                var blobs = await _blobService.ListBlobsAsync($"{projectName}/");
+                foreach (var blob in blobs)
+                    await _blobService.DeleteAsync(blob);
+
+                _logger.LogInformation("Project {Project} deleted by user {UserId}", projectName, userId);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete project {Project}", projectName);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }

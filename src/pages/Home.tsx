@@ -28,10 +28,11 @@ const Home: React.FC = () => {
 
     // Web-mode state
     const [showUpload, setShowUpload] = useState(false);
-    const [projects, setProjects] = useState<string[]>([]);
+    const [projects, setProjects] = useState<{ name: string; isOwned: boolean }[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(false);
     const [selectedProject, setSelectedProject] = useState('');
     const [loadingProject, setLoadingProject] = useState(false);
+    const [deletingProject, setDeletingProject] = useState('');
 
     // Upload state
     const [uploadProjectName, setUploadProjectName] = useState('');
@@ -61,12 +62,28 @@ const Home: React.FC = () => {
         try {
             const list = await ApiFileSystemService.listProjects(userId || undefined);
             setProjects(list);
-            if (list.length > 0) setSelectedProject(list[0]);
+            if (list.length > 0) setSelectedProject(list[0].name);
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             setError(msg);
         } finally {
             setLoadingProjects(false);
+        }
+    };
+
+    const handleDeleteProject = async (projectName: string) => {
+        if (!window.confirm(`Delete "${projectName}"? This will permanently remove all uploaded files.`))
+            return;
+        setDeletingProject(projectName);
+        setError('');
+        try {
+            await ApiFileSystemService.deleteProject(projectName, userId);
+            if (selectedProject === projectName) setSelectedProject('');
+            await fetchProjects();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setDeletingProject('');
         }
     };
 
@@ -277,24 +294,38 @@ const Home: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className="web-project-select">
-                                        <label className="web-label" htmlFor="project-dropdown">
+                                        <label className="web-label">
                                             Select vessel project
                                         </label>
                                         {projects.length > 0 ? (
-                                            <select
-                                                id="project-dropdown"
-                                                className="web-dropdown"
-                                                value={selectedProject}
-                                                onChange={e => {
-                                                    setSelectedProject(e.target.value);
-                                                    setError('');
-                                                }}
-                                                disabled={loadingProject}
-                                            >
+                                            <div className="project-list">
                                                 {projects.map(p => (
-                                                    <option key={p} value={p}>{p}</option>
+                                                    <div
+                                                        key={p.name}
+                                                        className={`project-list-item${selectedProject === p.name ? ' selected' : ''}${loadingProject ? ' disabled' : ''}`}
+                                                        onClick={() => { if (!loadingProject) { setSelectedProject(p.name); setError(''); } }}
+                                                    >
+                                                        <span className="project-list-name">{p.name}</span>
+                                                        {p.isOwned && (
+                                                            <button
+                                                                className={`project-delete-btn${deletingProject === p.name ? ' deleting' : ''}`}
+                                                                title="Delete this project"
+                                                                disabled={!!deletingProject || loadingProject}
+                                                                onClick={e => { e.stopPropagation(); handleDeleteProject(p.name); }}
+                                                            >
+                                                                {deletingProject === p.name ? '…' : (
+                                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                        <polyline points="3 6 5 6 21 6" />
+                                                                        <path d="M19 6l-1 14H6L5 6" />
+                                                                        <path d="M10 11v6M14 11v6" />
+                                                                        <path d="M9 6V4h6v2" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 ))}
-                                            </select>
+                                            </div>
                                         ) : (
                                             !error && (
                                                 <p className="web-no-projects">
