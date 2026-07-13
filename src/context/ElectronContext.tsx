@@ -23,6 +23,9 @@ interface ElectronContextType {
   vesselInfo: VesselInfo | null;
   parameterBounds: ParameterBounds | null;
   representativeDrafts: RepresentativeDrafts | null;
+  artStatus: 0 | 1;
+  artMode: 'standard' | 'art';
+  setArtMode: (mode: 'standard' | 'art') => void;
   isElectronMode: boolean;
   selectFolder: () => Promise<boolean>;
   /** Web mode only — set the active blob project by name, then load its control file. */
@@ -48,6 +51,8 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [vesselInfo, setVesselInfo] = useState<VesselInfo | null>(null);
   const [parameterBounds, setParameterBounds] = useState<ParameterBounds | null>(null);
   const [representativeDrafts, setRepresentativeDrafts] = useState<RepresentativeDrafts | null>(null);
+  const [artStatus, setArtStatus] = useState<0 | 1>(0);
+  const [artMode, setArtMode] = useState<'standard' | 'art'>('standard');
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -138,6 +143,8 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
     setVesselInfo(null);
     setParameterBounds(null);
     setRepresentativeDrafts(null);
+    setArtStatus(0);
+    setArtMode('standard');
     fileSystem.setBasePath('');
   };
 
@@ -153,6 +160,8 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
       setVesselInfo(result.vesselInfo ?? null);
       setParameterBounds(result.parameterBounds ?? null);
       setRepresentativeDrafts(result.representativeDrafts ?? null);
+      setArtStatus(result.artStatus ?? 0);
+      setArtMode('standard');
       setControlFilePath(controlPath);
 
       return { success: true };
@@ -172,6 +181,9 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
     vesselInfo,
     parameterBounds,
     representativeDrafts,
+    artStatus,
+    artMode,
+    setArtMode,
     isElectronMode: isElectron,
     selectFolder,
     selectProject,

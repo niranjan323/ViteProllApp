@@ -44,6 +44,7 @@ export interface LoadControlFileResult {
   vesselInfo?: VesselInfo;
   parameterBounds?: ParameterBounds;
   representativeDrafts?: RepresentativeDrafts;
+  artStatus?: 0 | 1;
   error?: string;
 }
 
@@ -155,6 +156,11 @@ export class DataLoader {
         name: 'Unknown',
       };
 
+      // --- Anti-Rolling Device status (optional, 0=not installed, 1=installed) ---
+      const artLine = findLineByComment('anti-rolling') || findLineByComment('anti rolling') || findLineByComment('art status');
+      const artRaw = artLine ? parseFloat(parseLine(artLine)[0] ?? '') : NaN;
+      const artStatus: 0 | 1 = (!isNaN(artRaw) && artRaw === 1) ? 1 : 0;
+
       // --- Draft bounds — line 1 (optional, default 0–50) ---
       const draftLine = findLineByComment('draft');
       const draftLower = resolve(draftLine, 0, 'Draft_lower', 1, 0) ?? 0;
@@ -236,6 +242,7 @@ export class DataLoader {
         vesselInfo,
         parameterBounds,
         representativeDrafts,
+        artStatus,
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -259,15 +266,27 @@ export class DataLoader {
     gm: number;
     hs: number;
     tz: number;
+    artMode?: 'standard' | 'art';
   }): Promise<FindDataFileResult> {
     try {
       console.log('Looking for files with parameters:', parameters);
 
-      // 1st search: Find closest draft folder in the root of the selected folder
-      // Expected naming convention: "Draft=11m", "Draft=15m", "Draft=16m"
-      // Filter out files (entries with extensions like .ctl)
+      // Detect folder layout:
+      //   New format: root contains "CRoll/" (and optionally "CRoll_ART/")
+      //   Old format: root contains "Draft=Xm/" directly (backward compatible)
       const rootEntries = await this.fs.listDirectory('');
-      const draftCandidates = rootEntries.filter(e => /^Draft=/i.test(e));
+      const hasNewFormat = rootEntries.some(e => e === 'CRoll' || e === 'CRoll_ART');
+      const searchRoot = hasNewFormat
+        ? (parameters.artMode === 'art' ? 'CRoll_ART' : 'CRoll')
+        : '';
+
+      console.log('Folder layout:', hasNewFormat ? `new (${searchRoot}/)` : 'flat (legacy)');
+
+      // 1st search: Find closest draft folder
+      const searchEntries = searchRoot
+        ? await this.fs.listDirectory(searchRoot)
+        : rootEntries;
+      const draftCandidates = searchEntries.filter(e => /^Draft=/i.test(e));
       console.log('Draft folder candidates:', draftCandidates);
 
       // Only numeric-named folders are supported (e.g. Draft=11m)
@@ -283,7 +302,7 @@ export class DataLoader {
         };
       }
 
-      // Extract the numeric draft value directly from the folder name 
+      // Extract the numeric draft value directly from the folder name
       // Format: "Draft=15.90m" → 15.90 (supports decimal places)
       const draftNumMatch = draftFolder.match(/Draft=(\d+(?:\.\d+)?)m/i);
       if (!draftNumMatch) {
@@ -294,7 +313,7 @@ export class DataLoader {
       }
       const fittedDraft = parseFloat(draftNumMatch[1]);
 
-      const draftPath = draftFolder;
+      const draftPath = searchRoot ? `${searchRoot}/${draftFolder}` : draftFolder;
 
       // 2nd search: Find closest GM=XXm subfolder
       const gmFolders = await this.fs.listDirectory(draftPath);

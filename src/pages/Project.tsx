@@ -77,7 +77,7 @@ const Project: React.FC = () => {
     const handleClearInput = () => {
         resetUserData();
     };
-    const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo, isElectronMode } = useElectron();
+    const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo, isElectronMode, artStatus, artMode, setArtMode } = useElectron();
     const userEmail = useUserEmail();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(initialTab);
@@ -779,6 +779,7 @@ const Project: React.FC = () => {
                     gm: userInputData.vesselOperation.gm,
                     hs: userInputData.seaState.significantWaveHeight,
                     tz: userInputData.seaState.wavePeriod,
+                    artMode,
                 });
 
                 if (findResult.success && findResult.filePath) {
@@ -818,6 +819,7 @@ const Project: React.FC = () => {
         userInputData.seaState.wavePeriod,
         parameterBounds,
         dataLoader,
+        artMode,
     ]);
 
     const vesselConditions = [
@@ -940,6 +942,28 @@ const Project: React.FC = () => {
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Anti-Rolling Device toggle — only shown when CTL declares artStatus=1 */}
+                            {artStatus === 1 && (
+                                <div className="section border-top art-section">
+                                    <div className="input-row-wrapper">
+                                        <div className="input-row art-toggle-row">
+                                            <label className="input-label">
+                                                <span className="input-label-text">Anti-Rolling Tank Status</span>
+                                            </label>
+                                            <button
+                                                className={`art-toggle${artMode === 'art' ? ' art-toggle--on' : ''}`}
+                                                onClick={() => setArtMode(artMode === 'art' ? 'standard' : 'art')}
+                                                role="switch"
+                                                aria-checked={artMode === 'art'}
+                                            >
+                                                <span className="art-toggle-label">{artMode === 'art' ? 'On' : 'Off'}</span>
+                                                <span className="art-toggle-thumb" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="section border-top" >
                                 <h3 className="section-title" style={{ paddingTop: "9px" }}>Sea State</h3>
