@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Home.css';
 import absLogo from '../assets/ABS_Logo.png';
+import folderIcon from '../assets/folder.svg';
+import fileIcon from '../assets/file.svg';
+import deleteBlueIcon from '../assets/delete_solid_blue.svg';
+import removeIcon from '../assets/remove.svg';
+import downArrowIcon from '../assets/dropdown_down arrow.svg';
+import upArrowIcon from '../assets/dropdown_up arrow.svg';
 import { useElectron } from '../context/ElectronContext';
 import { useUserData } from '../context/UserDataContext';
 import { useUserEmail } from '../context/UserEmailContext';
@@ -17,7 +23,7 @@ const Home: React.FC = () => {
         isElectronMode,
     } = useElectron();
     const { setSelectedFolder } = useUserData();
-    const userId = useUserEmail(); // Azure AD Object ID (localAccountId)
+    const userId = useUserEmail();
 
     // Shared status
     const [error, setError] = useState('');
@@ -32,7 +38,10 @@ const Home: React.FC = () => {
     const [loadingProjects, setLoadingProjects] = useState(false);
     const [selectedProject, setSelectedProject] = useState('');
     const [loadingProject, setLoadingProject] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
     const [deletingProject, setDeletingProject] = useState('');
+    const [deleteConfirmProject, setDeleteConfirmProject] = useState<string | null>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Upload state
     const [uploadProjectName, setUploadProjectName] = useState('');
@@ -43,6 +52,17 @@ const Home: React.FC = () => {
     const [uploadError, setUploadError] = useState('');
     const folderInputRef = useRef<HTMLInputElement>(null);
     const ctlInputRef = useRef<HTMLInputElement>(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     // Sync selected folder into UserDataContext
     useEffect(() => {
@@ -62,7 +82,7 @@ const Home: React.FC = () => {
         try {
             const list = await ApiFileSystemService.listProjects(userId || undefined);
             setProjects(list);
-            if (list.length > 0) setSelectedProject(list[0].name);
+            if (list.length > 0 && !selectedProject) setSelectedProject(list[0].name);
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             setError(msg);
@@ -71,14 +91,21 @@ const Home: React.FC = () => {
         }
     };
 
-    const handleDeleteProject = async (projectName: string) => {
-        if (!window.confirm(`Delete "${projectName}"? This will permanently remove all uploaded files.`))
-            return;
-        setDeletingProject(projectName);
+    // ── Delete handlers ──────────────────────────────────────────────────────
+
+    const handleDeleteProject = (projectName: string) => {
+        setDeleteConfirmProject(projectName);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirmProject) return;
+        const name = deleteConfirmProject;
+        setDeleteConfirmProject(null);
+        setDeletingProject(name);
         setError('');
         try {
-            await ApiFileSystemService.deleteProject(projectName, userId);
-            if (selectedProject === projectName) setSelectedProject('');
+            await ApiFileSystemService.deleteProject(name, userId);
+            if (selectedProject === name) setSelectedProject('');
             await fetchProjects();
         } catch (err) {
             setError(err instanceof Error ? err.message : String(err));
@@ -98,7 +125,7 @@ const Home: React.FC = () => {
         setLoadingProject(false);
 
         if (!result.success) {
-            setError(result.error ?? 'Failed to load project. Check that the control file exists.');
+            setError(result.error ?? 'Failed to load vessel data. Check that the control file exists.');
             return;
         }
 
@@ -211,6 +238,26 @@ const Home: React.FC = () => {
 
     return (
         <div className="home-container">
+            {/* ── Delete confirm modal ───────────────────────────────────── */}
+            {deleteConfirmProject && (
+                <div className="delete-modal-overlay" onClick={() => setDeleteConfirmProject(null)}>
+                    <div className="delete-modal" onClick={e => e.stopPropagation()}>
+                        <div className="delete-modal-header">
+                            <span className="delete-modal-title">CRoll</span>
+                            <button className="delete-modal-close" onClick={() => setDeleteConfirmProject(null)}>×</button>
+                        </div>
+                        <div className="delete-modal-body">
+                            <img src={removeIcon} alt="" className="delete-modal-icon" />
+                            <p className="delete-modal-text">Would you like to delete vessel data</p>
+                        </div>
+                        <div className="delete-modal-footer">
+                            <button className="delete-modal-no" onClick={() => setDeleteConfirmProject(null)}>No</button>
+                            <button className="delete-modal-yes" onClick={confirmDelete}>Yes</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="home-content">
                 <div className="title-section">
                     <h1 className="main-title">
@@ -229,7 +276,7 @@ const Home: React.FC = () => {
                             <>
                                 <div className="file-row">
                                     <div className="file-item">
-                                        <span className="folder-icon">📁</span>
+                                        <img src={folderIcon} alt="" className="folder-icon-img" />
                                         <span className="file-name">
                                             {electronFolder || 'Select vessel data folder'}
                                         </span>
@@ -274,7 +321,7 @@ const Home: React.FC = () => {
                                     type="file"
                                     style={{ display: 'none' }}
                                     multiple
-                                    // @ts-ignore — webkitdirectory is non-standard but works in all modern browsers
+                                    // @ts-ignore
                                     webkitdirectory=""
                                     onChange={handleFolderChange}
                                 />
@@ -290,47 +337,67 @@ const Home: React.FC = () => {
                                 {loadingProjects ? (
                                     <div className="web-loading">
                                         <div className="spinner" />
-                                        <span>Loading projects...</span>
+                                        <span>Loading vessel data...</span>
                                     </div>
                                 ) : (
-                                    <div className="web-project-select">
-                                        <label className="web-label">
-                                            Select vessel project
-                                        </label>
-                                        {projects.length > 0 ? (
-                                            <div className="project-list">
-                                                {projects.map(p => (
-                                                    <div
-                                                        key={p.name}
-                                                        className={`project-list-item${selectedProject === p.name ? ' selected' : ''}${loadingProject ? ' disabled' : ''}`}
-                                                        onClick={() => { if (!loadingProject) { setSelectedProject(p.name); setError(''); } }}
-                                                    >
-                                                        <span className="project-list-name">{p.name}</span>
-                                                        {p.isOwned && (
-                                                            <button
-                                                                className={`project-delete-btn${deletingProject === p.name ? ' deleting' : ''}`}
-                                                                title="Delete this project"
-                                                                disabled={!!deletingProject || loadingProject}
-                                                                onClick={e => { e.stopPropagation(); handleDeleteProject(p.name); }}
-                                                            >
-                                                                {deletingProject === p.name ? '…' : (
-                                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                        <polyline points="3 6 5 6 21 6" />
-                                                                        <path d="M19 6l-1 14H6L5 6" />
-                                                                        <path d="M10 11v6M14 11v6" />
-                                                                        <path d="M9 6V4h6v2" />
-                                                                    </svg>
-                                                                )}
-                                                            </button>
-                                                        )}
+                                    <div className="web-project-select" ref={dropdownRef}>
+                                        <label className="web-label">Select vessel data</label>
+
+                                        {/* Dropdown header / trigger */}
+                                        <div
+                                            className={`project-dropdown-header${dropdownOpen ? ' open' : ''}`}
+                                            onClick={() => { if (!loadingProject) setDropdownOpen(v => !v); }}
+                                        >
+                                            <span className="project-dropdown-value">
+                                                {selectedProject || 'Vessel Data'}
+                                            </span>
+                                            <img
+                                                src={dropdownOpen ? upArrowIcon : downArrowIcon}
+                                                alt=""
+                                                className="project-dropdown-arrow"
+                                            />
+                                        </div>
+
+                                        {/* Dropdown list */}
+                                        {dropdownOpen && (
+                                            projects.length > 0 ? (
+                                                <div className="project-list">
+                                                    {projects.map(p => (
+                                                        <div
+                                                            key={p.name}
+                                                            className={`project-list-item${selectedProject === p.name ? ' selected' : ''}`}
+                                                            onClick={() => {
+                                                                setSelectedProject(p.name);
+                                                                setError('');
+                                                                setDropdownOpen(false);
+                                                            }}
+                                                        >
+                                                            <span className="project-list-name">{p.name}</span>
+                                                            {p.isOwned && (
+                                                                <button
+                                                                    className={`project-delete-btn${deletingProject === p.name ? ' deleting' : ''}`}
+                                                                    title="Delete vessel data"
+                                                                    disabled={!!deletingProject || loadingProject}
+                                                                    onClick={e => {
+                                                                        e.stopPropagation();
+                                                                        handleDeleteProject(p.name);
+                                                                    }}
+                                                                >
+                                                                    {deletingProject === p.name
+                                                                        ? <span className="project-delete-spinner" />
+                                                                        : <img src={deleteBlueIcon} alt="delete" width="14" height="16" />
+                                                                    }
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                !error && (
+                                                    <div className="project-list">
+                                                        <p className="web-no-projects">No vessel data found in storage.</p>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            !error && (
-                                                <p className="web-no-projects">
-                                                    No projects found in storage.
-                                                </p>
+                                                )
                                             )
                                         )}
                                     </div>
@@ -346,7 +413,7 @@ const Home: React.FC = () => {
                                     }}
                                 >
                                     <span className="upload-toggle-icon">{showUpload ? '▲' : '▼'}</span>
-                                    {showUpload ? 'Hide upload' : '+ Upload new project'}
+                                    {showUpload ? 'Hide upload' : 'Upload vessel data'}
                                 </button>
 
                                 {/* Collapsible upload section */}
@@ -354,7 +421,7 @@ const Home: React.FC = () => {
                                     <div className="upload-section">
                                         <div className="upload-field">
                                             <label className="web-label" htmlFor="upload-project-name">
-                                                Project name
+                                                Vessel data name
                                             </label>
                                             <input
                                                 id="upload-project-name"
@@ -372,7 +439,8 @@ const Home: React.FC = () => {
                                                 onClick={() => folderInputRef.current?.click()}
                                                 disabled={uploading}
                                             >
-                                                📁 Select Folder
+                                                <img src={folderIcon} alt="" className="btn-icon" />
+                                                Select Folder
                                             </button>
                                             <span className="upload-pick-label">
                                                 {folderFiles.length > 0
@@ -388,7 +456,8 @@ const Home: React.FC = () => {
                                                     onClick={() => ctlInputRef.current?.click()}
                                                     disabled={uploading}
                                                 >
-                                                    📄 Select Control File
+                                                    <img src={fileIcon} alt="" className="btn-icon" />
+                                                    Select Control File
                                                 </button>
                                                 <span className="upload-pick-label">
                                                     {controlFile ? controlFile.name : 'No .ctl file selected'}
@@ -417,7 +486,7 @@ const Home: React.FC = () => {
                                                 (folderFiles.length === 0 && !controlFile)
                                             }
                                         >
-                                            {uploading ? 'Uploading...' : 'Upload to Azure'}
+                                            {uploading ? 'Uploading...' : 'Upload'}
                                         </button>
                                     </div>
                                 )}
@@ -431,7 +500,7 @@ const Home: React.FC = () => {
                                 {loadingProject && (
                                     <div className="web-loading">
                                         <div className="spinner" />
-                                        <span>Loading project data...</span>
+                                        <span>Loading vessel data...</span>
                                     </div>
                                 )}
 
@@ -441,7 +510,7 @@ const Home: React.FC = () => {
                                         onClick={handleLoadProject}
                                         disabled={!selectedProject || loadingProjects || loadingProject}
                                     >
-                                        {loadingProject ? 'Loading...' : 'Load Project'}
+                                        {loadingProject ? 'Loading...' : 'Load Vessel Data'}
                                     </button>
                                 </div>
                             </>
