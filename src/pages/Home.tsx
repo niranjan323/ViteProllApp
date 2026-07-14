@@ -82,7 +82,6 @@ const Home: React.FC = () => {
         try {
             const list = await ApiFileSystemService.listProjects(userId || undefined);
             setProjects(list);
-            if (list.length > 0 && !selectedProject) setSelectedProject(list[0].name);
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
             setError(msg);
@@ -341,14 +340,16 @@ const Home: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className="web-project-select" ref={dropdownRef}>
-                                        <label className="web-label">Select vessel data</label>
+                                        {/* Dropdown with floating label on border */}
+                                        <div className="project-dropdown-wrapper">
+                                        <span className="project-dropdown-floating-label">Select vessel data</span>
 
                                         {/* Dropdown header / trigger */}
                                         <div
                                             className={`project-dropdown-header${dropdownOpen ? ' open' : ''}`}
                                             onClick={() => { if (!loadingProject) setDropdownOpen(v => !v); }}
                                         >
-                                            <span className="project-dropdown-value">
+                                            <span className={`project-dropdown-value${!selectedProject ? ' placeholder' : ''}`}>
                                                 {selectedProject || 'Vessel Data'}
                                             </span>
                                             <img
@@ -400,6 +401,7 @@ const Home: React.FC = () => {
                                                 )
                                             )
                                         )}
+                                        </div>
                                     </div>
                                 )}
 

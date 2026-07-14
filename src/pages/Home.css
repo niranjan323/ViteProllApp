@@ -309,6 +309,29 @@
 
 /* ── Custom project dropdown ────────────────────────────────────── */
 
+.project-dropdown-wrapper {
+    position: relative;
+    margin-top: 6px;
+}
+
+.project-dropdown-floating-label {
+    position: absolute;
+    top: -9px;
+    left: 10px;
+    background: white;
+    padding: 0 4px;
+    font-size: 0.72rem;
+    color: #1473E6;
+    font-weight: 500;
+    z-index: 1;
+    pointer-events: none;
+    line-height: 1;
+}
+
+.project-dropdown-value.placeholder {
+    color: #aaa;
+}
+
 .project-dropdown-header {
     width: 100%;
     padding: 0.55rem 0.75rem;
