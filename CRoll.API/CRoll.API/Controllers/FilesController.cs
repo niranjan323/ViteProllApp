@@ -18,8 +18,9 @@ namespace CRoll.API.Controllers
 
         /// <summary>
         /// List vessel project folder names visible to the requesting user.
-        /// Projects with no owner marker are visible to everyone (default/admin projects).
-        /// Projects with an owner marker (_owner_{userId}) are only visible to that user.
+        /// User-uploaded projects are stored under "users/{userId}/{projectName}/" and
+        /// are private to that user. Admin/shared projects live at the root "{projectName}/"
+        /// and are visible to everyone.
         /// </summary>
         [HttpGet("projects")]
         public async Task<IActionResult> GetProjects([FromQuery] string? userId = null)
@@ -27,42 +28,33 @@ namespace CRoll.API.Controllers
             try
             {
                 var allBlobs = await _blobService.ListBlobsAsync(string.Empty);
+                var resultList = new List<(string name, bool isOwned)>();
 
-                // Build owner map (projectName → ownerId) and the set of projects the
-                // requesting user has hidden (soft-deleted) from marker blobs.
-                var ownerMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                var hiddenForUser = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var blob in allBlobs)
+                // User's private projects: blobs stored under "users/{userId}/{projectName}/"
+                if (!string.IsNullOrEmpty(userId))
                 {
-                    var parts = blob.Split('/');
-                    if (parts.Length < 2) continue;
-                    if (parts[1].StartsWith("_owner_"))
-                        ownerMap[parts[0]] = parts[1]["_owner_".Length..];
-                    else if (parts[1].StartsWith("_hidden_")
-                             && !string.IsNullOrEmpty(userId)
-                             && parts[1]["_hidden_".Length..] == userId)
-                        hiddenForUser.Add(parts[0]);
+                    var userPrefix = $"users/{userId}/";
+                    var userNames = allBlobs
+                        .Where(b => b.StartsWith(userPrefix))
+                        .Select(b => b[userPrefix.Length..].Split('/')[0])
+                        .Where(p => !string.IsNullOrEmpty(p))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(p => p);
+                    resultList.AddRange(userNames.Select(n => (n, true)));
                 }
 
-                var result = allBlobs
-                    .Where(b => !b.Contains("/_owner_") && !b.Contains("/_hidden_"))
-                    .Select(b => b.Split('/')[0])
-                    .Distinct()
-                    .Where(p => string.IsNullOrEmpty(userId)
-                                || !ownerMap.ContainsKey(p)
-                                || ownerMap[p] == userId)
-                    .Where(p => !hiddenForUser.Contains(p))
-                    .OrderBy(p => p)
-                    .Select(p => new
-                    {
-                        name = p,
-                        isOwned = !string.IsNullOrEmpty(userId)
-                                  && ownerMap.ContainsKey(p)
-                                  && ownerMap[p] == userId,
-                    })
-                    .ToList();
+                var ownedNames = new HashSet<string>(resultList.Select(r => r.name), StringComparer.OrdinalIgnoreCase);
 
-                return Ok(result);
+                // Shared/admin projects: root-level blobs, not under "users/", no marker blobs
+                var sharedNames = allBlobs
+                    .Where(b => !b.StartsWith("users/") && !b.Contains("/_owner_") && !b.Contains("/_hidden_"))
+                    .Select(b => b.Split('/')[0])
+                    .Where(p => !string.IsNullOrEmpty(p) && !ownedNames.Contains(p))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(p => p);
+                resultList.AddRange(sharedNames.Select(n => (n, false)));
+
+                return Ok(resultList.Select(r => new { name = r.name, isOwned = r.isOwned }));
             }
             catch (Exception ex)
             {
@@ -72,9 +64,8 @@ namespace CRoll.API.Controllers
         }
 
         /// <summary>
-        /// Soft-delete a project for the requesting user only. Writes a
-        /// {projectName}/_hidden_{userId} marker so the project is filtered out of that
-        /// user's list via GetProjects. The underlying blobs remain intact for other users.
+        /// Permanently delete all blobs in "users/{userId}/{projectName}/".
+        /// Only works for user-owned projects; shared/admin projects cannot be deleted via this endpoint.
         /// </summary>
         [HttpDelete("projects/{projectName}")]
         public async Task<IActionResult> DeleteProject(string projectName, [FromQuery] string userId)
@@ -84,11 +75,15 @@ namespace CRoll.API.Controllers
 
             try
             {
-                var hiddenMarker = $"{projectName}/_hidden_{userId}";
-                using var content = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(userId));
-                await _blobService.UploadAsync(hiddenMarker, content, "text/plain");
+                var blobPrefix = $"users/{userId}/{projectName}/";
+                var blobs = await _blobService.ListBlobsAsync(blobPrefix);
+                if (!blobs.Any())
+                    return NotFound($"Project '{projectName}' not found for this user.");
 
-                _logger.LogInformation("Project {Project} hidden for user {UserId}", projectName, userId);
+                foreach (var blob in blobs)
+                    await _blobService.DeleteAsync(blob);
+
+                _logger.LogInformation("Deleted project {Project} for user {UserId}", projectName, userId);
                 return NoContent();
             }
             catch (Exception ex)
@@ -100,11 +95,14 @@ namespace CRoll.API.Controllers
 
         /// <summary>List all blob paths inside a project (for folder tree view).</summary>
         [HttpGet("projects/{projectName}/tree")]
-        public async Task<IActionResult> GetProjectTree(string projectName)
+        public async Task<IActionResult> GetProjectTree(string projectName, [FromQuery] string? userId = null)
         {
             try
             {
-                var blobs = await _blobService.ListBlobsAsync($"{projectName}/");
+                var blobPrefix = !string.IsNullOrEmpty(userId)
+                    ? $"users/{userId}/{projectName}/"
+                    : $"{projectName}/";
+                var blobs = await _blobService.ListBlobsAsync(blobPrefix);
                 return Ok(blobs);
             }
             catch (Exception ex)
@@ -144,14 +142,17 @@ namespace CRoll.API.Controllers
         /// Example: GET /api/files/projects/VesselAlpha/file?path=polars/Draft=15.0/GM=1.5/v.bpolar
         /// </summary>
         [HttpGet("projects/{projectName}/file")]
-        public async Task<IActionResult> GetFile(string projectName, [FromQuery] string path)
+        public async Task<IActionResult> GetFile(string projectName, [FromQuery] string path, [FromQuery] string? userId = null)
         {
             if (string.IsNullOrWhiteSpace(path))
                 return BadRequest("Query param 'path' is required.");
 
             try
             {
-                var blobName = $"{projectName}/{path}";
+                var blobPrefix = !string.IsNullOrEmpty(userId)
+                    ? $"users/{userId}/{projectName}"
+                    : projectName;
+                var blobName = $"{blobPrefix}/{path}";
                 if (!await _blobService.ExistsAsync(blobName))
                     return NotFound($"File not found: {blobName}");
 
@@ -167,9 +168,9 @@ namespace CRoll.API.Controllers
 
         /// <summary>
         /// Upload one or more files into a project folder.
-        /// Accepts multipart/form-data. Each file's blob path = {projectName}/{file.FileName}.
-        /// Optional ownerId: writes a {projectName}/_owner_{ownerId} marker blob so the project
-        /// is only visible to that user via GetProjects.
+        /// If ownerId is provided, files are stored under "users/{ownerId}/{projectName}/" —
+        /// private to that user and isolated from other users' same-named projects.
+        /// Without ownerId, files go to the shared root "{projectName}/".
         /// </summary>
         [HttpPost("projects/{projectName}/upload")]
         [RequestSizeLimit(1024 * 1024 * 1024)]
@@ -181,25 +182,15 @@ namespace CRoll.API.Controllers
 
             try
             {
+                var blobPrefix = !string.IsNullOrEmpty(ownerId)
+                    ? $"users/{ownerId}/{projectName}"
+                    : projectName;
+
                 var uploaded = new List<string>();
-
-                // Write ownership marker so this project is only visible to ownerId
-                if (!string.IsNullOrEmpty(ownerId))
-                {
-                    var markerBlob = $"{projectName}/_owner_{ownerId}";
-                    using var empty = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ownerId));
-                    await _blobService.UploadAsync(markerBlob, empty, "text/plain");
-
-                    // Un-hide the project for this user if they had previously soft-deleted it
-                    var hiddenMarker = $"{projectName}/_hidden_{ownerId}";
-                    if (await _blobService.ExistsAsync(hiddenMarker))
-                        await _blobService.DeleteAsync(hiddenMarker);
-                }
-
                 foreach (var file in files)
                 {
                     var relativePath = file.FileName.Replace("\\", "/");
-                    var blobName = $"{projectName}/{relativePath}";
+                    var blobName = $"{blobPrefix}/{relativePath}";
                     await using var stream = file.OpenReadStream();
                     await _blobService.UploadAsync(blobName, stream, file.ContentType ?? "application/octet-stream");
                     uploaded.Add(blobName);

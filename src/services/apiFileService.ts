@@ -17,6 +17,8 @@ export interface ProjectInfo {
  */
 export class ApiFileSystemService implements IFileSystemService {
   private basePath: string = '';
+  private userId: string = '';
+  private isOwned: boolean = false;
   private cachedTree: string[] | null = null;
 
   setBasePath(basePath: string): void {
@@ -24,15 +26,37 @@ export class ApiFileSystemService implements IFileSystemService {
     this.cachedTree = null;
   }
 
+  setUserId(userId: string): void {
+    this.userId = userId;
+    this.cachedTree = null;
+  }
+
+  setIsOwned(isOwned: boolean): void {
+    this.isOwned = isOwned;
+    this.cachedTree = null;
+  }
+
   getBasePath(): string {
     return this.basePath;
+  }
+
+  /** Full blob prefix: "users/{userId}/{project}" for owned, "{project}" for shared. */
+  private get fullBlobPrefix(): string {
+    return this.isOwned && this.userId
+      ? `users/${this.userId}/${this.basePath}`
+      : this.basePath;
+  }
+
+  /** Query string fragment to scope file operations to the correct user path. */
+  private get userQuery(): string {
+    return this.isOwned && this.userId ? `&userId=${encodeURIComponent(this.userId)}` : '';
   }
 
   // ─── FILE READ ──────────────────────────────────────────────────────────────
 
   async readBinaryFile(filePath: string): Promise<ArrayBuffer> {
     const path = this.toRelativePath(filePath);
-    const url = `${API_BASE}/api/files/projects/${encodeURIComponent(this.basePath)}/file?path=${encodeURIComponent(path)}`;
+    const url = `${API_BASE}/api/files/projects/${encodeURIComponent(this.basePath)}/file?path=${encodeURIComponent(path)}${this.userQuery}`;
     const response = await fetch(url);
     if (!response.ok)
       throw new Error(`Failed to read binary file '${filePath}': ${response.status} ${response.statusText}`);
@@ -41,7 +65,7 @@ export class ApiFileSystemService implements IFileSystemService {
 
   async readTextFile(filePath: string): Promise<string> {
     const path = this.toRelativePath(filePath);
-    const url = `${API_BASE}/api/files/projects/${encodeURIComponent(this.basePath)}/file?path=${encodeURIComponent(path)}`;
+    const url = `${API_BASE}/api/files/projects/${encodeURIComponent(this.basePath)}/file?path=${encodeURIComponent(path)}${this.userQuery}`;
     const response = await fetch(url);
     if (!response.ok)
       throw new Error(`Failed to read text file '${filePath}': ${response.status} ${response.statusText}`);
@@ -159,6 +183,7 @@ export class ApiFileSystemService implements IFileSystemService {
 
     if (!response.ok) {
       const text = await response.text();
+      if (response.status === 409) throw new Error(text);
       throw new Error(`Upload failed: ${response.status} ${text}`);
     }
   }
@@ -168,11 +193,11 @@ export class ApiFileSystemService implements IFileSystemService {
   private async getTree(): Promise<string[]> {
     if (this.cachedTree) return this.cachedTree;
 
+    const uq = this.userQuery ? this.userQuery.slice(1) : ''; // remove leading '&'
+    const url = `${API_BASE}/api/files/projects/${encodeURIComponent(this.basePath)}/tree${uq ? '?' + uq : ''}`;
     let response: Response;
     try {
-      response = await fetch(
-        `${API_BASE}/api/files/projects/${encodeURIComponent(this.basePath)}/tree`
-      );
+      response = await fetch(url);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       throw new Error(`Network error fetching project tree: ${msg}`);
@@ -182,10 +207,9 @@ export class ApiFileSystemService implements IFileSystemService {
       throw new Error(`Failed to fetch project tree: ${response.status} ${response.statusText}`);
 
     const blobs: string[] = await response.json();
-    // Strip the project-name prefix so all paths are relative to the project root
-    this.cachedTree = blobs.map(b =>
-      b.startsWith(this.basePath + '/') ? b.slice(this.basePath.length + 1) : b
-    );
+    // Strip the full blob prefix (e.g. "users/{userId}/{project}/" or "{project}/")
+    const prefix = this.fullBlobPrefix + '/';
+    this.cachedTree = blobs.map(b => b.startsWith(prefix) ? b.slice(prefix.length) : b);
     return this.cachedTree;
   }
 
