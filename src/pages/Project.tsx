@@ -65,6 +65,7 @@ function extractSavedCaseReportData(item: SavedCase) {
         fittedParams: item.fittedParams ?? null,
         chartMode: (item.chartMode ?? 'continuous') as 'continuous' | 'traffic-light',
         chartOrientation: (item.chartOrientation ?? 'north-up') as 'north-up' | 'heads-up',
+        artMode: (item.artMode ?? 'standard') as 'standard' | 'art',
     };
 }
 
@@ -506,6 +507,7 @@ const Project: React.FC = () => {
                 fittedParams: caseItem.fittedParams ?? null,
                 chartMode: caseItem.chartMode ?? 'continuous',
                 chartOrientation: caseItem.chartOrientation ?? 'north-up',
+                artMode: (caseItem.artMode ?? 'standard') as 'standard' | 'art',
             };
         }
         return {
@@ -524,8 +526,9 @@ const Project: React.FC = () => {
             fittedParams,
             chartMode,
             chartOrientation: chartDirection,
+            artMode,
         };
-    }, [caseId, userInputData, wavePeriodType, displayedWavePeriod, fittedParams, chartMode, chartDirection]);
+    }, [caseId, userInputData, wavePeriodType, displayedWavePeriod, fittedParams, chartMode, chartDirection, artMode]);
 
     const handleGenerateReport = () => {
         if (visibleSavedCases.length === 0) {
@@ -617,6 +620,9 @@ const Project: React.FC = () => {
             y += 8;
 
             // Table of parameters
+            const artStatusValue = artStatus === 0
+                ? 'Not Installed'
+                : data.artMode === 'art' ? 'On' : 'Off';
             const rows = [
                 ['Draft Aft Peak', String(data.draftAft), '[m]'],
                 ['Draft Fore Peak', String(data.draftFore), '[m]'],
@@ -624,6 +630,7 @@ const Project: React.FC = () => {
                 ['Heading', String(data.heading), '[degree]'],
                 ['Speed', String(data.speed), '[kn]'],
                 ['Maximum Allowed Roll Angle', String(data.maxRoll), '[degree]'],
+                ['Anti-Rolling Device Status', artStatusValue, ''],
                 ['Mean Wave Direction', String(data.waveDirection), '[degree]'],
                 ['Significant Wave Height, Hs', String(data.hs), '[m]'],
                 [data.wavePeriodLabel, String(data.wavePeriodValue), '[s]'],
@@ -710,7 +717,7 @@ const Project: React.FC = () => {
         });
 
         return doc;
-    }, [vesselInfo]);
+    }, [vesselInfo, artStatus]);
 
     const handleDownloadReport = useCallback(async () => {
         let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];
@@ -764,10 +771,24 @@ const Project: React.FC = () => {
         : webProjectId;
 
     // Only show cases that belong to the currently selected project
-    const visibleSavedCases = useMemo(
-        () => savedCases.filter(c => c.parameters.dataFilePath === projectKey),
-        [savedCases, projectKey]
-    );
+    const visibleSavedCases = useMemo(() => {
+        if (isElectronMode) {
+            return savedCases.filter(c => {
+                const dp = c.parameters.dataFilePath;
+                // Exact match (new saves)
+                if (projectKey && dp === projectKey) return true;
+                // Backward compat: old cases migrated with empty data_file_path
+                if (!dp) return true;
+                // Backward compat: old saves used CTL path inside the folder
+                if (electronFolder && (
+                    dp.startsWith(electronFolder + '/') ||
+                    dp.startsWith(electronFolder + '\\')
+                )) return true;
+                return false;
+            });
+        }
+        return savedCases.filter(c => c.parameters.dataFilePath === projectKey);
+    }, [savedCases, projectKey, isElectronMode, electronFolder]);
 
     // Load polar data when parameters change
     useEffect(() => {
@@ -1541,6 +1562,13 @@ const Project: React.FC = () => {
                                             <span className="report-label">Maximum Allowed Roll Angle</span>
                                             <span className="report-value highlight">{data.maxRoll}</span>
                                             <span className="report-unit">[degree]</span>
+                                        </div>
+                                        <div className="report-row">
+                                            <span className="report-label">Anti-Rolling Device Status</span>
+                                            <span className="report-value highlight">
+                                                {artStatus === 0 ? 'Not Installed' : data.artMode === 'art' ? 'On' : 'Off'}
+                                            </span>
+                                            <span className="report-unit" />
                                         </div>
                                         <div className="report-row">
                                             <span className="report-label">Mean Wave Direction</span>

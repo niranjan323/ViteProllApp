@@ -49,12 +49,7 @@ function initDatabase(): void {
   const dbPath = path.join(dbDir, 'croll_cases.db');
 
   db = new Database(dbPath);
-  db.pragma('busy_timeout = 3000'); // wait up to 3s on lock before failing
-  try {
-    db.pragma('journal_mode = WAL'); // better performance for concurrent reads
-  } catch {
-    // WAL mode unavailable (stale lock files or OS restriction) — continue in default mode
-  }
+  db.pragma('journal_mode = WAL'); // better performance for concurrent reads
 
   // Schema version tracking for migrations
   db.exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)`);
@@ -107,9 +102,14 @@ function initDatabase(): void {
     }
     db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(1);
   }
-
   if (schemaVersion < 2) {
-    db.exec(`ALTER TABLE cases ADD COLUMN art_mode TEXT`);
+    // NEW_CASES_DDL already includes art_mode, so only add it for pre-existing tables
+    // that predate this column. Guard makes the migration idempotent.
+    const hasArtMode = (db.prepare(`PRAGMA table_info(cases)`).all() as { name: string }[])
+      .some(col => col.name === 'art_mode');
+    if (!hasArtMode) {
+      db.exec(`ALTER TABLE cases ADD COLUMN art_mode TEXT`);
+    }
     db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(2);
   }
 }
@@ -192,7 +192,7 @@ async function applyWatermarkToPdf(pdfBytes: Buffer, username: string, hostname:
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── ABS License Check ───────────────────────────────────────────────────────
-const PRODUCT_NAME = 'PROLLDIG261UAT';
+const PRODUCT_NAME = 'CROLL261UAT';
 const MAJOR_VER = 1;
 const MINOR_VER = 0;
 
@@ -269,21 +269,7 @@ function createWindow() {
   });
 }
 
-// Prevent multiple instances — a second launch focuses the existing window instead
-const gotSingleLock = app.requestSingleInstanceLock();
-if (!gotSingleLock) {
-  app.quit();
-}
-
-app.on('second-instance', () => {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
-  }
-});
-
 app.on('ready', () => {
-  if (!gotSingleLock) return;
   if (!checkLicense()) {
     app.quit();
     return;
@@ -627,7 +613,7 @@ ipcMain.handle('db-save-case', (_event, caseData: {
         draft_aft, draft_fore, gm, heading, speed, max_roll,
         hs, tz, wave_direction, data_file_path,
         fitted_draft, fitted_gm, fitted_hs, fitted_tz,
-        chart_mode, chart_orientation, chart_image, art_mode, synced
+        chart_mode, chart_orientation, chart_image, art_mode,synced
       ) VALUES (
         @id, @created_at, @os_username, @machine_name, @color,
         @draft_aft, @draft_fore, @gm, @heading, @speed, @max_roll,

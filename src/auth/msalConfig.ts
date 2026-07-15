@@ -49,7 +49,7 @@ const azureAdConfig: Configuration = {
 };
 
 const azureAdLoginRequest: RedirectRequest = {
-    scopes: ['openid', 'profile', 'email', `api://${azureAdClientId}/CRollNonprod`],
+    scopes: ['openid', 'profile', 'email', `api://${azureAdClientId}/access_as_user`],
 };
 
 /*  Azure B2C */
