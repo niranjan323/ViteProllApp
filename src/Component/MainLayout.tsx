@@ -3,19 +3,16 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import './MainLayout.css';
-import { useElectron } from '../context/ElectronContext';
 
 const MainLayout: React.FC = () =>
 {
-    const { isElectronMode } = useElectron();
-
     return (
         <div className="main-wrapper">
             {/* Header Component */}
             <Header />
 
-            {/* In web mode, content-area scrolls at page level */}
-            <main className={`content-area${isElectronMode ? '' : ' web-scroll'}`}>
+            {/* Main Content Area - Router Outlet will render pages here */}
+            <main className="content-area">
                 <Outlet />
                 <footer className="app-footer">
                     <strong>&copy; 2026 American Bureau of Shipping. All rights reserved.</strong>

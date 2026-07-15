@@ -56,7 +56,6 @@
     background: white;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    overflow: hidden;
     width: 100%;
     max-width: 540px;
 }
@@ -64,8 +63,10 @@
 /* Card Tabs */
 .card-tabs {
     display: flex;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 3px solid #2196f3;
     background: #f9f9f9;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
 }
 
 .tab {
@@ -78,7 +79,6 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    border-bottom: 3px solid transparent;
     position: relative;
 }
 
@@ -88,7 +88,6 @@
 
 .tab.active {
     color: #2196f3;
-    border-bottom: 3px solid #2196f3;
 }
 
 /* Card Body */
@@ -237,6 +236,10 @@
 
 /* Select Button (Electron folder picker) */
 .select-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
     padding: 0.55rem 1rem;
     background: white;
     border: 1px solid #ddd;
@@ -296,12 +299,41 @@
 }
 
 .web-project-select {
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
+    position: relative;
+    display: block;
+    margin-top: 0.3rem;
 }
 
+/* Resting state: label sits inside the field like a placeholder */
 .web-label {
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    padding: 0 0.35rem;
+    background: transparent;
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: #999;
+    pointer-events: none;
+    transition: top 0.15s ease, font-size 0.15s ease, color 0.15s ease;
+}
+
+/* Floated state: hover, open, or a value selected */
+.web-project-select:hover .web-label,
+.web-project-select.open .web-label,
+.web-project-select.has-value .web-label {
+    top: -0.55rem;
+    transform: none;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #1473E6;
+    background: white;
+}
+
+.upload-label {
+    display: block;
     font-size: 0.875rem;
     color: #555;
     font-weight: 500;
@@ -309,33 +341,10 @@
 
 /* ── Custom project dropdown ────────────────────────────────────── */
 
-.project-dropdown-wrapper {
-    position: relative;
-    margin-top: 6px;
-}
-
-.project-dropdown-floating-label {
-    position: absolute;
-    top: -9px;
-    left: 10px;
-    background: white;
-    padding: 0 4px;
-    font-size: 0.72rem;
-    color: #1473E6;
-    font-weight: 500;
-    z-index: 1;
-    pointer-events: none;
-    line-height: 1;
-}
-
-.project-dropdown-value.placeholder {
-    color: #aaa;
-}
-
 .project-dropdown-header {
     width: 100%;
     padding: 0.55rem 0.75rem;
-    border: 1.5px solid #1473E6;
+    border: 1.5px solid #d0d5dd;
     border-radius: 4px;
     font-size: 0.95rem;
     font-family: inherit;
@@ -350,15 +359,18 @@
     user-select: none;
 }
 
-.project-dropdown-header:hover {
+.web-project-select:hover .project-dropdown-header,
+.web-project-select.open .project-dropdown-header,
+.web-project-select.has-value .project-dropdown-header {
     border-color: #1473E6;
+}
+
+.project-dropdown-header:hover {
     box-shadow: 0 0 0 2px rgba(20, 115, 230, 0.12);
 }
 
 .project-dropdown-header.open {
     border-color: #1473E6;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
     box-shadow: 0 0 0 2px rgba(20, 115, 230, 0.12);
 }
 
@@ -370,11 +382,30 @@
     color: #333;
 }
 
+/* Placeholder "Vessel Data" only appears once the label has floated up */
+.project-dropdown-value.placeholder {
+    color: #999;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.web-project-select:hover .project-dropdown-value.placeholder,
+.web-project-select.open .project-dropdown-value.placeholder {
+    opacity: 1;
+}
+
 .project-dropdown-arrow {
-    width: 12px;
-    height: 12px;
+    width: 0;
+    height: 0;
     flex-shrink: 0;
-    opacity: 0.7;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #666;
+    transition: transform 0.15s ease;
+}
+
+.project-dropdown-header.open .project-dropdown-arrow {
+    transform: rotate(180deg);
 }
 
 .web-no-projects {
@@ -388,14 +419,38 @@
 /* ── Project custom list ────────────────────────────────────────── */
 
 .project-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 20;
     width: 100%;
-    border: 1.5px solid #1473E6;
-    border-top: none;
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
-    max-height: 180px;
+    border: 1px solid #d7e6fb;
+    border-radius: 6px;
+    max-height: 200px;
     overflow-y: auto;
     background: white;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+    scrollbar-width: thin;
+    scrollbar-color: #b7c9e0 transparent;
+}
+
+.project-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.project-list::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 4px 0;
+}
+
+.project-list::-webkit-scrollbar-thumb {
+    background: #b7c9e0;
+    border-radius: 4px;
+}
+
+.project-list::-webkit-scrollbar-thumb:hover {
+    background: #8fa8c8;
 }
 
 .project-list-item {
@@ -404,7 +459,6 @@
     justify-content: space-between;
     padding: 0.5rem 0.75rem;
     cursor: pointer;
-    border-bottom: 1px solid #f0f0f0;
     transition: background 0.15s;
     gap: 0.5rem;
 }
@@ -498,7 +552,6 @@
     width: 16px;
     height: auto;
     vertical-align: middle;
-    margin-right: 4px;
 }
 
 /* ── Delete confirm modal ───────────────────────────────────────── */

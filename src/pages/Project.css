@@ -41,10 +41,18 @@
     cursor: pointer;
     transition: all 0.2s ease;
     border-bottom: 3px solid transparent;
+    outline: none;
+}
+
+.project-tab:focus,
+.project-tab:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .project-tab:hover {
     color: #000;
+    border-color: transparent;
 }
 
 .project-tab.active {
@@ -52,6 +60,10 @@
     font-weight: 600;
     border-bottom: 3px solid #1473E6;
     border-radius: 0;
+}
+
+.project-tab.active:hover {
+    border-bottom-color: #1473E6;
 }
 
 /* Sidebar Content */
@@ -3023,28 +3035,40 @@
     height: 28px;
     border-radius: 14px;
     border: none;
-    background: #ccc;
+    background: #e2e2e2;
     cursor: pointer;
     padding: 0 6px;
     transition: background 0.2s;
     flex-shrink: 0;
     position: relative;
+    flex-direction: row-reverse;
+    outline: none;
+}
+
+.art-toggle:focus,
+.art-toggle:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .art-toggle--on {
     background: #1473E6;
-    flex-direction: row-reverse;
+    flex-direction: row;
 }
 
 /* "On" / "Off" label inside the track */
 .art-toggle-label {
     font-size: 0.72rem;
     font-weight: 600;
-    color: #fff;
+    color: #8a8a8a;
     user-select: none;
     line-height: 1;
     min-width: 18px;
     text-align: center;
+}
+
+.art-toggle--on .art-toggle-label {
+    color: #fff;
 }
 
 /* White sliding circle */
@@ -3055,4 +3079,21 @@
     background: #fff;
     flex-shrink: 0;
     box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+/* Dark mode: "Off" state matches the dark rows above (dark bg, white text) */
+[data-theme="dark"] .art-toggle {
+    background: #2a3a4a;
+}
+
+[data-theme="dark"] .art-toggle-label {
+    color: #F5F5F5;
+}
+
+[data-theme="dark"] .art-toggle--on {
+    background: #1473E6;
+}
+
+[data-theme="dark"] .art-toggle--on .art-toggle-label {
+    color: #fff;
 }

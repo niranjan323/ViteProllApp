@@ -940,30 +940,28 @@ const Project: React.FC = () => {
                                             <div className="input-range">{item.range}</div>
                                         </div>
                                     ))}
+
+                                    {/* Anti-Rolling Device toggle — only shown when CTL declares artStatus=1 */}
+                                    {artStatus === 1 && (
+                                        <div className="input-row-wrapper">
+                                            <div className="input-row art-toggle-row">
+                                                <label className="input-label">
+                                                    <span className="input-label-text">Anti-Rolling Device Status</span>
+                                                </label>
+                                                <button
+                                                    className={`art-toggle${artMode === 'art' ? ' art-toggle--on' : ''}`}
+                                                    onClick={() => setArtMode(artMode === 'art' ? 'standard' : 'art')}
+                                                    role="switch"
+                                                    aria-checked={artMode === 'art'}
+                                                >
+                                                    <span className="art-toggle-label">{artMode === 'art' ? 'On' : 'Off'}</span>
+                                                    <span className="art-toggle-thumb" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-
-                            {/* Anti-Rolling Device toggle — only shown when CTL declares artStatus=1 */}
-                            {artStatus === 1 && (
-                                <div className="section border-top art-section">
-                                    <div className="input-row-wrapper">
-                                        <div className="input-row art-toggle-row">
-                                            <label className="input-label">
-                                                <span className="input-label-text">Anti-Rolling Tank Status</span>
-                                            </label>
-                                            <button
-                                                className={`art-toggle${artMode === 'art' ? ' art-toggle--on' : ''}`}
-                                                onClick={() => setArtMode(artMode === 'art' ? 'standard' : 'art')}
-                                                role="switch"
-                                                aria-checked={artMode === 'art'}
-                                            >
-                                                <span className="art-toggle-label">{artMode === 'art' ? 'On' : 'Off'}</span>
-                                                <span className="art-toggle-thumb" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
                             <div className="section border-top" >
                                 <h3 className="section-title" style={{ paddingTop: "9px" }}>Sea State</h3>
@@ -1177,7 +1175,7 @@ const Project: React.FC = () => {
                 </div>
             </div>
 
-            <div className="project-main">
+            <div className={`project-main${isElectronMode ? '' : ' web-scroll'}`}>
                 <div className="plot-section">
                     <div className="plot-canvas">
                         {allParamsValid && polarData.rollMatrix && polarData.speeds && polarData.headings ? (

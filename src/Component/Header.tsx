@@ -30,7 +30,10 @@ function WebUserSection() {
 
     const handleLogout = () => {
         setShowMenu(false);
-        instance.logoutPopup({ postLogoutRedirectUri: window.location.origin });
+        instance.logoutRedirect({
+            account: instance.getActiveAccount() ?? accounts[0],
+            postLogoutRedirectUri: window.location.origin,
+        });
     };
 
     return (
@@ -61,7 +64,7 @@ function WebUserSection() {
 const Header = () => {
     const [showAbout, setShowAbout] = useState(false);
     const handleOpenUserGuide = () => {
-        const documentUrl = '/ABS Eagle CRoll User Guide v2026.1.pdf';
+        const documentUrl = '/ABS Eagle CRoll User Guide v2026.1.1.pdf';
         
         if (isElectron) {
             // Open PDF in a new independent Electron window
@@ -69,6 +72,16 @@ const Header = () => {
         } else {
             // For web/browser, use window.open
             window.open(documentUrl, '_blank');
+        }
+    };
+
+    const handleOpenWebsite = (url: string) => {
+        if (isElectron) {
+            // Open URL in default browser via Electron API
+            window.electronAPI?.openURL?.(url);
+        } else {
+            // For web/browser, use window.open
+            window.open(url, '_blank');
         }
     };
 
@@ -104,7 +117,6 @@ const Header = () => {
             <div className="app-header__right">
                 {/* Logged-in user info — web only */}
                 {!isElectron && <WebUserSection />}
-
                 <div className="about-anchor">
                 <img 
                     src={aboutIcon}
@@ -135,7 +147,7 @@ const Header = () => {
                                 </div>
                                 <div className="about-row">
                                     <img src={buildIcon} alt="" className="about-row-icon" />
-                                    <span className="about-detail">Build number: 20260415</span>
+                                    <span className="about-detail">Build number: 20260515</span>
                                 </div>
                                 <div className="about-row">
                                     <img src={dateIcon} alt="" className="about-row-icon" />
@@ -151,7 +163,7 @@ const Header = () => {
                                 </div>
                                 <div className="about-row">
                                     <img src={websiteIcon} alt="" className="about-row-icon" />
-                                    <p className="about-detail">Website:  <a href="https://www.eagle.org" target="_blank" rel="noreferrer" className="about-link">www.eagle.org</a></p>
+                                    <p className="about-detail">Website:  <a href="#" onClick={(e) => { e.preventDefault(); handleOpenWebsite('https://www.eagle.org'); }} className="about-link">www.eagle.org</a></p>
                                 </div>
                             </div>
 
