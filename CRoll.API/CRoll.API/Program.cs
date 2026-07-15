@@ -53,8 +53,6 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-// CRollReactApp can be a comma-separated list so DEV + UAT both work without code changes.
-// App Service env var: CRollReactApp = https://app-ngea-cr-dev-001.azurewebsites.net
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>

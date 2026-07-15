@@ -28,22 +28,30 @@ namespace CRoll.API.Controllers
             {
                 var allBlobs = await _blobService.ListBlobsAsync(string.Empty);
 
-                // Build owner map from _owner_ marker blobs: projectName → ownerId
+                // Build owner map (projectName → ownerId) and the set of projects the
+                // requesting user has hidden (soft-deleted) from marker blobs.
                 var ownerMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var hiddenForUser = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var blob in allBlobs)
                 {
                     var parts = blob.Split('/');
-                    if (parts.Length >= 2 && parts[1].StartsWith("_owner_"))
+                    if (parts.Length < 2) continue;
+                    if (parts[1].StartsWith("_owner_"))
                         ownerMap[parts[0]] = parts[1]["_owner_".Length..];
+                    else if (parts[1].StartsWith("_hidden_")
+                             && !string.IsNullOrEmpty(userId)
+                             && parts[1]["_hidden_".Length..] == userId)
+                        hiddenForUser.Add(parts[0]);
                 }
 
                 var result = allBlobs
-                    .Where(b => !b.Contains("/_owner_"))
+                    .Where(b => !b.Contains("/_owner_") && !b.Contains("/_hidden_"))
                     .Select(b => b.Split('/')[0])
                     .Distinct()
                     .Where(p => string.IsNullOrEmpty(userId)
                                 || !ownerMap.ContainsKey(p)
                                 || ownerMap[p] == userId)
+                    .Where(p => !hiddenForUser.Contains(p))
                     .OrderBy(p => p)
                     .Select(p => new
                     {
@@ -64,8 +72,9 @@ namespace CRoll.API.Controllers
         }
 
         /// <summary>
-        /// Delete a project and all its blobs. Only the project owner (matched via
-        /// the _owner_{userId} marker blob) may delete it.
+        /// Soft-delete a project for the requesting user only. Writes a
+        /// {projectName}/_hidden_{userId} marker so the project is filtered out of that
+        /// user's list via GetProjects. The underlying blobs remain intact for other users.
         /// </summary>
         [HttpDelete("projects/{projectName}")]
         public async Task<IActionResult> DeleteProject(string projectName, [FromQuery] string userId)
@@ -75,15 +84,11 @@ namespace CRoll.API.Controllers
 
             try
             {
-                var markerBlob = $"{projectName}/_owner_{userId}";
-                if (!await _blobService.ExistsAsync(markerBlob))
-                    return StatusCode(403, "You do not own this project.");
+                var hiddenMarker = $"{projectName}/_hidden_{userId}";
+                using var content = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(userId));
+                await _blobService.UploadAsync(hiddenMarker, content, "text/plain");
 
-                var blobs = await _blobService.ListBlobsAsync($"{projectName}/");
-                foreach (var blob in blobs)
-                    await _blobService.DeleteAsync(blob);
-
-                _logger.LogInformation("Project {Project} deleted by user {UserId}", projectName, userId);
+                _logger.LogInformation("Project {Project} hidden for user {UserId}", projectName, userId);
                 return NoContent();
             }
             catch (Exception ex)
@@ -184,6 +189,11 @@ namespace CRoll.API.Controllers
                     var markerBlob = $"{projectName}/_owner_{ownerId}";
                     using var empty = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(ownerId));
                     await _blobService.UploadAsync(markerBlob, empty, "text/plain");
+
+                    // Un-hide the project for this user if they had previously soft-deleted it
+                    var hiddenMarker = $"{projectName}/_hidden_{ownerId}";
+                    if (await _blobService.ExistsAsync(hiddenMarker))
+                        await _blobService.DeleteAsync(hiddenMarker);
                 }
 
                 foreach (var file in files)

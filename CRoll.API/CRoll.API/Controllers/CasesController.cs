@@ -1,13 +1,11 @@
 using CRoll.API.Models;
-using CRoll.API.Services.Cases;
-using Microsoft.AspNetCore.Authorization;
+using CRoll.API.Services.Cases;  
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRoll.API.Controllers
 {
     [ApiController]
     [Route("api/cases")]
-    // [Authorize] — disabled for local testing; re-enable before deploying
     public class CasesController : ControllerBase
     {
         private readonly ICaseService _caseService;
