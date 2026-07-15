@@ -53,6 +53,7 @@ BEGIN
         [ChartMode]        NVARCHAR(50)   NULL,
         [ChartOrientation] NVARCHAR(50)   NULL,
         [ChartImage]       NVARCHAR(MAX)  NULL,
+        [ArtMode]          NVARCHAR(20)   NULL,
 
         [Synced]           INT            NOT NULL DEFAULT 0,
 

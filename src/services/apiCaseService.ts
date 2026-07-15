@@ -28,6 +28,7 @@ export interface ApiCase {
   chartMode?: string;
   chartOrientation?: string;
   chartImage?: string;
+  artMode?: 'standard' | 'art';
   synced: number;
   projectId?: string;          // blob storage project folder name
   updatedAt?: string;          // ISO date string from server

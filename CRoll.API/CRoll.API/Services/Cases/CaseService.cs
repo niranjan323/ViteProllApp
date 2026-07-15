@@ -22,7 +22,7 @@ namespace CRoll.API.Services.Cases
                        DraftAft, DraftFore, Gm, Heading, Speed, MaxRoll,
                        Hs, Tz, WaveDirection, DataFilePath,
                        FittedDraft, FittedGm, FittedHs, FittedTz,
-                       ChartMode, ChartOrientation, ChartImage, Synced,
+                       ChartMode, ChartOrientation, ChartImage, ArtMode, Synced,
                        ProjectId, UpdatedAt
                 FROM Cases
                 WHERE UserId = @UserId
@@ -56,7 +56,7 @@ namespace CRoll.API.Services.Cases
                        DraftAft, DraftFore, Gm, Heading, Speed, MaxRoll,
                        Hs, Tz, WaveDirection, DataFilePath,
                        FittedDraft, FittedGm, FittedHs, FittedTz,
-                       ChartMode, ChartOrientation, ChartImage, Synced,
+                       ChartMode, ChartOrientation, ChartImage, ArtMode, Synced,
                        ProjectId, UpdatedAt
                 FROM Cases WHERE Id = @Id";
 
@@ -84,14 +84,14 @@ namespace CRoll.API.Services.Cases
                     DraftAft, DraftFore, Gm, Heading, Speed, MaxRoll,
                     Hs, Tz, WaveDirection, DataFilePath,
                     FittedDraft, FittedGm, FittedHs, FittedTz,
-                    ChartMode, ChartOrientation, ChartImage, Synced,
+                    ChartMode, ChartOrientation, ChartImage, ArtMode, Synced,
                     ProjectId, UpdatedAt
                 ) VALUES (
                     @Id, @CreatedAt, @UserId, @Color,
                     @DraftAft, @DraftFore, @Gm, @Heading, @Speed, @MaxRoll,
                     @Hs, @Tz, @WaveDirection, @DataFilePath,
                     @FittedDraft, @FittedGm, @FittedHs, @FittedTz,
-                    @ChartMode, @ChartOrientation, @ChartImage, @Synced,
+                    @ChartMode, @ChartOrientation, @ChartImage, @ArtMode, @Synced,
                     @ProjectId, @UpdatedAt
                 )";
 
@@ -122,7 +122,7 @@ namespace CRoll.API.Services.Cases
                     FittedDraft = @FittedDraft, FittedGm = @FittedGm,
                     FittedHs = @FittedHs, FittedTz = @FittedTz,
                     ChartMode = @ChartMode, ChartOrientation = @ChartOrientation,
-                    ChartImage = @ChartImage, Synced = @Synced,
+                    ChartImage = @ChartImage, ArtMode = @ArtMode, Synced = @Synced,
                     ProjectId = @ProjectId, UpdatedAt = @UpdatedAt
                 WHERE Id = @Id";
 
@@ -206,6 +206,7 @@ namespace CRoll.API.Services.Cases
             cmd.Parameters.AddWithValue("@ChartMode", (object?)c.ChartMode ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@ChartOrientation", (object?)c.ChartOrientation ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@ChartImage", (object?)c.ChartImage ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@ArtMode", (object?)c.ArtMode ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@Synced", c.Synced);
             cmd.Parameters.AddWithValue("@ProjectId", (object?)c.ProjectId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@UpdatedAt", (object?)c.UpdatedAt ?? DBNull.Value);
@@ -234,6 +235,7 @@ namespace CRoll.API.Services.Cases
             ChartMode = Str(r, "ChartMode"),
             ChartOrientation = Str(r, "ChartOrientation"),
             ChartImage = Str(r, "ChartImage"),
+            ArtMode = Str(r, "ArtMode"),
             Synced = r.GetInt32(r.GetOrdinal("Synced")),
             ProjectId = Str(r, "ProjectId"),
             UpdatedAt = r.IsDBNull(r.GetOrdinal("UpdatedAt")) ? null : r.GetDateTime(r.GetOrdinal("UpdatedAt")),

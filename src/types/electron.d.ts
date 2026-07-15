@@ -85,6 +85,7 @@ interface DbCaseRow {
   chart_mode: string;
   chart_orientation: string;
   chart_image: string | null;
+  art_mode: string | null;
   synced: number;
 }
 

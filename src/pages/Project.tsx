@@ -36,6 +36,7 @@ interface SavedCase {
     fittedParams?: { draft: number | null; gm: number | null; hs: number | null; tz: number | null };
     chartMode?: 'continuous' | 'traffic-light';
     chartOrientation?: 'north-up' | 'heads-up';
+    artMode?: 'standard' | 'art';
 }
 
 // Wave period conversion factors
@@ -134,6 +135,7 @@ const Project: React.FC = () => {
                 chartImageUrl: row.chart_image ?? undefined,
                 chartMode: (row.chart_mode ?? 'continuous') as 'continuous' | 'traffic-light',
                 chartOrientation: (row.chart_orientation ?? 'north-up') as 'north-up' | 'heads-up',
+                artMode: (row.art_mode ?? 'standard') as 'standard' | 'art',
                 fittedParams: {
                     draft: row.fitted_draft,
                     gm: row.fitted_gm,
@@ -180,6 +182,7 @@ const Project: React.FC = () => {
                 chartImageUrl: row.chartImage ?? undefined,
                 chartMode: (row.chartMode ?? 'continuous') as 'continuous' | 'traffic-light',
                 chartOrientation: (row.chartOrientation ?? 'north-up') as 'north-up' | 'heads-up',
+                artMode: (row.artMode ?? 'standard') as 'standard' | 'art',
                 fittedParams: {
                     draft: row.fittedDraft ?? null,
                     gm: row.fittedGm ?? null,
@@ -400,6 +403,7 @@ const Project: React.FC = () => {
             chart_mode: chartMode,
             chart_orientation: chartDirection,
             chart_image: null,
+            art_mode: artMode,
         });
 
         // Persist to API (web only)
@@ -425,6 +429,7 @@ const Project: React.FC = () => {
                 fittedTz: savedFittedParams?.tz ?? undefined,
                 chartMode,
                 chartOrientation: chartDirection,
+                artMode,
                 synced: 0,
                 projectId: projectKey,
             };
@@ -435,7 +440,7 @@ const Project: React.FC = () => {
 
         setSavedCases(prev => [
             ...prev,
-            { id: caseIdToSave, color: newColor, parameters: savedParameters, fittedParams: savedFittedParams, chartMode, chartOrientation: chartDirection },
+            { id: caseIdToSave, color: newColor, parameters: savedParameters, fittedParams: savedFittedParams, chartMode, chartOrientation: chartDirection, artMode },
         ]);
         // Trigger a forced redraw so onDrawn fires with a fresh capture for this case
         pendingChartCaptureRef.current = { id: caseIdToSave, projectKey };
@@ -478,6 +483,7 @@ const Project: React.FC = () => {
         });
         if (item.chartMode) setChartMode(item.chartMode);
         if (item.chartOrientation) setChartDirection(item.chartOrientation);
+        setArtMode(item.artMode ?? 'standard');
     };
 
     // Get report data for a case (or current inputs if no case selected)

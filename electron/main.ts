@@ -35,6 +35,7 @@ const NEW_CASES_DDL = `
     chart_mode    TEXT,
     chart_orientation TEXT,
     chart_image   TEXT,
+    art_mode      TEXT,
     synced        INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (id, data_file_path)
   )
@@ -105,6 +106,11 @@ function initDatabase(): void {
       db.exec(NEW_CASES_DDL);
     }
     db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(1);
+  }
+
+  if (schemaVersion < 2) {
+    db.exec(`ALTER TABLE cases ADD COLUMN art_mode TEXT`);
+    db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(2);
   }
 }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -610,6 +616,7 @@ ipcMain.handle('db-save-case', (_event, caseData: {
   chart_mode: string;
   chart_orientation: string;
   chart_image: string | null;
+  art_mode: string | null;
 }) => {
   try {
     const username = os.userInfo().username;
@@ -620,13 +627,13 @@ ipcMain.handle('db-save-case', (_event, caseData: {
         draft_aft, draft_fore, gm, heading, speed, max_roll,
         hs, tz, wave_direction, data_file_path,
         fitted_draft, fitted_gm, fitted_hs, fitted_tz,
-        chart_mode, chart_orientation, chart_image, synced
+        chart_mode, chart_orientation, chart_image, art_mode, synced
       ) VALUES (
         @id, @created_at, @os_username, @machine_name, @color,
         @draft_aft, @draft_fore, @gm, @heading, @speed, @max_roll,
         @hs, @tz, @wave_direction, @data_file_path,
         @fitted_draft, @fitted_gm, @fitted_hs, @fitted_tz,
-        @chart_mode, @chart_orientation, @chart_image, 0
+        @chart_mode, @chart_orientation, @chart_image, @art_mode, 0
       )
     `);
     stmt.run({ ...caseData, os_username: username, machine_name: hostname });

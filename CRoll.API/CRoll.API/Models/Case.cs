@@ -27,6 +27,7 @@ namespace CRoll.API.Models
         public string? ChartMode { get; set; }
         public string? ChartOrientation { get; set; }
         public string? ChartImage { get; set; }
+        public string? ArtMode { get; set; }
 
         public int Synced { get; set; } = 0;
 
