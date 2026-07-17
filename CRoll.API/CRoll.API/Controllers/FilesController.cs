@@ -34,10 +34,17 @@ namespace CRoll.API.Controllers
                 if (!string.IsNullOrEmpty(userId))
                 {
                     var userPrefix = $"users/{userId}/";
+
+                    // Projects with a _pending_delete marker are being deleted — hide them
+                    var pendingDelete = allBlobs
+                        .Where(b => b.StartsWith(userPrefix) && b.EndsWith("/_pending_delete"))
+                        .Select(b => b[userPrefix.Length..].Split('/')[0])
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
                     var userNames = allBlobs
                         .Where(b => b.StartsWith(userPrefix))
                         .Select(b => b[userPrefix.Length..].Split('/')[0])
-                        .Where(p => !string.IsNullOrEmpty(p))
+                        .Where(p => !string.IsNullOrEmpty(p) && !pendingDelete.Contains(p))
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .OrderBy(p => p);
                     resultList.AddRange(userNames.Select(n => (n, true)));
@@ -65,7 +72,10 @@ namespace CRoll.API.Controllers
 
         /// <summary>
         /// Permanently delete all blobs in "users/{userId}/{projectName}/".
-        /// Only works for user-owned projects; shared/admin projects cannot be deleted via this endpoint.
+        /// Writes a _pending_delete marker immediately and returns 202 Accepted so the
+        /// client can dismiss the item at once. Actual blob deletion runs in the background.
+        /// The marker causes GetProjects to hide the project on any subsequent listing,
+        /// preventing re-appearance even while deletion is still in progress.
         /// </summary>
         [HttpDelete("projects/{projectName}")]
         public async Task<IActionResult> DeleteProject(string projectName, [FromQuery] string userId)
@@ -76,19 +86,36 @@ namespace CRoll.API.Controllers
             try
             {
                 var blobPrefix = $"users/{userId}/{projectName}/";
-                var blobs = await _blobService.ListBlobsAsync(blobPrefix);
+                var blobs = (await _blobService.ListBlobsAsync(blobPrefix)).ToList();
                 if (!blobs.Any())
                     return NotFound($"Project '{projectName}' not found for this user.");
 
-                foreach (var blob in blobs)
-                    await _blobService.DeleteAsync(blob);
+                // Write marker immediately (single fast blob write) so listing hides it right away
+                var markerPath = $"{blobPrefix}_pending_delete";
+                using var empty = new MemoryStream();
+                await _blobService.UploadAsync(markerPath, empty, "text/plain");
 
-                _logger.LogInformation("Deleted project {Project} for user {UserId}", projectName, userId);
-                return NoContent();
+                // Fire-and-forget: delete all blobs in background, then remove marker
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        foreach (var blob in blobs)
+                            await _blobService.DeleteAsync(blob);
+                        await _blobService.DeleteAsync(markerPath);
+                        _logger.LogInformation("Background delete complete: {Project} for user {UserId}", projectName, userId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Background delete failed for {Project} — marker remains, project stays hidden", projectName);
+                    }
+                });
+
+                return Accepted();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to delete project {Project}", projectName);
+                _logger.LogError(ex, "Failed to initiate delete for project {Project}", projectName);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }

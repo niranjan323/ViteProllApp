@@ -38,7 +38,6 @@ const Home: React.FC = () => {
     const [selectedProject, setSelectedProject] = useState('');
     const [loadingProject, setLoadingProject] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [deletingProject, setDeletingProject] = useState('');
     const [deleteConfirmProject, setDeleteConfirmProject] = useState<string | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -97,16 +96,18 @@ const Home: React.FC = () => {
         if (!deleteConfirmProject) return;
         const name = deleteConfirmProject;
         setDeleteConfirmProject(null);
-        setDeletingProject(name);
         setError('');
+
+        // Optimistic: remove immediately so user doesn't wait
+        setProjects(prev => prev.filter(p => p.name !== name));
+        if (selectedProject === name) setSelectedProject('');
+
         try {
             await ApiFileSystemService.deleteProject(name, userId);
-            if (selectedProject === name) setSelectedProject('');
-            await fetchProjects();
         } catch (err) {
+            // Network/server error — restore project and show message
+            setProjects(prev => [...prev, { name, isOwned: true }]);
             setError(err instanceof Error ? err.message : String(err));
-        } finally {
-            setDeletingProject('');
         }
     };
 
@@ -391,18 +392,15 @@ const Home: React.FC = () => {
                                                         >
                                                             <span className="project-list-name">{p.name}</span>
                                                             <button
-                                                                className={`project-delete-btn${deletingProject === p.name ? ' deleting' : ''}`}
+                                                                className="project-delete-btn"
                                                                 title="Delete vessel data"
-                                                                disabled={!!deletingProject || loadingProject}
+                                                                disabled={loadingProject}
                                                                 onClick={e => {
                                                                     e.stopPropagation();
                                                                     handleDeleteProject(p.name);
                                                                 }}
                                                             >
-                                                                {deletingProject === p.name
-                                                                    ? <span className="project-delete-spinner" />
-                                                                    : <img src={deleteBlueIcon} alt="delete" width="14" height="16" />
-                                                                }
+                                                                <img src={deleteBlueIcon} alt="delete" width="14" height="16" />
                                                             </button>
                                                         </div>
                                                     ))}
