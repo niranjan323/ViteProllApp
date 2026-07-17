@@ -1,3 +1,5 @@
+import { getAccessToken } from '../auth/msalInstance';
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
 
 /**
@@ -35,6 +37,8 @@ export interface ApiCase {
 async function buildHeaders(includeContentType = true): Promise<Record<string, string>> {
     const h: Record<string, string> = {};
     if (includeContentType) h['Content-Type'] = 'application/json';
+    const token = await getAccessToken();
+    if (token) h['Authorization'] = `Bearer ${token}`;
     return h;
 }
 

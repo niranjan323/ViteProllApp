@@ -54,7 +54,7 @@ function initDatabase(): void {
   // Schema version tracking for migrations
   db.exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)`);
   const versionRow = db.prepare('SELECT version FROM schema_version').get() as { version: number } | undefined;
-  const schemaVersion = versionRow?.version ?? 0;
+  let schemaVersion = versionRow?.version ?? 0;
 
   if (schemaVersion < 1) {
     // Migrate to composite PRIMARY KEY (id, data_file_path) so two vessels can share case IDs
@@ -100,17 +100,18 @@ function initDatabase(): void {
     } else {
       db.exec(NEW_CASES_DDL);
     }
-    db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(1);
+    db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(2);
+    schemaVersion = 2;
   }
-  if (schemaVersion < 2) {
-    // NEW_CASES_DDL already includes art_mode, so only add it for pre-existing tables
-    // that predate this column. Guard makes the migration idempotent.
-    const hasArtMode = (db.prepare(`PRAGMA table_info(cases)`).all() as { name: string }[])
-      .some(col => col.name === 'art_mode');
-    if (!hasArtMode) {
+  
+  const caseColumns = db.prepare(`PRAGMA table_info(cases)`).all() as Array<{ name: string }>;
+  const artModeExists = caseColumns.some(column => column.name === 'art_mode');
+  if (!artModeExists) {
       db.exec(`ALTER TABLE cases ADD COLUMN art_mode TEXT`);
     }
-    db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(2);
+    if (schemaVersion < 2) {
+      db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(2);
+      schemaVersion = 2;
   }
 }
 // ─────────────────────────────────────────────────────────────────────────────

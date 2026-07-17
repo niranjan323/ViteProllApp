@@ -15,10 +15,10 @@ const Home: React.FC = () => {
     const {
         selectFolder,
         selectProject,
-        setApiUserId,
         loadControlFile,
         selectedFolder: electronFolder,
         isElectronMode,
+        fileSystem,
     } = useElectron();
     const { setSelectedFolder } = useUserData();
     const userId = useUserEmail();
@@ -26,6 +26,7 @@ const Home: React.FC = () => {
     // Shared status
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [artWarning, setArtWarning] = useState('');
 
     // Electron-mode loading
     const [loading, setLoading] = useState(false);
@@ -65,12 +66,6 @@ const Home: React.FC = () => {
         if (electronFolder) setSelectedFolder(electronFolder);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electronFolder]);
-
-    // Keep ApiFileSystemService aware of the current userId for user-scoped blob paths
-    useEffect(() => {
-        if (userId) setApiUserId(userId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId]);
 
     // Fetch project list from API on mount (web mode only)
     useEffect(() => {
@@ -122,8 +117,7 @@ const Home: React.FC = () => {
         setLoadingProject(true);
         setError('');
 
-        const selectedInfo = projects.find(p => p.name === selectedProject);
-        const result = await selectProject(selectedProject, selectedInfo?.isOwned);
+        const result = await selectProject(selectedProject);
         setLoadingProject(false);
 
         if (!result.success) {
@@ -171,6 +165,25 @@ const Home: React.FC = () => {
         if (!ctlResult.success) {
             setError('CRoll.ctl not found in the selected folder. Please select the correct project folder.');
             return;
+        }
+
+        // Warn if ART is installed in the control file but CRoll_ART data folder is missing
+        if (ctlResult.artStatus === 1) {
+            try {
+                const entries = await fileSystem.listDirectory('');
+                const hasNewFormat = entries.some((e: string) => e === 'CRoll' || e === 'CRoll_ART');
+                if (hasNewFormat && !entries.some((e: string) => e === 'CRoll_ART')) {
+                    setArtWarning('The control file indicates an Anti-Rolling Device is installed, but the CRoll_ART data folder is missing from the vessel data. ART mode will not be available.');
+                    setLoading(false);
+                    return;
+                } else {
+                    setArtWarning('');
+                }
+            } catch {
+                setArtWarning('');
+            }
+        } else {
+            setArtWarning('');
         }
 
         navigate('/project', { state: { activeTab: 'project' } });
@@ -248,6 +261,26 @@ const Home: React.FC = () => {
                 </div>
             )}
 
+            {/* ── Delete confirm modal ───────────────────────────────────── */}
+            {deleteConfirmProject && (
+                <div className="delete-modal-overlay" onClick={() => setDeleteConfirmProject(null)}>
+                    <div className="delete-modal" onClick={e => e.stopPropagation()}>
+                        <div className="delete-modal-header">
+                            <span className="delete-modal-title">CRoll</span>
+                            <button className="delete-modal-close" onClick={() => setDeleteConfirmProject(null)}>×</button>
+                        </div>
+                        <div className="delete-modal-body">
+                            <img src={removeIcon} alt="" className="delete-modal-icon" />
+                            <p className="delete-modal-text">Would you like to delete vessel data</p>
+                        </div>
+                        <div className="delete-modal-footer">
+                            <button className="delete-modal-no" onClick={() => setDeleteConfirmProject(null)}>No</button>
+                            <button className="delete-modal-yes" onClick={confirmDelete}>Yes</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="home-content">
                 <div className="title-section">
                     <h1 className="main-title">
@@ -289,6 +322,11 @@ const Home: React.FC = () => {
                                     <div className="status-message success">
                                         <span className="status-text">{success}</span>
                                         <span className="status-icon">✓</span>
+                                    </div>
+                                )}
+                                {artWarning && (
+                                    <div className="status-message" style={{ background: '#fff8e1', border: '1px solid #ffe082', color: '#7a5c00', borderRadius: '6px', padding: '10px 14px', fontSize: '13px', lineHeight: '1.5' }}>
+                                        ⚠ {artWarning}
                                     </div>
                                 )}
 

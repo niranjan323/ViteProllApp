@@ -29,11 +29,9 @@ interface ElectronContextType {
   isElectronMode: boolean;
   selectFolder: () => Promise<boolean>;
   /** Web mode only — set the active blob project by name, then load its control file. */
-  selectProject: (projectName: string, isOwned?: boolean) => Promise<{ success: boolean; error?: string }>;
-  /** Web mode only — set the userId used to scope file operations to user-uploaded projects. */
-  setApiUserId: (userId: string) => void;
+  selectProject: (projectName: string) => Promise<{ success: boolean; error?: string }>;
   selectControlFile: () => Promise<boolean>;
-  loadControlFile: (controlPath: string) => Promise<{ success: boolean; error?: string }>;
+  loadControlFile: (controlPath: string) => Promise<{ success: boolean; error?: string; artStatus?: 0 | 1 }>;
   resetAll: () => void;
   isReady: boolean;
 }
@@ -56,7 +54,6 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [artStatus, setArtStatus] = useState<0 | 1>(0);
   const [artMode, setArtMode] = useState<'standard' | 'art'>('standard');
   const [isReady, setIsReady] = useState(false);
-  const [apiUserId, setApiUserId] = useState('');
 
   useEffect(() => {
     setIsReady(true);
@@ -74,13 +71,9 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
    * Web mode only — set the active project by blob project name, then auto-load control file.
    * Returns the error string so the caller can display it to the user.
    */
-  const selectProject = async (projectName: string, isOwned?: boolean): Promise<{ success: boolean; error?: string }> => {
+  const selectProject = async (projectName: string): Promise<{ success: boolean; error?: string }> => {
     try {
       fileSystem.setBasePath(projectName);
-      if (fileSystem instanceof ApiFileSystemService) {
-        fileSystem.setUserId(apiUserId);
-        fileSystem.setIsOwned(isOwned ?? false);
-      }
       setSelectedFolder(projectName);
 
       const ctlResult = await fileSystem.selectControlFile();
@@ -155,7 +148,7 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
     fileSystem.setBasePath('');
   };
 
-  const loadControlFile = async (controlPath: string): Promise<{ success: boolean; error?: string }> => {
+  const loadControlFile = async (controlPath: string): Promise<{ success: boolean; error?: string; artStatus?: 0 | 1 }> => {
     try {
       const result = await dataLoader.loadControlFile(controlPath);
 
@@ -171,7 +164,7 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
       setArtMode('standard');
       setControlFilePath(controlPath);
 
-      return { success: true };
+      return { success: true, artStatus: result.artStatus ?? 0 };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error loading control file';
       console.error('Error loading control file:', error);
@@ -194,7 +187,6 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
     isElectronMode: isElectron,
     selectFolder,
     selectProject,
-    setApiUserId,
     selectControlFile,
     loadControlFile,
     resetAll,

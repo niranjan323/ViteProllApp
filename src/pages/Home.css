@@ -114,6 +114,7 @@
     background: #f9f9f9;
     border-radius: 4px;
     border: 1px solid #e8e8e8;
+    overflow: hidden;
 }
 
 .file-item {
@@ -121,6 +122,8 @@
     align-items: center;
     gap: 0.8rem;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .folder-icon,
@@ -133,6 +136,10 @@
     color: #2196f3;
     font-weight: 500;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .arrow-icon {
@@ -431,26 +438,6 @@
     overflow-y: auto;
     background: white;
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
-    scrollbar-width: thin;
-    scrollbar-color: #b7c9e0 transparent;
-}
-
-.project-list::-webkit-scrollbar {
-    width: 8px;
-}
-
-.project-list::-webkit-scrollbar-track {
-    background: transparent;
-    margin: 4px 0;
-}
-
-.project-list::-webkit-scrollbar-thumb {
-    background: #b7c9e0;
-    border-radius: 4px;
-}
-
-.project-list::-webkit-scrollbar-thumb:hover {
-    background: #8fa8c8;
 }
 
 .project-list-item {

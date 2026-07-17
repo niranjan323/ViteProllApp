@@ -39,6 +39,10 @@ interface SavedCase {
     artMode?: 'standard' | 'art';
 }
 
+function getReportImageKey(caseId: string, dataFilePath?: string): string {
+    return `${dataFilePath ?? ''}::${caseId}`;
+}
+
 // Wave period conversion factors
 const WAVE_PERIOD_CONVERSIONS = {
     'tz': { factor: 1.0, label: 'Zero Up-crossing Wave Period, Tz (s)' },
@@ -68,6 +72,94 @@ function extractSavedCaseReportData(item: SavedCase) {
         artMode: (item.artMode ?? 'standard') as 'standard' | 'art',
     };
 }
+
+interface ReportCaseChartProps {
+    item: SavedCase;
+    dataLoader: DataLoader;
+    maxSpeed?: number;
+    imageKey: string;
+    onCaptured: (key: string, url: string) => void;
+}
+
+const ReportCaseChart: React.FC<ReportCaseChartProps> = ({ item, dataLoader, maxSpeed, imageKey, onCaptured }) => {
+    const [casePolarData, setCasePolarData] = useState<{
+        rollMatrix: number[][];
+        speeds: number[];
+        headings: number[];
+    } | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadCasePolarData = async () => {
+            const c = item.parameters;
+            const draft = (c.vesselData.draftAft + c.vesselData.draftFore) / 2;
+            const findResult = await dataLoader.findDataFile({
+                draft,
+                gm: c.vesselData.gm,
+                hs: c.seaState.hs,
+                tz: c.seaState.tz,
+                artMode: item.artMode ?? 'standard',
+            });
+
+            if (!findResult.success || !findResult.filePath) {
+                if (!cancelled) setCasePolarData(null);
+                return;
+            }
+
+            const dataResult = await dataLoader.loadPolarData(findResult.filePath, {
+                gm: c.vesselData.gm,
+                hs: c.seaState.hs,
+                tz: c.seaState.tz,
+            });
+
+            if (!cancelled && dataResult.success && dataResult.data) {
+                setCasePolarData({
+                    rollMatrix: dataResult.data.rollMatrix,
+                    speeds: dataResult.data.speeds,
+                    headings: dataResult.data.headings,
+                });
+                return;
+            }
+
+            if (!cancelled) setCasePolarData(null);
+        };
+
+        loadCasePolarData().catch(() => {
+            if (!cancelled) setCasePolarData(null);
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [dataLoader, item]);
+
+    if (!casePolarData) {
+        return <div className="report-label">Chart unavailable for this case.</div>;
+    }
+
+    return (
+        <div style={{ width: 420, height: 420, overflow: 'hidden', flexShrink: 0 }}>
+            <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left', width: 700, height: 700 }}>
+                <CanvasPolarChart
+                    rollMatrix={casePolarData.rollMatrix}
+                    speeds={casePolarData.speeds}
+                    headings={casePolarData.headings}
+                    vesselHeading={item.parameters.vesselData.heading}
+                    vesselSpeed={item.parameters.vesselData.speed}
+                    maxRollAngle={item.parameters.vesselData.maxRoll}
+                    meanWaveDirection={item.parameters.seaState.waveDirection}
+                    width={700}
+                    height={700}
+                    mode={item.chartMode ?? 'continuous'}
+                    orientation={item.chartOrientation ?? 'north-up'}
+                    onDrawn={(url) => onCaptured(imageKey, url)}
+                    maxSpeed={maxSpeed}
+                />
+            </div>
+        </div>
+    );
+};
 
 const Project: React.FC = () => {
     const location = useLocation();
@@ -333,7 +425,7 @@ const Project: React.FC = () => {
         setTimeout(() => setReportMessage(null), 3000);
     };
 
-    const handleSaveCase = () => {
+    const handleSaveCase = async () => {
          if (!allParamsValid) {
             showMessage('Cannot save case: one or more input values are out of range', 'error');
             return;
@@ -344,6 +436,11 @@ const Project: React.FC = () => {
         }
 
         const caseIdToSave = caseId.trim();
+
+        if (!projectKey) {
+            showMessage('Cannot save case: no vessel data is loaded. Load vessel data first.', 'error');
+            return;
+        }
 
         if (visibleSavedCases.some(c => c.id === caseIdToSave)) {
             showMessage(`Case "${caseIdToSave}" already exists. Use a different ID.`, 'error');
@@ -383,7 +480,7 @@ const Project: React.FC = () => {
         const savedFittedParams = fittedParams ? { ...fittedParams } : undefined;
 
         // Persist to SQLite (Electron only)
-        window.electronAPI?.dbSaveCase?.({
+        const dbSaveResult = window.electronAPI?.dbSaveCase?.({
             id: caseIdToSave,
             created_at: savedParameters.timestamp,
             color: newColor,
@@ -406,6 +503,14 @@ const Project: React.FC = () => {
             chart_image: null,
             art_mode: artMode,
         });
+
+        if (dbSaveResult) {
+            const result = await dbSaveResult;
+            if (!result.success) {
+                showMessage(result.error ?? 'Failed to save case to local database', 'error');
+                return;
+            }
+        }
 
         // Persist to API (web only)
         if (!isElectronMode && userEmail) {
@@ -542,7 +647,7 @@ const Project: React.FC = () => {
         if (reportType === 'current') {
             // Use the actively selected case, or fall back to current inputs
             const activeCase = activeCaseId
-                ? savedCases.find(c => c.id === activeCaseId) || null
+                ? visibleSavedCases.find(c => c.id === activeCaseId) || null
                 : null;
             setSelectedCaseForReport(activeCase);
         } else {
@@ -620,9 +725,6 @@ const Project: React.FC = () => {
             y += 8;
 
             // Table of parameters
-            const artStatusValue = artStatus === 0
-                ? 'Not Installed'
-                : data.artMode === 'art' ? 'On' : 'Off';
             const rows = [
                 ['Draft Aft Peak', String(data.draftAft), '[m]'],
                 ['Draft Fore Peak', String(data.draftFore), '[m]'],
@@ -630,7 +732,7 @@ const Project: React.FC = () => {
                 ['Heading', String(data.heading), '[degree]'],
                 ['Speed', String(data.speed), '[kn]'],
                 ['Maximum Allowed Roll Angle', String(data.maxRoll), '[degree]'],
-                ['Anti-Rolling Device Status', artStatusValue, ''],
+                ...(artStatus !== 0 ? [['Anti-Rolling Device Status', data.artMode === 'art' ? 'On' : 'Off', '']] : []),
                 ['Mean Wave Direction', String(data.waveDirection), '[degree]'],
                 ['Significant Wave Height, Hs', String(data.hs), '[m]'],
                 [data.wavePeriodLabel, String(data.wavePeriodValue), '[s]'],
@@ -723,9 +825,15 @@ const Project: React.FC = () => {
         let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];
         if (reportType === 'all' && visibleSavedCases.length > 0) {
             // Use the pure module-level function so no component-state closure can bleed in
-            cases = visibleSavedCases.map(c => ({ data: extractSavedCaseReportData(c), chartImageUrl: freshChartImagesRef.current.get(c.id) ?? c.chartImageUrl ?? null }));
+            cases = visibleSavedCases.map(c => ({
+                data: extractSavedCaseReportData(c),
+                chartImageUrl: freshChartImagesRef.current.get(getReportImageKey(c.id, c.parameters.dataFilePath)) ?? c.chartImageUrl ?? null,
+            }));
         } else if (selectedCaseForReport) {
-            cases = [{ data: extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: freshChartImagesRef.current.get(selectedCaseForReport.id) ?? selectedCaseForReport.chartImageUrl ?? null }];
+            cases = [{
+                data: extractSavedCaseReportData(selectedCaseForReport),
+                chartImageUrl: freshChartImagesRef.current.get(getReportImageKey(selectedCaseForReport.id, selectedCaseForReport.parameters.dataFilePath)) ?? selectedCaseForReport.chartImageUrl ?? null,
+            }];
         } else {
             cases = [{ data: getReportData(), chartImageUrl: undefined }];
         }
@@ -742,7 +850,7 @@ const Project: React.FC = () => {
             // Web / dev browser: standard download
             doc.save(fileName);
         }
-    }, [reportType, savedCases, selectedCaseForReport, getReportData, handleDownloadPDF]);
+    }, [reportType, savedCases, isElectronMode, webProjectId, electronFolder, controlFilePath, selectedCaseForReport, getReportData, handleDownloadPDF]);
 
     // Validate all parameters
     const validation = useMemo(() => {
@@ -767,7 +875,7 @@ const Project: React.FC = () => {
     // Unique key for the currently loaded project.
     // Web: clean project name passed from Home ("PIL9000"). Electron: ctl file path or folder.
     const projectKey = isElectronMode
-        ? (controlFilePath ?? electronFolder ?? '')
+        ? (electronFolder ?? (controlFilePath ? controlFilePath.replace(/[\\/][^\\/]+$/, '') : ''))
         : webProjectId;
 
     // Only show cases that belong to the currently selected project
@@ -777,10 +885,8 @@ const Project: React.FC = () => {
                 const dp = c.parameters.dataFilePath;
                 // Exact match (new saves)
                 if (projectKey && dp === projectKey) return true;
-                // Backward compat: old cases migrated with empty data_file_path
-                if (!dp) return true;
                 // Backward compat: old saves used CTL path inside the folder
-                if (electronFolder && (
+                if (electronFolder && (dp) && (
                     dp.startsWith(electronFolder + '/') ||
                     dp.startsWith(electronFolder + '\\')
                 )) return true;
@@ -1497,11 +1603,27 @@ const Project: React.FC = () => {
 
             {/* Report Modal */}
             {showReportModal && (() => {
-                const casesToShow = reportType === 'all' && visibleSavedCases.length > 0
-                    ? visibleSavedCases.map(c => ({ ...extractSavedCaseReportData(c), chartImageUrl: c.chartImageUrl as string | undefined }))
+                const casesToShow: Array<ReturnType<typeof extractSavedCaseReportData> & { chartImageUrl?: string; imageKey: string; sourceCase?: SavedCase }> = reportType === 'all' && visibleSavedCases.length > 0
+                    ? visibleSavedCases.map(c => {
+                        const imageKey = getReportImageKey(c.id, c.parameters.dataFilePath);
+                        return {
+                            ...extractSavedCaseReportData(c),
+                            chartImageUrl: freshChartImagesRef.current.get(imageKey) ?? c.chartImageUrl as string | undefined,
+                            imageKey,
+                            sourceCase: c,
+                        };
+                    })
                     : selectedCaseForReport
-                        ? [{ ...extractSavedCaseReportData(selectedCaseForReport), chartImageUrl: selectedCaseForReport.chartImageUrl as string | undefined }]
-                        : [{ ...getReportData(), chartImageUrl: undefined as string | undefined }];
+                        ? [(() => {
+                            const imageKey = getReportImageKey(selectedCaseForReport.id, selectedCaseForReport.parameters.dataFilePath);
+                            return {
+                                ...extractSavedCaseReportData(selectedCaseForReport),
+                                chartImageUrl: freshChartImagesRef.current.get(imageKey) ?? selectedCaseForReport.chartImageUrl as string | undefined,
+                                imageKey,
+                                sourceCase: selectedCaseForReport,
+                            };
+                        })()]
+                        : [{ ...getReportData(), chartImageUrl: undefined as string | undefined, imageKey: 'current' }];
 
                 return (
                     <div className="report-modal-overlay" onClick={() => setShowReportModal(false)}>
@@ -1563,13 +1685,15 @@ const Project: React.FC = () => {
                                             <span className="report-value highlight">{data.maxRoll}</span>
                                             <span className="report-unit">[degree]</span>
                                         </div>
-                                        <div className="report-row">
-                                            <span className="report-label">Anti-Rolling Device Status</span>
-                                            <span className="report-value highlight">
-                                                {artStatus === 0 ? 'Not Installed' : data.artMode === 'art' ? 'On' : 'Off'}
-                                            </span>
-                                            <span className="report-unit" />
-                                        </div>
+                                        {artStatus !== 0 && (
+                                            <div className="report-row">
+                                                <span className="report-label">Anti-Rolling Device Status</span>
+                                                <span className="report-value highlight">
+                                                    {data.artMode === 'art' ? 'On' : 'Off'}
+                                                </span>
+                                                <span className="report-unit" />
+                                            </div>
+                                        )}
                                         <div className="report-row">
                                             <span className="report-label">Mean Wave Direction</span>
                                             <span className="report-value highlight">{data.waveDirection}</span>
@@ -1612,6 +1736,14 @@ const Project: React.FC = () => {
                                                     alt="Polar chart"
                                                     style={{ width: 420, height: 420, objectFit: 'contain' }}
                                                 />
+                                            ) : data.sourceCase ? (
+                                                <ReportCaseChart
+                                                    item={data.sourceCase}
+                                                    dataLoader={dataLoader}
+                                                    imageKey={data.imageKey}
+                                                    maxSpeed={parameterBounds?.speedUpper}
+                                                    onCaptured={(key, url) => { freshChartImagesRef.current.set(key, url); }}
+                                                />
                                             ) : polarData.rollMatrix && polarData.speeds && polarData.headings ? (
                                                 // Current inputs case (no snapshot): render live and capture for PDF
                                                 <div style={{ width: 420, height: 420, overflow: 'hidden', flexShrink: 0 }}>
@@ -1628,7 +1760,7 @@ const Project: React.FC = () => {
                                                             height={700}
                                                             mode={data.chartMode ?? chartMode}
                                                             orientation={data.chartOrientation ?? chartDirection}
-                                                            onDrawn={(url) => { freshChartImagesRef.current.set(data.caseId ?? 'current', url); }}
+                                                            onDrawn={(url) => { freshChartImagesRef.current.set(data.imageKey, url); }}
                                                             maxSpeed={parameterBounds?.speedUpper}
                                                         />
                                                     </div>
