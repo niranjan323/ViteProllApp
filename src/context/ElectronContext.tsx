@@ -29,7 +29,9 @@ interface ElectronContextType {
   isElectronMode: boolean;
   selectFolder: () => Promise<boolean>;
   /** Web mode only — set the active blob project by name, then load its control file. */
-  selectProject: (projectName: string) => Promise<{ success: boolean; error?: string }>;
+  selectProject: (projectName: string, isOwned?: boolean) => Promise<{ success: boolean; error?: string }>;
+  /** Web mode only — set the userId used to scope file operations to user-uploaded projects. */
+  setApiUserId: (userId: string) => void;
   selectControlFile: () => Promise<boolean>;
   loadControlFile: (controlPath: string) => Promise<{ success: boolean; error?: string; artStatus?: 0 | 1 }>;
   resetAll: () => void;
@@ -54,6 +56,7 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [artStatus, setArtStatus] = useState<0 | 1>(0);
   const [artMode, setArtMode] = useState<'standard' | 'art'>('standard');
   const [isReady, setIsReady] = useState(false);
+  const [apiUserId, setApiUserId] = useState('');
 
   useEffect(() => {
     setIsReady(true);
@@ -71,9 +74,13 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
    * Web mode only — set the active project by blob project name, then auto-load control file.
    * Returns the error string so the caller can display it to the user.
    */
-  const selectProject = async (projectName: string): Promise<{ success: boolean; error?: string }> => {
+  const selectProject = async (projectName: string, isOwned?: boolean): Promise<{ success: boolean; error?: string }> => {
     try {
       fileSystem.setBasePath(projectName);
+      if (fileSystem instanceof ApiFileSystemService) {
+        fileSystem.setUserId(apiUserId);
+        fileSystem.setIsOwned(isOwned ?? false);
+      }
       setSelectedFolder(projectName);
 
       const ctlResult = await fileSystem.selectControlFile();
@@ -187,6 +194,7 @@ export const ElectronProvider: React.FC<{ children: ReactNode }> = ({ children }
     isElectronMode: isElectron,
     selectFolder,
     selectProject,
+    setApiUserId,
     selectControlFile,
     loadControlFile,
     resetAll,

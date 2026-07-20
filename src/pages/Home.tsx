@@ -15,6 +15,7 @@ const Home: React.FC = () => {
     const {
         selectFolder,
         selectProject,
+        setApiUserId,
         loadControlFile,
         selectedFolder: electronFolder,
         isElectronMode,
@@ -65,6 +66,12 @@ const Home: React.FC = () => {
         if (electronFolder) setSelectedFolder(electronFolder);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [electronFolder]);
+
+    // Keep ApiFileSystemService aware of the current userId for user-scoped blob paths
+    useEffect(() => {
+        if (userId) setApiUserId(userId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId]);
 
     // Fetch project list from API on mount (web mode only)
     useEffect(() => {
@@ -118,7 +125,8 @@ const Home: React.FC = () => {
         setLoadingProject(true);
         setError('');
 
-        const result = await selectProject(selectedProject);
+        const selectedInfo = projects.find(p => p.name === selectedProject);
+        const result = await selectProject(selectedProject, selectedInfo?.isOwned);
         setLoadingProject(false);
 
         if (!result.success) {
