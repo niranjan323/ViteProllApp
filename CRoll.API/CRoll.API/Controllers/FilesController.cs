@@ -35,7 +35,13 @@ namespace CRoll.API.Controllers
                 {
                     var userPrefix = $"users/{userId}/";
 
-                    // Projects with a _pending_delete marker are being deleted — hide them
+                    // Soft-deleted projects (_hidden_) and in-flight deletes (_pending_delete)
+                    // should stay hidden from the user's project list.
+                    var hiddenProjects = allBlobs
+                        .Where(b => b.StartsWith(userPrefix) && b.EndsWith("/_hidden_"))
+                        .Select(b => b[userPrefix.Length..].Split('/')[0])
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
                     var pendingDelete = allBlobs
                         .Where(b => b.StartsWith(userPrefix) && b.EndsWith("/_pending_delete"))
                         .Select(b => b[userPrefix.Length..].Split('/')[0])
@@ -44,7 +50,7 @@ namespace CRoll.API.Controllers
                     var userNames = allBlobs
                         .Where(b => b.StartsWith(userPrefix))
                         .Select(b => b[userPrefix.Length..].Split('/')[0])
-                        .Where(p => !string.IsNullOrEmpty(p) && !pendingDelete.Contains(p))
+                        .Where(p => !string.IsNullOrEmpty(p) && !hiddenProjects.Contains(p) && !pendingDelete.Contains(p))
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .OrderBy(p => p);
                     resultList.AddRange(userNames.Select(n => (n, true)));
@@ -52,11 +58,22 @@ namespace CRoll.API.Controllers
 
                 var ownedNames = new HashSet<string>(resultList.Select(r => r.name), StringComparer.OrdinalIgnoreCase);
 
-                // Shared/admin projects: root-level blobs, not under "users/", no marker blobs
+                // Shared-project hides are per-user via markers at:
+                // "users/{userId}/{projectName}/_hidden_".
+                var userHiddenSharedProjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    var userPrefix = $"users/{userId}/";
+                    userHiddenSharedProjects = allBlobs
+                        .Where(b => b.StartsWith(userPrefix) && b.EndsWith("/_hidden_"))
+                        .Select(b => b[userPrefix.Length..].Split('/')[0])
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                }
+
                 var sharedNames = allBlobs
                     .Where(b => !b.StartsWith("users/") && !b.Contains("/_owner_") && !b.Contains("/_hidden_"))
                     .Select(b => b.Split('/')[0])
-                    .Where(p => !string.IsNullOrEmpty(p) && !ownedNames.Contains(p))
+                    .Where(p => !string.IsNullOrEmpty(p) && !ownedNames.Contains(p) && !userHiddenSharedProjects.Contains(p))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .OrderBy(p => p);
                 resultList.AddRange(sharedNames.Select(n => (n, false)));
@@ -71,11 +88,11 @@ namespace CRoll.API.Controllers
         }
 
         /// <summary>
-        /// Permanently delete all blobs in "users/{userId}/{projectName}/".
-        /// Writes a _pending_delete marker immediately and returns 202 Accepted so the
-        /// client can dismiss the item at once. Actual blob deletion runs in the background.
-        /// The marker causes GetProjects to hide the project on any subsequent listing,
-        /// preventing re-appearance even while deletion is still in progress.
+        /// Delete behavior:
+        /// - User-owned project "users/{userId}/{projectName}/": hard-delete all blobs.
+        /// - Shared/root project "{projectName}/": soft-delete only for this user
+        ///   via marker "users/{userId}/{projectName}/_hidden_".
+        /// Shared-project soft-delete hides the dataset only in this user's listings.
         /// </summary>
         [HttpDelete("projects/{projectName}")]
         public async Task<IActionResult> DeleteProject(string projectName, [FromQuery] string userId)
@@ -87,31 +104,47 @@ namespace CRoll.API.Controllers
             {
                 var blobPrefix = $"users/{userId}/{projectName}/";
                 var blobs = (await _blobService.ListBlobsAsync(blobPrefix)).ToList();
-                if (!blobs.Any())
-                    return NotFound($"Project '{projectName}' not found for this user.");
 
-                // Write marker immediately (single fast blob write) so listing hides it right away
-                var markerPath = $"{blobPrefix}_pending_delete";
-                using var empty = new MemoryStream();
-                await _blobService.UploadAsync(markerPath, empty, "text/plain");
-
-                // Fire-and-forget: delete all blobs in background, then remove marker
-                _ = Task.Run(async () =>
+                // 1) User-owned project exists: preserve existing hard-delete behavior.
+                if (blobs.Any())
                 {
-                    try
-                    {
-                        foreach (var blob in blobs)
-                            await _blobService.DeleteAsync(blob);
-                        await _blobService.DeleteAsync(markerPath);
-                        _logger.LogInformation("Background delete complete: {Project} for user {UserId}", projectName, userId);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Background delete failed for {Project} — marker remains, project stays hidden", projectName);
-                    }
-                });
+                    // Write marker immediately (single fast blob write) so listing hides it right away.
+                    var markerPath = $"{blobPrefix}_pending_delete";
+                    using var empty = new MemoryStream();
+                    await _blobService.UploadAsync(markerPath, empty, "text/plain");
 
-                return Accepted();
+                    // Fire-and-forget: delete all blobs in background, then remove marker.
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            foreach (var blob in blobs)
+                                await _blobService.DeleteAsync(blob);
+                            await _blobService.DeleteAsync(markerPath);
+                            _logger.LogInformation("Background delete complete: {Project} for user {UserId}", projectName, userId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Background delete failed for {Project} — marker remains, project stays hidden", projectName);
+                        }
+                    });
+
+                    return Accepted();
+                }
+
+                // 2) No user-owned project: if shared/root exists, soft-delete only for this user.
+                var sharedPrefix = $"{projectName}/";
+                var sharedBlobs = (await _blobService.ListBlobsAsync(sharedPrefix)).ToList();
+                if (sharedBlobs.Any())
+                {
+                    var sharedMarkerPath = $"users/{userId}/{projectName}/_hidden_";
+                    using var empty = new MemoryStream();
+                    await _blobService.UploadAsync(sharedMarkerPath, empty, "text/plain");
+                    _logger.LogInformation("Soft-deleted shared project {Project} for user {UserId}", projectName, userId);
+                    return NoContent();
+                }
+
+                return NotFound($"Project '{projectName}' not found.");
             }
             catch (Exception ex)
             {
