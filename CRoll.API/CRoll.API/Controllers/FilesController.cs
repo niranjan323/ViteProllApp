@@ -35,22 +35,20 @@ namespace CRoll.API.Controllers
                 {
                     var userPrefix = $"users/{userId}/";
 
-                    // Soft-deleted projects (_hidden_) and in-flight deletes (_pending_delete)
-                    // should stay hidden from the user's project list.
-                    var hiddenProjects = allBlobs
-                        .Where(b => b.StartsWith(userPrefix) && b.EndsWith("/_hidden_"))
-                        .Select(b => b[userPrefix.Length..].Split('/')[0])
-                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
                     var pendingDelete = allBlobs
                         .Where(b => b.StartsWith(userPrefix) && b.EndsWith("/_pending_delete"))
                         .Select(b => b[userPrefix.Length..].Split('/')[0])
                         .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+                    // _hidden_ markers live under users/{userId}/ only to hide shared/root projects
+                    // from this user's view — they must not suppress the user's own uploaded projects.
+                    // Detect user-owned projects by real data blobs only (exclude all marker files).
                     var userNames = allBlobs
-                        .Where(b => b.StartsWith(userPrefix))
+                        .Where(b => b.StartsWith(userPrefix)
+                                 && !b.EndsWith("/_hidden_")
+                                 && !b.EndsWith("/_pending_delete"))
                         .Select(b => b[userPrefix.Length..].Split('/')[0])
-                        .Where(p => !string.IsNullOrEmpty(p) && !hiddenProjects.Contains(p) && !pendingDelete.Contains(p))
+                        .Where(p => !string.IsNullOrEmpty(p) && !pendingDelete.Contains(p))
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .OrderBy(p => p);
                     resultList.AddRange(userNames.Select(n => (n, true)));
@@ -245,15 +243,6 @@ namespace CRoll.API.Controllers
                 var blobPrefix = !string.IsNullOrEmpty(ownerId)
                     ? $"users/{ownerId}/{projectName}"
                     : projectName;
-
-                // If the user previously soft-deleted a shared project with this name, clear
-                // the hidden marker — an explicit upload means they want this project visible.
-                if (!string.IsNullOrEmpty(ownerId))
-                {
-                    var hiddenMarker = $"users/{ownerId}/{projectName}/_hidden_";
-                    if (await _blobService.ExistsAsync(hiddenMarker))
-                        await _blobService.DeleteAsync(hiddenMarker);
-                }
 
                 var uploaded = new List<string>();
                 foreach (var file in files)
