@@ -43,6 +43,11 @@ function getReportImageKey(caseId: string, dataFilePath?: string): string {
     return `${dataFilePath ?? ''}::${caseId}`;
 }
 
+function getCaseDisplayName(id: string): string {
+    const sep = id.indexOf('__');
+    return sep >= 0 ? id.slice(sep + 2) : id;
+}
+
 // Wave period conversion factors
 const WAVE_PERIOD_CONVERSIONS = {
     'tz': { factor: 1.0, label: 'Zero Up-crossing Wave Period, Tz (s)' },
@@ -55,7 +60,7 @@ const WAVE_PERIOD_CONVERSIONS = {
 function extractSavedCaseReportData(item: SavedCase) {
     const c = item.parameters as AnalysisCase;
     return {
-        caseId: item.id,
+        caseId: getCaseDisplayName(item.id),
         draftAft: c.vesselData.draftAft,
         draftFore: c.vesselData.draftFore,
         gm: c.vesselData.gm,
@@ -436,13 +441,14 @@ const Project: React.FC = () => {
         }
 
         const caseIdToSave = caseId.trim();
+        const savedId = (!isElectronMode && projectKey) ? `${projectKey}__${caseIdToSave}` : caseIdToSave;
 
         if (!projectKey) {
             showMessage('Cannot save case: no vessel data is loaded. Load vessel data first.', 'error');
             return;
         }
 
-        if (visibleSavedCases.some(c => c.id === caseIdToSave)) {
+        if (visibleSavedCases.some(c => c.id === savedId)) {
             showMessage(`Case "${caseIdToSave}" already exists. Use a different ID.`, 'error');
             return;
         }
@@ -472,7 +478,7 @@ const Project: React.FC = () => {
             vesselData: { ...newCase.vesselData },
             seaState: { ...newCase.seaState },
         };
-        caseManager.addCase(caseIdToSave, savedParameters);
+        caseManager.addCase(savedId, savedParameters);
         // Compute color only for the new case using current polar data.
         // Existing cases keep their previously computed colors.
         const newColor = getVesselSafetyColor(savedParameters);
@@ -515,7 +521,7 @@ const Project: React.FC = () => {
         // Persist to API (web only)
         if (!isElectronMode && userEmail) {
             const apiCase: ApiCase = {
-                id: caseIdToSave,
+                id: savedId,
                 createdAt: savedParameters.timestamp,
                 userId: userEmail,
                 color: newColor,
@@ -546,10 +552,10 @@ const Project: React.FC = () => {
 
         setSavedCases(prev => [
             ...prev,
-            { id: caseIdToSave, color: newColor, parameters: savedParameters, fittedParams: savedFittedParams, chartMode, chartOrientation: chartDirection, artMode },
+            { id: savedId, color: newColor, parameters: savedParameters, fittedParams: savedFittedParams, chartMode, chartOrientation: chartDirection, artMode },
         ]);
         // Trigger a forced redraw so onDrawn fires with a fresh capture for this case
-        pendingChartCaptureRef.current = { id: caseIdToSave, projectKey };
+        pendingChartCaptureRef.current = { id: savedId, projectKey };
         setCaptureKey(k => k + 1);
         setCaseId('');
         showMessage(`Case "${caseIdToSave}" saved`, 'success');
@@ -564,7 +570,7 @@ const Project: React.FC = () => {
                 console.error('Failed to delete case from API:', err)
             );
         }
-        showMessage(`Case "${id}" deleted`, 'success');
+        showMessage(`Case "${getCaseDisplayName(id)}" deleted`, 'success');
     };
 
     const handleLoadCase = (item: SavedCase) => {
@@ -597,7 +603,7 @@ const Project: React.FC = () => {
         if (caseItem) {
             const c = caseItem.parameters as AnalysisCase;
             return {
-                caseId: caseItem.id,
+                caseId: getCaseDisplayName(caseItem.id),
                 draftAft: c.vesselData.draftAft,
                 draftFore: c.vesselData.draftFore,
                 gm: c.vesselData.gm,
@@ -1233,7 +1239,7 @@ const Project: React.FC = () => {
                                             <option value="">Select case to delete</option>
                                             {visibleSavedCases.map((c) => (
                                                 <option key={c.id} value={c.id}>
-                                                    {c.id}
+                                                    {getCaseDisplayName(c.id)}
                                                 </option>
                                             ))}
                                         </select>
@@ -1562,7 +1568,7 @@ const Project: React.FC = () => {
                             {visibleSavedCases.map((item) => (
                                 <div key={item.id} className={`case-tile-box ${activeCaseId === item.id ? 'active' : ''}`} onClick={() => handleLoadCase(item)}>
                                     <div className={`case-tile-icon ${item.color}`}></div>
-                                    <span className="case-tile-id">{item.id}</span>
+                                    <span className="case-tile-id">{getCaseDisplayName(item.id)}</span>
                                 </div>
                             ))}
                         </div>
