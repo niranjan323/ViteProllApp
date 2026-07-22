@@ -246,6 +246,15 @@ namespace CRoll.API.Controllers
                     ? $"users/{ownerId}/{projectName}"
                     : projectName;
 
+                // If the user previously soft-deleted a shared project with this name, clear
+                // the hidden marker — an explicit upload means they want this project visible.
+                if (!string.IsNullOrEmpty(ownerId))
+                {
+                    var hiddenMarker = $"users/{ownerId}/{projectName}/_hidden_";
+                    if (await _blobService.ExistsAsync(hiddenMarker))
+                        await _blobService.DeleteAsync(hiddenMarker);
+                }
+
                 var uploaded = new List<string>();
                 foreach (var file in files)
                 {
