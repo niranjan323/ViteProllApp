@@ -270,7 +270,8 @@ const Project: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Load persisted cases from API on mount (web only)
+    // Load persisted cases from API in web mode.
+    // Re-run when selected web project changes so dataset switching refreshes the list.
     useEffect(() => {
         if (isElectronMode || !userEmail) return;
         ApiCaseService.getAllCases(userEmail, webProjectId).then(apiCases => {
@@ -314,7 +315,7 @@ const Project: React.FC = () => {
             });
         }).catch(err => console.error('Failed to load cases from API:', err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isElectronMode, userEmail]);
+    }, [isElectronMode, userEmail, webProjectId]);
 
     const handleChangeVesselData = () => { navigate('/'); };
 

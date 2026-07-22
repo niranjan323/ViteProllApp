@@ -515,7 +515,7 @@ const Home: React.FC = () => {
                                         onClick={handleLoadProject}
                                         disabled={!selectedProject || loadingProjects || loadingProject}
                                     >
-                                        {loadingProject ? 'Loading...' : 'Load Vessel Data'}
+                                        {loadingProject ? 'Loading...' : 'Enter User Input'}
                                     </button>
                                 </div>
                             </>

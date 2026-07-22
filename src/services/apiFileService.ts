@@ -138,7 +138,7 @@ export class ApiFileSystemService implements IFileSystemService {
 
     return {
       success: false,
-      error: `Control file not found in project '${this.basePath}'. Tried: croll.ctl, CRoll.ctl, control.ctl`,
+      error: `Unable to read CRoll.ctl from the project folder`,
     };
   }
 

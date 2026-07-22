@@ -28,7 +28,9 @@ export class CaseManager {
    * Add a new case
    */
   addCase(caseId: string, data: AnalysisCase): void {
-    if (caseId.length > 12) {
+    // In web mode IDs can be namespaced as "projectKey__caseId"; validate only the case segment.
+    const caseIdSegment = caseId.includes('__') ? caseId.split('__').pop() ?? '' : caseId;
+    if (caseIdSegment.length > 12) {
       throw new Error('Case ID must be 12 characters or less');
     }
     this.cases.set(caseId, data);
