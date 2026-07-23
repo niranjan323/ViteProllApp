@@ -124,6 +124,7 @@ const Header = () => {
                     });
                 });
 
+                pdfDoc.setTitle('ABS Eagle CRoll User Guide v2026.1.1');
                 const watermarkedBytes = await pdfDoc.save();
                 const byteArray = Array.from(watermarkedBytes);
                 const blob = new Blob([new Uint8Array(byteArray)], { type: 'application/pdf' });
