@@ -4,7 +4,7 @@ import './Project.css';
 import { useUserData } from '../context/UserDataContext';
 import { useElectron } from '../context/ElectronContext';
 import { useUserEmail } from '../context/UserEmailContext';
-import { useMsal } from '@azure/msal-react';
+import { useUserDisplay } from '../context/UserDisplayContext';
 import { ApiCaseService } from '../services/apiCaseService';
 import type { ApiCase } from '../services/apiCaseService';
 import { ParameterValidator } from '../services/parameterValidator';
@@ -179,13 +179,7 @@ const Project: React.FC = () => {
     };
     const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo, isElectronMode, artStatus, artMode, setArtMode } = useElectron();
     const userEmail = useUserEmail();
-    const { accounts } = useMsal();
-    const msalAccount = accounts[0];
-    const webDisplayName = msalAccount?.name ?? '';
-    const webUserEmailDisplay =
-        ((msalAccount?.idTokenClaims as Record<string, unknown> | undefined)?.emails as string[] | undefined)?.[0]
-        ?? msalAccount?.username
-        ?? '';
+    const { displayName: webDisplayName, email: webUserEmailDisplay } = useUserDisplay();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(initialTab);
     const [caseId, setCaseId] = useState('');
