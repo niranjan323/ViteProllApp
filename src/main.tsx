@@ -6,6 +6,7 @@ import { HashRouter, BrowserRouter } from 'react-router-dom';
 import { ElectronProvider } from './context/ElectronContext';
 import { UserDataProvider } from './context/UserDataContext';
 import { UserEmailProvider } from './context/UserEmailContext';
+import { UserDisplayProvider } from './context/UserDisplayContext';
 import { WebUserEmailProvider } from './auth/WebUserEmailProvider';
 import { setMsalInstance } from './auth/msalInstance';
 
@@ -16,13 +17,15 @@ if (isElectron) {
     root.render(
         <StrictMode>
             <UserEmailProvider value="">
-                <ElectronProvider>
-                    <UserDataProvider>
-                        <HashRouter>
-                            <App />
-                        </HashRouter>
-                    </UserDataProvider>
-                </ElectronProvider>
+                <UserDisplayProvider value={{ displayName: '', email: '' }}>
+                    <ElectronProvider>
+                        <UserDataProvider>
+                            <HashRouter>
+                                <App />
+                            </HashRouter>
+                        </UserDataProvider>
+                    </ElectronProvider>
+                </UserDisplayProvider>
             </UserEmailProvider>
         </StrictMode>
     );

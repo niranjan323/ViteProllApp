@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useMsal } from '@azure/msal-react';
 import { UserEmailProvider } from '../context/UserEmailContext';
+import { UserDisplayProvider } from '../context/UserDisplayContext';
 import { ApiUserService } from '../services/apiUserService';
 
 /**
@@ -39,5 +40,11 @@ export function WebUserEmailProvider({ children }: { children: React.ReactNode }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
-    return <UserEmailProvider value={userId}>{children}</UserEmailProvider>;
+    return (
+        <UserEmailProvider value={userId}>
+            <UserDisplayProvider value={{ displayName: account?.name ?? '', email }}>
+                {children}
+            </UserDisplayProvider>
+        </UserEmailProvider>
+    );
 }
