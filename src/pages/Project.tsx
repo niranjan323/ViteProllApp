@@ -4,6 +4,7 @@ import './Project.css';
 import { useUserData } from '../context/UserDataContext';
 import { useElectron } from '../context/ElectronContext';
 import { useUserEmail } from '../context/UserEmailContext';
+import { useMsal } from '@azure/msal-react';
 import { ApiCaseService } from '../services/apiCaseService';
 import type { ApiCase } from '../services/apiCaseService';
 import { ParameterValidator } from '../services/parameterValidator';
@@ -178,6 +179,13 @@ const Project: React.FC = () => {
     };
     const { parameterBounds, controlFilePath, selectedFolder: electronFolder, vesselInfo, isElectronMode, artStatus, artMode, setArtMode } = useElectron();
     const userEmail = useUserEmail();
+    const { accounts } = useMsal();
+    const msalAccount = accounts[0];
+    const webDisplayName = msalAccount?.name ?? '';
+    const webUserEmailDisplay =
+        ((msalAccount?.idTokenClaims as Record<string, unknown> | undefined)?.emails as string[] | undefined)?.[0]
+        ?? msalAccount?.username
+        ?? '';
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState(initialTab);
     const [caseId, setCaseId] = useState('');
@@ -217,7 +225,7 @@ const Project: React.FC = () => {
     const freshChartImagesRef = useRef<Map<string, string>>(new Map());
 
     // System info for PDF watermarks (Electron only)
-    const [_systemInfo, setSystemInfo] = useState<{ username: string; hostname: string } | null>(null);
+    const [systemInfo, setSystemInfo] = useState<{ username: string; hostname: string } | null>(null);
     useEffect(() => {
         window.electronAPI?.getSystemInfo?.().then(info => setSystemInfo(info)).catch(() => {});
     }, []);
@@ -825,8 +833,31 @@ const Project: React.FC = () => {
             doc.text('ABS Eagle CRoll, Version 2026.1.1', margin, y);
         });
 
+        // Vertical watermark on the right edge of every page from page 2 onwards —
+        // matches the Electron pdf-lib implementation in main.ts applyWatermarkToPdf().
+        const name = !isElectronMode ? webDisplayName : (systemInfo?.username ?? '');
+        const id   = !isElectronMode ? webUserEmailDisplay : (systemInfo?.hostname ?? '');
+        if (name || id) {
+            const now = new Date();
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const ts = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())} ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} UTC`;
+            const wmText = `Authorized to ABS Eagle CRoll software licensed user ${name} (${id}) only, ${ts}, copyright ${now.getUTCFullYear()} by ABS. All rights reserved.`;
+            const pw = doc.internal.pageSize.getWidth();
+            const ph = doc.internal.pageSize.getHeight();
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let p = 2; p <= totalPages; p++) {
+                doc.setPage(p);
+                doc.setFontSize(7);
+                doc.setTextColor(97, 97, 97);
+                const wmWidth = doc.getTextWidth(wmText);
+                // angle: -90 = clockwise 90° = text reads top-to-bottom (matches Electron rotate: degrees(-90))
+                doc.text(wmText, pw - 7, (ph - wmWidth) / 2, { angle: -90 });
+            }
+            if (totalPages > 0) doc.setPage(totalPages);
+        }
+
         return doc;
-    }, [vesselInfo, artStatus]);
+    }, [vesselInfo, artStatus, isElectronMode, systemInfo, webDisplayName, webUserEmailDisplay]);
 
     const handleDownloadReport = useCallback(async () => {
         let cases: { data: ReturnType<typeof extractSavedCaseReportData>; chartImageUrl?: string | null }[];
