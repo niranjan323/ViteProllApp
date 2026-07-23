@@ -124,14 +124,38 @@ const Header = () => {
                     });
                 });
 
-                pdfDoc.setTitle('ABS Eagle CRoll User Guide v2026.1.1');
                 const watermarkedBytes = await pdfDoc.save();
-                const byteArray = Array.from(watermarkedBytes);
-                const blob = new Blob([new Uint8Array(byteArray)], { type: 'application/pdf' });
+                const blob = new Blob([watermarkedBytes], { type: 'application/pdf' });
                 const blobUrl = URL.createObjectURL(blob);
-                guideWindow.location.replace(blobUrl);
+                const pdfTitle = 'ABS Eagle CRoll User Guide v2026.1.1';
+                const downloadName = 'ABS Eagle CRoll User Guide v2026.1.1.pdf';
 
-                // Give the browser enough time to load the PDF, then revoke the URL.
+                guideWindow.document.open();
+                guideWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${pdfTitle}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: Arial, sans-serif; background: #404040; }
+    .toolbar { background: #1f1f2e; color: #e0e0e0; padding: 0 16px; display: flex; align-items: center; gap: 12px; font-size: 13px; height: 40px; flex-shrink: 0; }
+    .toolbar-title { flex: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .download-btn { color: #fff; background: #1565c0; border: none; padding: 5px 14px; border-radius: 4px; font-size: 12px; cursor: pointer; text-decoration: none; white-space: nowrap; }
+    .download-btn:hover { background: #1976d2; }
+    embed { display: block; width: 100%; height: calc(100vh - 40px); border: none; }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <span class="toolbar-title">${pdfTitle}</span>
+    <a class="download-btn" href="${blobUrl}" download="${downloadName}">&#11015; Download</a>
+  </div>
+  <embed src="${blobUrl}" type="application/pdf">
+</body>
+</html>`);
+                guideWindow.document.close();
+
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
             } catch (error) {
                 console.error('Failed to open watermarked user guide:', error);
