@@ -1,8 +1,9 @@
 // Header.tsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './Header.css';
 import logo from '../assets/ABS_Logo.png';
 import { useIsAuthenticated, useMsal } from '@azure/msal-react';
+import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib';
 import aboutIcon from '../assets/about.svg';
 import appIcon from '../assets/CRoll App icon.svg';
 import versionIcon from '../assets/version.svg';
@@ -11,6 +12,11 @@ import dateIcon from '../assets/date.svg';
 import emailIcon from '../assets/email.svg';
 import websiteIcon from '../assets/website.svg';
 
+type WebIdentity = {
+    displayName: string;
+    email: string;
+};
+
 const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
 const handleMinimize = () => window.electronAPI?.minimizeWindow?.();
@@ -18,7 +24,7 @@ const handleMaximize = () => window.electronAPI?.maximizeWindow?.();
 const handleClose = () => window.electronAPI?.closeWindow?.();
 
 // Rendered only in web mode — uses MSAL hooks (requires MsalProvider in tree)
-function WebUserSection() {
+function WebUserSection({ onIdentityChange }: { onIdentityChange: (identity: WebIdentity) => void }) {
     const isAuthenticated = useIsAuthenticated();
     const { instance, accounts } = useMsal();
     const [showMenu, setShowMenu] = useState(false);
@@ -27,6 +33,11 @@ function WebUserSection() {
 
     const user = accounts[0];
     const displayName = user?.name ?? user?.username ?? 'User';
+    const email = user?.username ?? '';
+
+    useEffect(() => {
+        onIdentityChange({ displayName, email });
+    }, [displayName, email, onIdentityChange]);
 
     const handleLogout = () => {
         setShowMenu(false);
@@ -48,7 +59,7 @@ function WebUserSection() {
                     <div className="user-menu">
                         <div className="user-menu-info">
                             <strong>{displayName}</strong>
-                            <span>{user?.username}</span>
+                            <span>{email}</span>
                         </div>
                         <hr className="user-menu-divider" />
                         <button className="user-menu-signout" onClick={handleLogout}>
@@ -63,15 +74,68 @@ function WebUserSection() {
 
 const Header = () => {
     const [showAbout, setShowAbout] = useState(false);
-    const handleOpenUserGuide = () => {
+    const [webIdentity, setWebIdentity] = useState<WebIdentity>({ displayName: '', email: '' });
+
+    const handleOpenUserGuide = async () => {
         const documentUrl = '/ABS Eagle CRoll User Guide v2026.1.1.pdf';
         
         if (isElectron) {
             // Open PDF in a new independent Electron window
             window.electronAPI?.openPdfWindow?.(documentUrl);
         } else {
-            // For web/browser, use window.open
-            window.open(documentUrl, '_blank');
+            // Open the tab synchronously from the click event to avoid popup blocking.
+            const guideWindow = window.open('', '_blank');
+            if (!guideWindow) {
+                console.error('Popup was blocked when opening the user guide window.');
+                return;
+            }
+
+            try {
+                const response = await fetch(documentUrl);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch guide PDF: ${response.status}`);
+                }
+
+                const inputBytes = new Uint8Array(await response.arrayBuffer());
+                const pdfDoc = await PDFDocument.load(inputBytes);
+                const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+                const name = webIdentity.displayName || 'User';
+                const id = webIdentity.email || 'unknown';
+                const now = new Date();
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const timestamp = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())} ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} UTC`;
+                const watermarkText = `Authorized to ABS Eagle CRoll software licensed user ${name} (${id}) only, ${timestamp}, copyright ${now.getUTCFullYear()} by ABS. All rights reserved.`;
+
+                const fontSize = 8;
+                const rightMargin = 6;
+                pdfDoc.getPages().forEach((page, index) => {
+                    if (index === 0) return; // keep cover page clean
+                    const { width, height } = page.getSize();
+                    const textWidth = font.widthOfTextAtSize(watermarkText, fontSize);
+                    page.drawText(watermarkText, {
+                        x: width - fontSize - rightMargin,
+                        y: (height + textWidth) / 2,
+                        size: fontSize,
+                        font,
+                        color: rgb(0.38, 0.38, 0.38),
+                        rotate: degrees(-90),
+                        opacity: 0.85,
+                    });
+                });
+
+                const watermarkedBytes = await pdfDoc.save();
+                const byteArray = Array.from(watermarkedBytes);
+                const blob = new Blob([new Uint8Array(byteArray)], { type: 'application/pdf' });
+                const blobUrl = URL.createObjectURL(blob);
+                guideWindow.location.replace(blobUrl);
+
+                // Give the browser enough time to load the PDF, then revoke the URL.
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+            } catch (error) {
+                console.error('Failed to open watermarked user guide:', error);
+                guideWindow.location.replace(documentUrl);
+            }
         }
     };
 
@@ -116,7 +180,7 @@ const Header = () => {
             {/* RIGHT SIDE */}
             <div className="app-header__right">
                 {/* Logged-in user info — web only */}
-                {!isElectron && <WebUserSection />}
+                {!isElectron && <WebUserSection onIdentityChange={setWebIdentity} />}
                 <div className="about-anchor">
                 <img 
                     src={aboutIcon}
@@ -147,7 +211,7 @@ const Header = () => {
                                 </div>
                                 <div className="about-row">
                                     <img src={buildIcon} alt="" className="about-row-icon" />
-                                    <span className="about-detail">Build number: 20260515</span>
+                                    <span className="about-detail">Build number: 20260715</span>
                                 </div>
                                 <div className="about-row">
                                     <img src={dateIcon} alt="" className="about-row-icon" />
